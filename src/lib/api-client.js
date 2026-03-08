@@ -1,7 +1,15 @@
-const API_BASE_URL = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+const GITHUB_PAGES_API_FALLBACK = "https://luna-backend-production-c7ab.up.railway.app";
+
+const API_BASE_URL = (
+  import.meta.env.VITE_API_URL ||
+  (typeof window !== "undefined" && window.location.hostname.endsWith("github.io")
+    ? GITHUB_PAGES_API_FALLBACK
+    : "")
+).replace(/\/$/, "");
 
 const DEFAULT_BASES = [
   API_BASE_URL,
+  GITHUB_PAGES_API_FALLBACK,
   "",
   "http://localhost:5112",
   "http://localhost:5108",
