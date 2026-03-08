@@ -1,8 +1,8 @@
 const API_BASE_URL = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
 const DEFAULT_BASES = [
-  "",
   API_BASE_URL,
+  "",
   "http://localhost:5112",
   "http://localhost:5108",
   "http://localhost:5000",
@@ -126,7 +126,12 @@ export async function fetchApi(path, options = {}, headerMode = { includeAuth: t
 
     lastResult = result;
 
-    if (result.status > 0 && result.status !== 404) {
+    const shouldTryNextBase =
+      result.status === 404 ||
+      result.message === "Invalid API response (expected JSON)." ||
+      result.message?.includes("API returned HTML instead of JSON");
+
+    if (result.status > 0 && !shouldTryNextBase) {
       return result;
     }
   }
