@@ -1,16 +1,35 @@
 const GITHUB_PAGES_API_FALLBACK = "https://luna-backend-production-c7ab.up.railway.app";
 
-const API_BASE_URL = (
-  import.meta.env.VITE_API_URL ||
-  (typeof window !== "undefined" && window.location.hostname.endsWith("github.io")
-    ? GITHUB_PAGES_API_FALLBACK
-    : "")
-).replace(/\/$/, "");
+const IS_GITHUB_PAGES =
+  typeof window !== "undefined" && window.location.hostname.endsWith("github.io");
+
+function normalizeApiBase(input) {
+  const value = typeof input === "string" ? input.trim() : "";
+  if (!value) return "";
+
+  if (/^https?:\/\//i.test(value)) {
+    return value.replace(/\/$/, "");
+  }
+
+  if (value.startsWith("//")) {
+    return `https:${value}`.replace(/\/$/, "");
+  }
+
+  if (/^[a-z0-9.-]+\.[a-z]{2,}(?:\/|$)/i.test(value)) {
+    return `https://${value}`.replace(/\/$/, "");
+  }
+
+  return value.replace(/\/$/, "");
+}
+
+const API_BASE_URL = normalizeApiBase(
+  import.meta.env.VITE_API_URL || (IS_GITHUB_PAGES ? GITHUB_PAGES_API_FALLBACK : ""),
+);
 
 const DEFAULT_BASES = [
   API_BASE_URL,
   GITHUB_PAGES_API_FALLBACK,
-  "",
+  ...(IS_GITHUB_PAGES ? [] : [""]),
   "http://localhost:5112",
   "http://localhost:5108",
   "http://localhost:5000",
