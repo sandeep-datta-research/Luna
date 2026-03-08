@@ -1,0 +1,123 @@
+"use client";
+
+import { memo } from "react";
+import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Separator } from "@/components/ui/separator";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+} from "@/components/ui/breadcrumb";
+import {
+  Bell,
+  Search,
+  Filter,
+  Download,
+  RefreshCw,
+  MoreHorizontal,
+} from "lucide-react";
+
+export const DashboardHeader = memo(
+  ({ searchQuery, onSearchChange, onRefresh, onExport, isRefreshing }) => {
+    return (
+      <header className="sticky top-0 z-50 flex h-16 w-full shrink-0 items-center gap-2 border-b border-zinc-800/80 bg-[#0c0c13]/95 text-zinc-100 backdrop-blur-xl transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+        <div className="flex items-center gap-2 px-4">
+          <SidebarTrigger className="-ml-1 text-zinc-300 hover:bg-zinc-800/70 hover:text-zinc-100" />
+          <Separator orientation="vertical" className="mr-2 h-4 bg-zinc-700/80" />
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem className="hidden md:block">
+                <BreadcrumbLink href="#" className="text-zinc-400 hover:text-zinc-200">Admin</BreadcrumbLink>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+        </div>
+
+        <div className="ml-auto flex items-center gap-2 px-4">
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="flex items-center gap-2"
+          >
+            <div className="relative hidden md:block">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+              <Input
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => onSearchChange(e.target.value)}
+                className="w-64 border-zinc-700 bg-zinc-900/70 pl-10 text-zinc-100 placeholder:text-zinc-500 focus-visible:ring-zinc-500"
+              />
+            </div>
+
+            <div className="hidden items-center gap-2 md:flex">
+              <Button variant="outline" size="sm" className="border-zinc-700 bg-zinc-900/60 text-zinc-200 hover:bg-zinc-800">
+                <Filter className="mr-2 h-4 w-4" />
+                Filter
+              </Button>
+
+              <Button variant="outline" size="sm" onClick={onExport} className="border-zinc-700 bg-zinc-900/60 text-zinc-200 hover:bg-zinc-800">
+                <Download className="mr-2 h-4 w-4" />
+                Export
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onRefresh}
+                disabled={isRefreshing}
+                className="border-zinc-700 bg-zinc-900/60 text-zinc-200 hover:bg-zinc-800"
+              >
+                <RefreshCw
+                  className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
+                />
+                Refresh
+              </Button>
+            </div>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild className="md:hidden">
+                <Button variant="outline" size="icon" className="border-zinc-700 bg-zinc-900/60 text-zinc-200 hover:bg-zinc-800">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48 border-zinc-700 bg-zinc-900 text-zinc-100">
+                <DropdownMenuItem onClick={() => onSearchChange("")}>
+                  <Search className="mr-2 h-4 w-4" />
+                  Search
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Filter className="mr-2 h-4 w-4" />
+                  Filter
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={onExport}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Export
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={onRefresh}>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Refresh
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <Button variant="outline" size="sm" className="border-zinc-700 bg-zinc-900/60 text-zinc-200 hover:bg-zinc-800">
+              <Bell className="h-4 w-4" />
+            </Button>
+          </motion.div>
+        </div>
+      </header>
+    );
+  },
+);
+
+DashboardHeader.displayName = "DashboardHeader";

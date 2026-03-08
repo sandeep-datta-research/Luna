@@ -1,0 +1,4 @@
+﻿.env
+data/history.json
+*.log
+data/users.json

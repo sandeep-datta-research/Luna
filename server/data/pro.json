@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "memberships": [
+    {
+      "userId": "usr-e229d10a-65f0-4065-8603-6229d36c9df1",
+      "email": "disolzadopa@gmail.com",
+      "name": "Dopa Disolza",
+      "plan": "free",
+      "activatedAt": "",
+      "activatedBy": "",
+      "createdAt": "2026-03-08T02:39:34.514Z",
+      "updatedAt": "2026-03-08T02:45:33.998Z"
+    },
+    {
+      "userId": "usr-82f1fc17-4024-4db8-a89d-8f5823bc6236",
+      "email": "seiuasatou@gmail.com",
+      "name": "SEIUA",
+      "plan": "pro",
+      "activatedAt": "2026-03-08T02:35:42.967Z",
+      "activatedBy": "usr-82f1fc17-4024-4db8-a89d-8f5823bc6236",
+      "createdAt": "2026-03-08T02:34:38.430Z",
+      "updatedAt": "2026-03-08T10:22:39.553Z"
+    }
+  ],
+  "upgradeRequests": [
+    {
+      "id": "upr-c450cc3d-00f0-45b5-9650-d3a64869f6ff",
+      "userId": "usr-82f1fc17-4024-4db8-a89d-8f5823bc6236",
+      "userEmail": "seiuasatou@gmail.com",
+      "userName": "SEIUA",
+      "transactionId": "46738374223",
+      "amountInr": 90,
+      "status": "approved",
+      "note": "",
+      "createdAt": "2026-03-08T02:34:56.466Z",
+      "updatedAt": "2026-03-08T02:35:42.967Z",
+      "reviewedAt": "2026-03-08T02:35:42.967Z",
+      "reviewedBy": "usr-82f1fc17-4024-4db8-a89d-8f5823bc6236"
+    }
+  ]
+}

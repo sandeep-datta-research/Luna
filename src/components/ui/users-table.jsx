@@ -1,0 +1,142 @@
+"use client";
+
+import { memo } from "react";
+import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import {
+  TrendingUp,
+  Plus,
+  Calendar,
+  Mail,
+  MapPin,
+  MoreHorizontal,
+} from "lucide-react";
+
+const users = [
+  {
+    id: 1,
+    name: "Alex Johnson",
+    email: "alex@example.com",
+    avatar: "https://i.pravatar.cc",
+    role: "Admin",
+    status: "active",
+    joinDate: "2024-01-15",
+    location: "New York, US",
+  },
+  {
+    id: 2,
+    name: "Sarah Chen",
+    email: "sarah@example.com",
+    avatar: "https://i.pravatar.cc",
+    role: "User",
+    status: "active",
+    joinDate: "2024-02-20",
+    location: "San Francisco, US",
+  },
+  {
+    id: 3,
+    name: "Michael Brown",
+    email: "michael@example.com",
+    avatar: "https://i.pravatar.cc",
+    role: "Moderator",
+    status: "inactive",
+    joinDate: "2024-01-08",
+    location: "London, UK",
+  },
+];
+
+export const UsersTable = memo(({ onAddUser }) => {
+  return (
+    <div className="rounded-xl border border-zinc-800/80 bg-[#14141d]/80 p-3 sm:p-6">
+      <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+        <div>
+          <h3 className="text-lg font-semibold text-zinc-100 sm:text-xl">Recent Users</h3>
+          <p className="text-sm text-zinc-400">Latest user registrations and activity</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 text-sm text-emerald-400">
+            <TrendingUp className="h-4 w-4" />
+            <span>+12%</span>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onAddUser}
+            className="border-zinc-700 bg-zinc-900/60 text-zinc-200 hover:bg-zinc-800"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            <span className="hidden sm:inline">Add User</span>
+            <span className="sm:hidden">Add</span>
+          </Button>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        {users.map((user, index) => (
+          <motion.div
+            key={user.id}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.05 }}
+            className="group flex flex-col items-start gap-4 rounded-lg border border-transparent p-4 transition-colors hover:border-zinc-800 hover:bg-zinc-900/45 sm:flex-row sm:items-center"
+          >
+            <div className="flex w-full items-center gap-4 sm:w-auto">
+              <div className="relative">
+                <img
+                  src={user.avatar}
+                  alt={user.name}
+                  width={40}
+                  height={40}
+                  className="rounded-full border border-zinc-700"
+                />
+                <div
+                  className={`absolute -bottom-1 -right-1 h-3 w-3 rounded-full border-2 border-[#14141d] ${user.status === "active" ? "bg-emerald-500" : "bg-rose-500"}`}
+                />
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h4 className="truncate text-sm font-medium text-zinc-100">{user.name}</h4>
+                  <span
+                    className={`rounded-full px-2 py-1 text-xs font-medium ${
+                      user.role === "Admin"
+                        ? "bg-violet-500/15 text-violet-300"
+                        : user.role === "Moderator"
+                          ? "bg-blue-500/15 text-blue-300"
+                          : "bg-zinc-700/40 text-zinc-300"
+                    }`}
+                  >
+                    {user.role}
+                  </span>
+                </div>
+                <div className="mt-1 flex flex-col gap-2 text-xs text-zinc-400 sm:flex-row sm:items-center sm:gap-4">
+                  <div className="flex items-center gap-1">
+                    <Mail className="h-3 w-3" />
+                    <span className="truncate">{user.email}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <MapPin className="h-3 w-3" />
+                    <span>{user.location}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="ml-auto flex items-center gap-3">
+              <div className="flex items-center gap-1 text-xs text-zinc-500">
+                <Calendar className="h-3 w-3" />
+                <span>{new Date(user.joinDate).toLocaleDateString()}</span>
+              </div>
+
+              <Button variant="ghost" size="sm" className="ml-auto text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  );
+});
+
+UsersTable.displayName = "UsersTable";
