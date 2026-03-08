@@ -118,6 +118,10 @@ const manuallyDisabledProviders = new Set(
 app.use(cors());
 app.use(express.json());
 
+app.get("/", (_req, res) => {
+  return res.status(200).json({ ok: true, service: "luna-backend" });
+});
+
 app.get("/health", async (_req, res) => {
   try {
     await initDb();
