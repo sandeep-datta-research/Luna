@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { HashRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import AdminDashboard from "./components/mvpblocks";
 import SignInPage from "./components/mvpblocks/login-form-3";
 import Home from "./pages/home";
@@ -39,10 +39,11 @@ function AnimatedRoutes() {
 
 function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <AnimatedRoutes />
-    </BrowserRouter>
+    </HashRouter>
   );
 }
 
 export default App;
+

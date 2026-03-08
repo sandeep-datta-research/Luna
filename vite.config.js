@@ -7,6 +7,7 @@ export default defineConfig(({ mode }) => {
   const apiTarget = (env.VITE_API_URL || "http://localhost:5112").replace(/\/$/, "");
 
   return {
+    base: "./",
     plugins: [react()],
     server: {
       port: 5173,
