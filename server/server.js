@@ -82,7 +82,7 @@ Always give accurate information and follow platform safety rules. `;
 const CONCISE_STYLE_PROMPT = `Response style:
 - Keep answers concise and structured.
 - Use short paragraphs or bullets.
-- Stay under 100 words unless user asks for detail.`;
+-Answer as much as the user required and stay clear and understandable of user's emotion.`;
 
 const DETAILED_STYLE_PROMPT = `Response style (detailed):
 - Be structured.
