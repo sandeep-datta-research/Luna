@@ -1,5 +1,6 @@
 @import url("https://fonts.googleapis.com/css2?family=Pacifico&family=Sora:wght@400;500;600;700&display=swap");
 @import "highlight.js/styles/github-dark.css";
+@import "katex/dist/katex.min.css";
 
 @tailwind base;
 @tailwind components;
@@ -94,6 +95,15 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-family: "Sora", "Segoe UI", sans-serif;
+    overflow-x: hidden;
+  }
+
+  img,
+  video,
+  canvas,
+  svg {
+    max-width: 100%;
+    height: auto;
   }
 }
 
@@ -291,4 +301,13 @@
   border-radius: 0.4rem;
   background: #1c2236;
   border: 1px solid #30375d;
+}
+
+.luna-markdown .katex {
+  color: #e7e9ff;
+}
+
+.luna-markdown .katex-display {
+  overflow-x: auto;
+  padding: 0.4rem 0;
 }

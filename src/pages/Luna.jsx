@@ -1067,14 +1067,17 @@ export default function Luna() {
           return;
         }
 
-        const take = pendingBuffer.slice(0, 16);
-        pendingBuffer = pendingBuffer.slice(16);
+        const take = pendingBuffer.slice(0, 80);
+        pendingBuffer = pendingBuffer.slice(80);
         applyChunk(take);
       };
 
       const scheduleFlush = () => {
         if (flushTimer) return;
-        flushTimer = setInterval(drainBuffer, 30);
+        drainBuffer();
+        if (pendingBuffer) {
+          flushTimer = setInterval(drainBuffer, 12);
+        }
       };
 
       const waitForFlush = () =>

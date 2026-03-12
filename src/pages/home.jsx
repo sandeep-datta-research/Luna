@@ -249,7 +249,7 @@ export default function Home() {
     });
   }, [featuredFeedback]);
 
-  return (    <div className="dark min-h-screen bg-[#07070d] text-zinc-100">
+  return (    <div className="dark min-h-screen overflow-x-hidden bg-[#07070d] text-zinc-100">
       <nav className="sticky top-0 z-50 border-b border-zinc-800/80 bg-[#07070d]/85 px-4 py-3 backdrop-blur-xl sm:px-6 lg:px-8">
         <div className="mx-auto w-full max-w-6xl">
           <CardNav
