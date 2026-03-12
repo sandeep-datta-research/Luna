@@ -34,7 +34,7 @@ import {
   setMembershipPlan,
   submitUpgradeRequest,
 } from "./pro-db.js";
-import { getAdminSettings, removeReferralCode, updateProMonthlyPrice, updateProSystemPrompt, updateReferralCode, upsertReferralCode, validateReferralCode } from "./admin-settings.js";
+import { getAdminSettings, incrementReferralUsage, removeReferralCode, updateProMonthlyPrice, updateProSystemPrompt, updateReferralCode, upsertReferralCode, validateReferralCode } from "./admin-settings.js";
 import { CATEGORY_LABELS, classifyMessage } from "./luna-classifier.js";
 import { getRoutingPlan, runRoutedProviders, runRoutedProvidersStream } from "./luna-router.js";
 import { buildToolSystemPrompt, executeToolCalls, formatToolResults, planToolCalls } from "./luna-tools.js";
@@ -397,7 +397,10 @@ function wantsDetailedResponse(message) {
 
 function clampReplyLength(reply) {
   if (!reply) return "";
-  let normalized = reply.replace(/\n{3,}/g, "\n\n").trim();
+  let normalized = reply.replace(/
+{3,}/g, "
+
+").trim();
 
   if (!/[.!?]$/.test(normalized)) {
     return normalized + ".";
@@ -418,8 +421,11 @@ function startSseResponse(res) {
 }
 
 function sendSseEvent(res, event, data) {
-  res.write(`event: ${event}\n`);
-  res.write(`data: ${JSON.stringify(data)}\n\n`);
+  res.write(`event: ${event}
+`);
+  res.write(`data: ${JSON.stringify(data)}
+
+`);
   if (typeof res.flush === "function") {
     res.flush();
   }
@@ -433,7 +439,8 @@ function buildConversationMessages(history, message, detailedMode, membershipCon
 
   const proPrompt = sanitizePromptText(membershipContext?.plan === "pro" ? membershipContext?.proSystemPrompt : "");
   if (proPrompt) {
-    systemMessages.push({ role: "system", content: `Luna Pro custom instruction:\n${proPrompt}` });
+    systemMessages.push({ role: "system", content: `Luna Pro custom instruction:
+${proPrompt}` });
   }
 
   const toolPrompt = buildToolSystemPrompt(toolSummary);
@@ -464,7 +471,8 @@ function generateLocalFallbackReply(message) {
     "- Step 1: Define exact output format.",
     "- Step 2: Break into 3 concrete tasks.",
     "- Step 3: Execute task 1 first, then iterate.",
-  ].join("\n");
+  ].join("
+");
 }
 
 async function requestGroq(messages, detailedMode) {
@@ -547,7 +555,9 @@ async function requestGemini(messages, detailedMode) {
   const systemText = (messages || [])
     .filter((m) => m?.role === "system" && typeof m?.content === "string")
     .map((m) => m.content)
-    .join("\n\n");
+    .join("
+
+");
 
   const body = {
     contents: toGeminiContents(messages),
@@ -642,7 +652,8 @@ function toPlainPrompt(messages) {
       const role = item?.role === "assistant" ? "Assistant" : item?.role === "user" ? "User" : "System";
       return `${role}: ${item?.content || ""}`.trim();
     })
-    .join("\n")
+    .join("
+")
     .trim();
 }
 
@@ -677,14 +688,17 @@ async function streamOpenAICompatible({ url, headers, body, onToken, signal }) {
 
     response.data.on("data", (chunk) => {
       buffer += chunk.toString("utf8");
-      const parts = buffer.split(/\r?\n\r?\n/);
+      const parts = buffer.split(/\r?
+\r?
+/);
       buffer = parts.pop() || "";
 
       for (const part of parts) {
         const cleaned = part.replace(/\r/g, "").trim();
         if (!cleaned) continue;
 
-        const lines = cleaned.split("\n");
+        const lines = cleaned.split("
+");
         const dataLines = [];
         for (const line of lines) {
           if (line.startsWith("data:")) {
@@ -791,7 +805,9 @@ async function streamGemini(messages, detailedMode, onToken, signal) {
   const systemText = (messages || [])
     .filter((m) => m?.role === "system" && typeof m?.content === "string")
     .map((m) => m.content)
-    .join("\n\n");
+    .join("
+
+");
 
   const body = {
     contents: toGeminiContents(messages),
@@ -838,14 +854,17 @@ async function streamGemini(messages, detailedMode, onToken, signal) {
 
     response.data.on("data", (chunk) => {
       buffer += chunk.toString("utf8");
-      const parts = buffer.split(/\r?\n\r?\n/);
+      const parts = buffer.split(/\r?
+\r?
+/);
       buffer = parts.pop() || "";
 
       for (const part of parts) {
         const cleaned = part.replace(/\r/g, "").trim();
         if (!cleaned) continue;
 
-        const lines = cleaned.split("\n");
+        const lines = cleaned.split("
+");
         const dataLines = [];
         for (const line of lines) {
           if (line.startsWith("data:")) {
@@ -1219,6 +1238,7 @@ app.post("/api/payments/upgrade-request", async (req, res) => {
     }
 
     await ensureMembershipUser({ userId: auth.user.id, email: auth.user.email, name: auth.user.name });
+
     const request = await submitUpgradeRequest({
       userId: auth.user.id,
       userEmail: auth.user.email,
@@ -1229,6 +1249,17 @@ app.post("/api/payments/upgrade-request", async (req, res) => {
       discountPercent,
       referralCode: appliedReferralCode,
     });
+
+    if (appliedReferralCode) {
+      try {
+        await incrementReferralUsage(
+          { code: appliedReferralCode, adminUserId: auth.user.id },
+          { defaultMonthlyPriceInr: DEFAULT_PRO_MONTHLY_PRICE_INR, defaultUpiId: DEFAULT_UPI_ID },
+        );
+      } catch (error) {
+        console.warn(`[referrals] Usage update failed: ${error.message}`);
+      }
+    }
 
     return res.status(201).json({
       ok: true,
@@ -2033,6 +2064,10 @@ async function startServer() {
 }
 
 startServer();
+
+
+
+
 
 
 

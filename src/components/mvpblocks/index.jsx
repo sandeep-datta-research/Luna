@@ -582,8 +582,11 @@ export default function AdminDashboard() {
                             <div>
                               <p className="text-sm text-zinc-100">{ref.code}</p>
                               <p className="text-xs text-zinc-500">
-                                {ref.discountPercent}% off · Expires {formatDate(ref.expiresAt) || "-"}
+                                {ref.discountPercent}% off - Expires {formatDate(ref.expiresAt) || "-"} - Used {ref.usageCount || 0}x
                               </p>
+                              {ref.lastUsedAt ? (
+                                <p className="text-[11px] text-zinc-600">Last used: {formatDate(ref.lastUsedAt)}</p>
+                              ) : null}
                             </div>
                             <span className={`rounded-md border px-2 py-1 text-[11px] ${statusClass}`}>{statusLabel}</span>
                           </div>

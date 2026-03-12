@@ -41,6 +41,12 @@ function toPercent(value, fallback = 0, max = 90) {
   return Math.max(0, Math.min(max, Math.round(n * 100) / 100));
 }
 
+function toUsageCount(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 0) return 0;
+  return Math.floor(n);
+}
+
 function toIsoDate(value) {
   if (!value) return "";
   const date = new Date(value);
@@ -58,6 +64,8 @@ function sanitizeReferralCode(raw, defaults) {
     discountPercent: toPercent(raw?.discountPercent, defaults.defaultReferralDiscountPercent),
     expiresAt: toIsoDate(raw?.expiresAt),
     active: raw?.active !== false,
+    usageCount: toUsageCount(raw?.usageCount),
+    lastUsedAt: normalizeText(raw?.lastUsedAt),
     createdAt: normalizeText(raw?.createdAt) || nowIso(),
     createdBy: normalizeText(raw?.createdBy),
     updatedAt: normalizeText(raw?.updatedAt) || nowIso(),
@@ -211,6 +219,8 @@ export async function upsertReferralCode(
             discountPercent: percent,
             expiresAt: expiresIso,
             active: Boolean(active),
+            usageCount: 0,
+            lastUsedAt: "",
             createdAt: now,
             createdBy: normalizeText(adminUserId),
             updatedAt: now,
@@ -267,6 +277,29 @@ export async function updateReferralCode(
     db.settings.updatedBy = normalizeText(adminUserId);
     db.settings.referralCodes = list;
     return clone(db.settings);
+  });
+}
+
+export async function incrementReferralUsage({ code, adminUserId = "" }, overrides = {}) {
+  const defaults = getDefaults(overrides);
+  const safeCode = normalizeCode(code);
+  if (!safeCode) return null;
+
+  return mutate(defaults, (db) => {
+    const now = nowIso();
+    const list = Array.isArray(db.settings.referralCodes) ? db.settings.referralCodes : [];
+    const existing = list.find((item) => normalizeCode(item.code) === safeCode);
+    if (!existing) return null;
+
+    existing.usageCount = toUsageCount(existing.usageCount) + 1;
+    existing.lastUsedAt = now;
+    existing.updatedAt = now;
+    existing.updatedBy = normalizeText(adminUserId) || "system";
+
+    db.settings.updatedAt = now;
+    db.settings.updatedBy = normalizeText(adminUserId) || "system";
+    db.settings.referralCodes = list;
+    return clone(existing);
   });
 }
 
