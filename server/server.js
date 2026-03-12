@@ -577,6 +577,28 @@ async function requestGemini(messages, detailedMode) {
 }
 
 
+async function requestZai(messages, detailedMode, model = ZAI_GLM_MODEL) {
+  const response = await axios.post(
+    ZAI_API_URL,
+    {
+      model,
+      messages,
+      temperature: detailedMode ? 0.75 : 0.45,
+      max_tokens: detailedMode ? 900 : 600,
+      top_p: 1,
+    },
+    {
+      headers: {
+        Authorization: `Bearer undefined`,
+        "Content-Type": "application/json",
+      },
+      timeout: LUNA_PROVIDER_TIMEOUT_MS,
+    },
+  );
+
+  return response.data?.choices?.[0]?.message?.content?.trim() || "";
+}
+
 function splitTextForStream(text, maxChunk = 18) {
   const normalized = typeof text === "string" ? text : "";
   if (!normalized) return [];
@@ -703,6 +725,25 @@ async function streamOpenAICompatible({ url, headers, body, onToken, signal }) {
 
     response.data.on("end", () => finish());
     response.data.on("error", (error) => fail(error));
+  });
+}
+
+async function streamNvidiaModel(messages, detailedMode, model, onToken, signal) {
+  return streamOpenAICompatible({
+    url: "https://integrate.api.nvidia.com/v1/chat/completions",
+    headers: {
+      Authorization: `Bearer undefined`,
+      "Content-Type": "application/json",
+    },
+    body: {
+      model,
+      messages,
+      temperature: detailedMode ? 0.75 : 0.45,
+      top_p: 1,
+      max_tokens: detailedMode ? 1800 : 1024,
+    },
+    onToken,
+    signal,
   });
 }
 
@@ -912,6 +953,18 @@ function buildProviders(messages, detailedMode, streamSignal) {
       enabled: Boolean(process.env.NVIDIA_API_KEY) && !manuallyDisabledProviders.has("glm43"),
       run: () => requestNvidiaGlm(messages, detailedMode),
       stream: (onToken) => streamViaFallback(() => requestNvidiaGlm(messages, detailedMode), onToken),
+    },
+    {
+      llm: "nvidia-qwen",
+      enabled: Boolean(process.env.NVIDIA_API_KEY) && !manuallyDisabledProviders.has("nvidia-qwen"),
+      run: () => requestNvidiaModel(messages, detailedMode, NVIDIA_QWEN_MODEL),
+      stream: (onToken) => streamViaFallback(() => requestNvidiaModel(messages, detailedMode, NVIDIA_QWEN_MODEL), onToken),
+    },
+    {
+      llm: "zai-glm47",
+      enabled: Boolean(process.env.ZAI_API_KEY) && !manuallyDisabledProviders.has("zai-glm47"),
+      run: () => requestZai(messages, detailedMode, ZAI_GLM_MODEL),
+      stream: (onToken) => streamViaFallback(() => requestZai(messages, detailedMode, ZAI_GLM_MODEL), onToken),
     },
     {
       llm: "glm45air",
@@ -1358,6 +1411,8 @@ app.post("/api/luna/stream", async (req, res) => {
     }
     const selectedOrder = routingPlan.order.slice(0, routingPlan.profile === "fast" ? 1 : Math.max(1, LUNA_MAX_PROVIDER_ATTEMPTS));
     const providerRunners = buildProviderRunners(conversationMessages, detailedMode, abortController.signal);
+    const requestedModel = resolveRequestedModel(req.body?.llm, providerRunners);
+    const effectiveOrder = requestedModel ? [requestedModel] : selectedOrder;
 
     let llm = "";
     let warning = "";
@@ -1365,7 +1420,7 @@ app.post("/api/luna/stream", async (req, res) => {
 
     try {
         const routed = await runRoutedProvidersStream({
-          order: selectedOrder,
+          order: effectiveOrder,
           runners: providerRunners,
           normalizeError: extractProviderError,
           onToken: sendToken,
@@ -1503,6 +1558,8 @@ app.post("/api/luna", async (req, res) => {
     }
     const selectedOrder = routingPlan.order.slice(0, routingPlan.profile === "fast" ? 1 : Math.max(1, LUNA_MAX_PROVIDER_ATTEMPTS));
     const providerRunners = buildProviderRunners(conversationMessages, detailedMode);
+    const requestedModel = resolveRequestedModel(req.body?.llm, providerRunners);
+    const effectiveOrder = requestedModel ? [requestedModel] : selectedOrder;
 
     let reply = "";
     let llm = "";
@@ -1511,7 +1568,7 @@ app.post("/api/luna", async (req, res) => {
 
     try {
         const routed = await runRoutedProviders({
-          order: selectedOrder,
+          order: effectiveOrder,
           runners: providerRunners,
           normalizeError: extractProviderError,
           maxDurationMs: LUNA_MAX_RESPONSE_MS,

@@ -3,23 +3,23 @@ import { CATEGORY_LABELS } from "./luna-classifier.js";
 const ROUTE_TABLE = {
   [CATEGORY_LABELS.TECHNICAL]: {
     profile: "strong-reasoning",
-    order: ["gpt", "glm45air", "glm43", "gemini", "nvidia", "hf"],
+    order: ["gpt", "glm45air", "glm43", "gemini", "nvidia", "hf", "nvidia-qwen", "zai-glm47"],
   },
   [CATEGORY_LABELS.PROGRAMMING]: {
     profile: "strong-reasoning",
-    order: ["gpt", "glm45air", "glm43", "gemini", "nvidia", "hf"],
+    order: ["gpt", "glm45air", "glm43", "gemini", "nvidia", "hf", "nvidia-qwen", "zai-glm47"],
   },
   [CATEGORY_LABELS.EDUCATIONAL]: {
     profile: "explanatory",
-    order: ["gemini", "gpt", "glm45air", "glm43", "nvidia", "hf"],
+    order: ["gemini", "gpt", "glm45air", "glm43", "nvidia", "hf", "nvidia-qwen", "zai-glm47"],
   },
   [CATEGORY_LABELS.MOTIVATIONAL]: {
     profile: "conversational",
-    order: ["gpt", "gemini", "glm45air", "nvidia", "glm43", "hf"],
+    order: ["gpt", "gemini", "glm45air", "nvidia", "glm43", "hf", "nvidia-qwen", "zai-glm47"],
   },
   [CATEGORY_LABELS.CASUAL]: {
     profile: "fast",
-    order: ["glm43", "gemini", "gpt", "nvidia", "glm45air", "hf"],
+    order: ["glm43", "gemini", "gpt", "nvidia", "glm45air", "hf", "nvidia-qwen", "zai-glm47"],
   },
   [CATEGORY_LABELS.COMMAND]: {
     profile: "tool",
@@ -57,12 +57,6 @@ export async function runRoutedProviders({ order, runners, normalizeError, maxDu
   const startedAt = Date.now();
 
   for (const key of order) {
-    if (maxDurationMs > 0 && Date.now() - startedAt > maxDurationMs) {
-      const failure = new Error("Provider timeout");
-      failure.responseData = { attempts };
-      failure.status = 504;
-      throw failure;
-    }
     if (maxDurationMs > 0 && Date.now() - startedAt > maxDurationMs) {
       const failure = new Error("Provider timeout");
       failure.responseData = { attempts };
@@ -113,6 +107,12 @@ export async function runRoutedProvidersStream({ order, runners, normalizeError,
   };
 
   for (const key of order) {
+    if (maxDurationMs > 0 && Date.now() - startedAt > maxDurationMs) {
+      const failure = new Error("Provider timeout");
+      failure.responseData = { attempts };
+      failure.status = 504;
+      throw failure;
+    }
     const runner = runners[key];
 
     if (!runner || !runner.enabled) {
