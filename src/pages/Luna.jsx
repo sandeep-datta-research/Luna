@@ -1067,8 +1067,8 @@ export default function Luna() {
           return;
         }
 
-        const take = pendingBuffer.slice(0, 80);
-        pendingBuffer = pendingBuffer.slice(80);
+        const take = pendingBuffer.slice(0, 120);
+        pendingBuffer = pendingBuffer.slice(120);
         applyChunk(take);
       };
 
@@ -1076,7 +1076,7 @@ export default function Luna() {
         if (flushTimer) return;
         drainBuffer();
         if (pendingBuffer) {
-          flushTimer = setInterval(drainBuffer, 12);
+          flushTimer = setInterval(drainBuffer, 10);
         }
       };
 
