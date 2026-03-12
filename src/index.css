@@ -1,4 +1,5 @@
 @import url("https://fonts.googleapis.com/css2?family=Pacifico&family=Sora:wght@400;500;600;700&display=swap");
+@import "highlight.js/styles/github-dark.css";
 
 @tailwind base;
 @tailwind components;
@@ -218,3 +219,76 @@
 
 
 
+
+
+.luna-markdown {
+  font-size: 0.875rem;
+  line-height: 1.65;
+  color: inherit;
+}
+
+.luna-markdown h1 {
+  font-size: 1.35rem;
+  font-weight: 600;
+  margin: 0.6rem 0 0.4rem;
+}
+
+.luna-markdown h2 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 0.5rem 0 0.35rem;
+}
+
+.luna-markdown h3 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin: 0.45rem 0 0.3rem;
+}
+
+.luna-markdown p {
+  margin: 0.25rem 0;
+}
+
+.luna-markdown ul {
+  list-style: disc;
+  padding-left: 1.4rem;
+  margin: 0.35rem 0;
+}
+
+.luna-markdown ol {
+  list-style: decimal;
+  padding-left: 1.4rem;
+  margin: 0.35rem 0;
+}
+
+.luna-markdown li {
+  margin: 0.2rem 0;
+}
+
+.luna-markdown a {
+  color: #8fa3ff;
+  text-decoration: underline;
+}
+
+.luna-code-block {
+  margin: 0.5rem 0;
+  padding: 0.75rem 0.9rem;
+  border-radius: 0.85rem;
+  background: #101423;
+  border: 1px solid #2a2d45;
+  overflow-x: auto;
+}
+
+.luna-code-block code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.8rem;
+}
+
+.luna-inline-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.82rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 0.4rem;
+  background: #1c2236;
+  border: 1px solid #30375d;
+}

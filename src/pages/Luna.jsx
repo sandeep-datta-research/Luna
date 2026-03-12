@@ -338,7 +338,7 @@ function MessageBubble({ message, showLunaHeader, isLatestAssistant, onCopy, onR
               : "rounded-bl-[4px] border border-[#2a2d45] bg-[#1a1d2e]/95 text-[#f0f2ff]"
           }`}
         >
-          {message.content}
+          {isUser ? message.content : <MarkdownMessage content={message.content} />}
 
           {!isUser ? (
             <div className="pointer-events-none absolute top-2 right-2 flex items-center gap-1 opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100">
