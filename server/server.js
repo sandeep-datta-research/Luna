@@ -36,7 +36,7 @@ import {
 } from "./pro-db.js";
 import { getAdminSettings, updateProMonthlyPrice, updateProSystemPrompt } from "./admin-settings.js";
 import { classifyMessage } from "./luna-classifier.js";
-import { getRoutingPlan, handleToolCommand, runRoutedProviders } from "./luna-router.js";
+import { getRoutingPlan, handleToolCommand, runRoutedProviders, runRoutedProvidersStream } from "./luna-router.js";
 
 dotenv.config();
 
@@ -48,6 +48,7 @@ const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || "nvidia/nemotron-3-nano
 const OPENROUTER_GLM45_AIR_MODEL = process.env.OPENROUTER_GLM45_AIR_MODEL || "z-ai/glm-4.5-air:free";
 const NVIDIA_GLM_MODEL = process.env.NVIDIA_GLM_MODEL || "z-ai/glm4.7";
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+const HUGGINGFACE_MODEL = process.env.HUGGINGFACE_MODEL || "HuggingFaceH4/zephyr-7b-beta";
 const GOOGLE_CLIENT_ID = (process.env.GOOGLE_CLIENT_ID || "").trim();
 
 const MAX_HISTORY_MESSAGES = 20;
@@ -403,6 +404,21 @@ function clampReplyLength(reply, detailedMode) {
   return normalized;
 }
 
+function startSseResponse(res) {
+  res.status(200);
+  res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no");
+  if (typeof res.flushHeaders === "function") {
+    res.flushHeaders();
+  }
+}
+
+function sendSseEvent(res, event, data) {
+  res.write(`event: ${event}\n`);
+  res.write(`data: ${JSON.stringify(data)}\n\n`);
+}
 function buildConversationMessages(history, message, detailedMode, membershipContext) {
   const safeHistory = Array.isArray(history) ? history : [];
   const systemMessages = [
@@ -552,38 +568,361 @@ async function requestGemini(messages, detailedMode) {
   return parts.map((p) => (typeof p?.text === "string" ? p.text : "")).join("").trim();
 }
 
-function buildProviders(messages, detailedMode) {
+
+function splitTextForStream(text, maxChunk = 18) {
+  const normalized = typeof text === "string" ? text : "";
+  if (!normalized) return [];
+
+  const parts = normalized.match(/\s+|[^\s]+/g) || [];
+  const chunks = [];
+  let current = "";
+
+  for (const part of parts) {
+    if (current && current.length + part.length > maxChunk) {
+      chunks.push(current);
+      current = part;
+    } else {
+      current += part;
+    }
+  }
+
+  if (current) chunks.push(current);
+  return chunks;
+}
+
+function streamTextChunks(text, onToken) {
+  const chunks = splitTextForStream(text);
+  for (const chunk of chunks) {
+    if (typeof onToken === "function") {
+      onToken(chunk);
+    }
+  }
+}
+
+function toPlainPrompt(messages) {
+  return (messages || [])
+    .map((item) => {
+      const role = item?.role === "assistant" ? "Assistant" : item?.role === "user" ? "User" : "System";
+      return `${role}: ${item?.content || ""}`.trim();
+    })
+    .join("\n")
+    .trim();
+}
+
+async function streamOpenAICompatible({ url, headers, body, onToken, signal }) {
+  const response = await axios.post(
+    url,
+    { ...body, stream: true },
+    {
+      headers,
+      responseType: "stream",
+      timeout: 60000,
+      signal,
+    },
+  );
+
+  return new Promise((resolve, reject) => {
+    let reply = "";
+    let buffer = "";
+    let done = false;
+
+    const finish = () => {
+      if (done) return;
+      done = true;
+      resolve(reply.trim());
+    };
+
+    const fail = (error) => {
+      if (done) return;
+      done = true;
+      reject(error);
+    };
+
+    response.data.on("data", (chunk) => {
+      buffer += chunk.toString("utf8");
+      const parts = buffer.split(/\n\n/);
+      buffer = parts.pop() || "";
+
+      for (const part of parts) {
+        const cleaned = part.replace(/\r/g, "").trim();
+        if (!cleaned) continue;
+
+        const lines = cleaned.split("\n");
+        const dataLines = [];
+        for (const line of lines) {
+          if (line.startsWith("data:")) {
+            dataLines.push(line.slice(5).trim());
+          }
+        }
+
+        const payload = dataLines.join("");
+        if (!payload) continue;
+
+        if (payload === "[DONE]") {
+          finish();
+          return;
+        }
+
+        let parsed = null;
+        try {
+          parsed = JSON.parse(payload);
+        } catch {
+          parsed = null;
+        }
+
+        if (parsed?.error) {
+          const error = new Error(parsed.error?.message || "Stream error");
+          error.status = parsed.error?.code || 500;
+          error.responseData = parsed;
+          fail(error);
+          return;
+        }
+
+        const delta = parsed?.choices?.[0]?.delta?.content ?? parsed?.choices?.[0]?.message?.content;
+        if (delta) {
+          reply += delta;
+          if (typeof onToken === "function") {
+            onToken(delta);
+          }
+        }
+      }
+    });
+
+    response.data.on("end", () => finish());
+    response.data.on("error", (error) => fail(error));
+  });
+}
+
+async function streamGroq(messages, detailedMode, onToken, signal) {
+  return streamOpenAICompatible({
+    url: "https://api.groq.com/openai/v1/chat/completions",
+    headers: {
+      Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: {
+      model: GROQ_MODEL,
+      messages,
+      temperature: detailedMode ? 0.75 : 0.45,
+      max_completion_tokens: detailedMode ? 900 : 260,
+      top_p: 1,
+    },
+    onToken,
+    signal,
+  });
+}
+
+async function streamOpenRouter(messages, detailedMode, model, onToken, signal) {
+  return streamOpenAICompatible({
+    url: "https://openrouter.ai/api/v1/chat/completions",
+    headers: {
+      Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: {
+      model,
+      messages,
+      temperature: detailedMode ? 0.75 : 0.45,
+      max_tokens: detailedMode ? 900 : 260,
+      top_p: 1,
+    },
+    onToken,
+    signal,
+  });
+}
+
+async function streamGemini(messages, detailedMode, onToken, signal) {
+  const systemText = (messages || [])
+    .filter((m) => m?.role === "system" && typeof m?.content === "string")
+    .map((m) => m.content)
+    .join("\n\n");
+
+  const body = {
+    contents: toGeminiContents(messages),
+    generationConfig: {
+      temperature: detailedMode ? 0.75 : 0.45,
+      topP: 1,
+      maxOutputTokens: detailedMode ? 900 : 260,
+    },
+  };
+
+  if (systemText) {
+    body.systemInstruction = { role: "system", parts: [{ text: systemText }] };
+  }
+
+  const url =
+    "https://generativelanguage.googleapis.com/v1beta/models/" +
+    encodeURIComponent(GEMINI_MODEL) +
+    ":streamGenerateContent?key=" +
+    process.env.GEMINI_API_KEY;
+
+  const response = await axios.post(url, body, {
+    headers: { "Content-Type": "application/json" },
+    responseType: "stream",
+    timeout: 60000,
+    signal,
+  });
+
+  return new Promise((resolve, reject) => {
+    let reply = "";
+    let buffer = "";
+    let done = false;
+
+    const finish = () => {
+      if (done) return;
+      done = true;
+      resolve(reply.trim());
+    };
+
+    const fail = (error) => {
+      if (done) return;
+      done = true;
+      reject(error);
+    };
+
+    response.data.on("data", (chunk) => {
+      buffer += chunk.toString("utf8");
+      const parts = buffer.split(/\n\n/);
+      buffer = parts.pop() || "";
+
+      for (const part of parts) {
+        const cleaned = part.replace(/\r/g, "").trim();
+        if (!cleaned) continue;
+
+        const lines = cleaned.split("\n");
+        const dataLines = [];
+        for (const line of lines) {
+          if (line.startsWith("data:")) {
+            dataLines.push(line.slice(5).trim());
+          }
+        }
+
+        const payload = dataLines.join("");
+        if (!payload) continue;
+        if (payload === "[DONE]") {
+          finish();
+          return;
+        }
+
+        let parsed = null;
+        try {
+          parsed = JSON.parse(payload);
+        } catch {
+          parsed = null;
+        }
+
+        const partsText = parsed?.candidates?.[0]?.content?.parts;
+        const textChunk = Array.isArray(partsText)
+          ? partsText.map((p) => (typeof p?.text === "string" ? p.text : "")).join("")
+          : "";
+
+        if (textChunk) {
+          reply += textChunk;
+          if (typeof onToken === "function") {
+            onToken(textChunk);
+          }
+        }
+      }
+    });
+
+    response.data.on("end", () => finish());
+    response.data.on("error", (error) => fail(error));
+  });
+}
+
+async function requestHuggingFace(messages, detailedMode) {
+  const apiKey = (process.env.HUGGINGFACE_API_KEY || "").trim();
+  if (!apiKey) {
+    throw Object.assign(new Error("HuggingFace API key is not configured"), { status: 503 });
+  }
+
+  const prompt = toPlainPrompt(messages);
+  const response = await axios.post(
+    `https://api-inference.huggingface.co/models/${encodeURIComponent(HUGGINGFACE_MODEL)}`,
+    {
+      inputs: prompt,
+      parameters: {
+        max_new_tokens: detailedMode ? 900 : 260,
+        temperature: detailedMode ? 0.75 : 0.45,
+        top_p: 1,
+        return_full_text: false,
+      },
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      timeout: 60000,
+    },
+  );
+
+  if (Array.isArray(response.data)) {
+    return response.data?.[0]?.generated_text?.trim() || "";
+  }
+
+  return response.data?.generated_text?.trim() || "";
+}
+
+async function streamHuggingFace(messages, detailedMode, onToken) {
+  const reply = await requestHuggingFace(messages, detailedMode);
+  if (reply) {
+    streamTextChunks(reply, onToken);
+  }
+  return reply;
+}
+
+async function streamViaFallback(run, onToken) {
+  const reply = await run();
+  if (reply) {
+    streamTextChunks(reply, onToken);
+  }
+  return reply;
+}
+
+function buildProviders(messages, detailedMode, streamSignal) {
   return [
     {
       llm: "gemini",
       enabled: Boolean(process.env.GEMINI_API_KEY) && !manuallyDisabledProviders.has("gemini"),
       run: () => requestGemini(messages, detailedMode),
+      stream: (onToken) => streamGemini(messages, detailedMode, onToken, streamSignal),
     },
     {
       llm: "gpt",
       enabled: Boolean(process.env.GROQ_API_KEY) && !manuallyDisabledProviders.has("gpt"),
       run: () => requestGroq(messages, detailedMode),
+      stream: (onToken) => streamGroq(messages, detailedMode, onToken, streamSignal),
     },
     {
       llm: "glm43",
       enabled: Boolean(process.env.NVIDIA_API_KEY) && !manuallyDisabledProviders.has("glm43"),
       run: () => requestNvidiaGlm(messages, detailedMode),
+      stream: (onToken) => streamViaFallback(() => requestNvidiaGlm(messages, detailedMode), onToken),
     },
     {
       llm: "glm45air",
       enabled: Boolean(process.env.OPENROUTER_API_KEY) && !manuallyDisabledProviders.has("glm45air"),
       run: () => requestOpenRouter(messages, detailedMode, OPENROUTER_GLM45_AIR_MODEL),
+      stream: (onToken) => streamOpenRouter(messages, detailedMode, OPENROUTER_GLM45_AIR_MODEL, onToken, streamSignal),
     },
     {
       llm: "nvidia",
       enabled: Boolean(process.env.OPENROUTER_API_KEY) && !manuallyDisabledProviders.has("nvidia"),
       run: () => requestOpenRouter(messages, detailedMode, OPENROUTER_MODEL),
+      stream: (onToken) => streamOpenRouter(messages, detailedMode, OPENROUTER_MODEL, onToken, streamSignal),
+    },
+    {
+      llm: "hf",
+      enabled: Boolean(process.env.HUGGINGFACE_API_KEY) && !manuallyDisabledProviders.has("hf"),
+      run: () => requestHuggingFace(messages, detailedMode),
+      stream: (onToken) => streamHuggingFace(messages, detailedMode, onToken),
     },
   ];
 }
 
-function buildProviderRunners(messages, detailedMode) {
-  const providers = buildProviders(messages, detailedMode);
+function buildProviderRunners(messages, detailedMode, streamSignal) {
+  const providers = buildProviders(messages, detailedMode, streamSignal);
   return providers.reduce((acc, provider) => {
     acc[provider.llm] = provider;
     return acc;
@@ -954,6 +1293,151 @@ app.delete("/api/history/:conversationId", async (req, res) => {
   }
 });
 
+app.post("/api/luna/stream", async (req, res) => {
+  const message = req.body?.message?.trim();
+  const requestedConversationId = typeof req.body?.conversationId === "string" ? req.body.conversationId.trim() : "";
+
+  if (!message) return res.status(400).json({ error: "message is required" });
+
+  startSseResponse(res);
+  sendSseEvent(res, "start", { ok: true });
+
+  let closed = false;
+  const abortController = new AbortController();
+
+  req.on("close", () => {
+    closed = true;
+    abortController.abort();
+  });
+
+  let reply = "";
+  const sendToken = (chunk) => {
+    if (closed || !chunk) return;
+    reply += chunk;
+    sendSseEvent(res, "token", { token: chunk });
+  };
+
+  try {
+    const lunaSettings = await getLunaSettings();
+    const userContext = await resolveRequestUser(req);
+    const membershipContext = await resolveMembershipContext(userContext, lunaSettings);
+    const usageBefore = await enforceDailyLimitOrThrow(userContext, membershipContext);
+
+    const conversation = await ensureConversation(requestedConversationId, userContext.userId);
+    const detailedMode = wantsDetailedResponse(message);
+    const history = toHistoryPayload(conversation, MAX_HISTORY_MESSAGES);
+    const conversationMessages = buildConversationMessages(history, message, detailedMode, membershipContext);
+
+    const classification = classifyMessage(message);
+    const routingPlan = getRoutingPlan(classification.label);
+    const providerRunners = buildProviderRunners(conversationMessages, detailedMode, abortController.signal);
+
+    let llm = "";
+    let warning = "";
+    let details = null;
+
+    if (routingPlan.profile === "tool") {
+      const toolResult = handleToolCommand(message);
+      llm = "tool";
+      details = {
+        category: classification.label,
+        profile: routingPlan.profile,
+        tool: toolResult.tool,
+      };
+      streamTextChunks(toolResult.reply, sendToken);
+      reply = toolResult.reply;
+    } else {
+      try {
+        const routed = await runRoutedProvidersStream({
+          order: routingPlan.order,
+          runners: providerRunners,
+          normalizeError: extractProviderError,
+          onToken: sendToken,
+        });
+        llm = routed.llm;
+        reply = routed.rawReply || reply;
+        details = {
+          attempts: routed.attempts,
+          category: classification.label,
+          profile: routingPlan.profile,
+        };
+      } catch (providerErr) {
+        const normalized = extractProviderError(providerErr);
+        warning = normalized.providerMessage;
+        details = normalized.responseData || {
+          category: classification.label,
+          profile: routingPlan.profile,
+        };
+        llm = "local-fallback";
+        reply = generateLocalFallbackReply(message);
+        streamTextChunks(reply, sendToken);
+      }
+    }
+
+    if (!reply) {
+      llm = "local-fallback";
+      reply = generateLocalFallbackReply(message);
+      streamTextChunks(reply, sendToken);
+    }
+
+    const updatedConversation = await saveConversationTurn({
+      conversationId: conversation.id,
+      userText: message,
+      assistantText: reply,
+      llm,
+      userId: userContext.userId,
+    });
+
+    const usageAfter = membershipContext.plan === "pro"
+      ? {
+          date: usageBefore.date,
+          usedToday: usageBefore.usedToday + 1,
+          remainingToday: null,
+          dailyLimit: null,
+          unlimited: true,
+        }
+      : {
+          date: usageBefore.date,
+          usedToday: usageBefore.usedToday + 1,
+          remainingToday: Math.max(0, FREE_DAILY_LIMIT - (usageBefore.usedToday + 1)),
+          dailyLimit: FREE_DAILY_LIMIT,
+          unlimited: false,
+        };
+
+    sendSseEvent(res, "done", {
+      reply,
+      llm,
+      category: classification.label,
+      routing: {
+        profile: routingPlan.profile,
+        order: routingPlan.order,
+      },
+      selectedBy: llm === "local-fallback" ? "fallback" : "auto",
+      warning,
+      details,
+      conversationId: updatedConversation.id,
+      conversation: updatedConversation,
+      membership: {
+        plan: membershipContext.plan,
+        activatedAt: membershipContext.membership?.activatedAt || "",
+      },
+      usage: usageAfter,
+    });
+  } catch (error) {
+    const n = extractProviderError(error);
+    const payload = {
+      error: error.message || n.providerMessage,
+    };
+
+    if (error.responseData && typeof error.responseData === "object") {
+      Object.assign(payload, error.responseData);
+    }
+
+    sendSseEvent(res, "error", payload);
+  } finally {
+    res.end();
+  }
+});
 app.post("/api/luna", async (req, res) => {
   const message = req.body?.message?.trim();
   const requestedConversationId = typeof req.body?.conversationId === "string" ? req.body.conversationId.trim() : "";
@@ -1328,3 +1812,11 @@ async function startServer() {
 }
 
 startServer();
+
+
+
+
+
+
+
+

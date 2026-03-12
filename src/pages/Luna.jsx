@@ -25,8 +25,9 @@ import {
   X,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { fetchApi } from "@/lib/api-client";
+import { fetchApi, streamApi } from "@/lib/api-client";
 import lunaLogo from "@/assets/luna-logo.svg";
+import MarkdownMessage from "@/components/ui/chat/MarkdownMessage";
 
 const STORAGE_KEY = "luna.chat.ui.v4";
 const MAX_HISTORY_ITEMS = 6;
@@ -617,6 +618,7 @@ export default function Luna() {
   const silenceIntervalRef = useRef(null);
   const autoStoppedBySilenceRef = useRef(false);
   const listEndRef = useRef(null);
+  const streamAbortRef = useRef(null);
 
   const sortedSessions = useMemo(
     () => [...sessions].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)),
@@ -943,7 +945,27 @@ export default function Luna() {
     },
     [buildPromptPayload, selectedModel],
   );
-
+
+  const requestLunaStream = useCallback(
+    async (session, prompt, handlers = {}, options = { applyToggles: true }) => {
+      const payloadPrompt = buildPromptPayload(prompt, options);
+      return streamApi(
+        "/api/luna/stream",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: payloadPrompt,
+            conversationId: text(session?.backendConversationId),
+            llm: selectedModel,
+          }),
+          signal: handlers.signal,
+        },
+        handlers,
+      );
+    },
+    [buildPromptPayload, selectedModel],
+  );
   const sendMessage = useCallback(
     async (manualPrompt, options = { regenerate: false, applyToggles: true, sessionId: "" }) => {
       const basePrompt = text(manualPrompt ?? inputValue);
@@ -984,34 +1006,139 @@ export default function Luna() {
 
       setIsTyping(true);
 
-      try {
-        const response = await requestLuna(target, basePrompt, { applyToggles: options.applyToggles });
+      let assistantId = "";
+      let assistantAdded = false;
+      let streamedText = "";
 
-        const assistantMessage = {
-          id: createId("assistant"),
-          role: "assistant",
-          content: response.reply,
-          createdAt: nowIso(),
-          llm: response.llm,
-        };
+      const ensureAssistant = (initialContent = "") => {
+        if (assistantAdded) return;
+        assistantId = createId("assistant");
+        assistantAdded = true;
+        updateSession(target.id, (session) => ({
+          ...session,
+          messages: [
+            ...session.messages,
+            {
+              id: assistantId,
+              role: "assistant",
+              content: initialContent,
+              createdAt: nowIso(),
+              llm: "",
+            },
+          ],
+          updatedAt: nowIso(),
+        }));
+      };
+
+      const appendChunk = (chunk) => {
+        if (!chunk) return;
+        streamedText += chunk;
+
+        if (!assistantAdded) {
+          ensureAssistant(chunk);
+          setIsTyping(false);
+          return;
+        }
 
         updateSession(target.id, (session) => ({
           ...session,
-          messages: [...session.messages, assistantMessage],
-          backendConversationId: response.conversationId || session.backendConversationId,
+          messages: session.messages.map((msg) =>
+            msg.id === assistantId ? { ...msg, content: msg.content + chunk } : msg,
+          ),
+          updatedAt: nowIso(),
+        }));
+      };
+
+      try {
+        const abortController = new AbortController();
+        streamAbortRef.current = abortController;
+
+        const streamResult = await requestLunaStream(
+          target,
+          basePrompt,
+          {
+            signal: abortController.signal,
+            onToken: appendChunk,
+          },
+          { applyToggles: options.applyToggles },
+        );
+
+        if (!streamResult.ok) {
+          throw new Error(streamResult.message || streamResult.data?.error || "Streaming failed.");
+        }
+
+        const payload = streamResult.data || {};
+        const finalReply = text(payload.reply) || streamedText || "I could not generate a reply. Please retry.";
+        const llm = text(payload.llm);
+
+        if (!assistantAdded) {
+          ensureAssistant(finalReply);
+        } else if (finalReply && finalReply !== streamedText) {
+          updateSession(target.id, (session) => ({
+            ...session,
+            messages: session.messages.map((msg) =>
+              msg.id === assistantId ? { ...msg, content: finalReply, llm } : msg,
+            ),
+            backendConversationId: payload.conversationId || session.backendConversationId,
+            updatedAt: nowIso(),
+          }));
+        }
+
+        updateSession(target.id, (session) => ({
+          ...session,
+          messages: session.messages.map((msg) => (msg.id === assistantId ? { ...msg, llm } : msg)),
+          backendConversationId: payload.conversationId || session.backendConversationId,
           updatedAt: nowIso(),
         }));
       } catch (error) {
-        showErrorToast(error.message || "Luna request failed.", {
-          type: options.regenerate ? "regenerate" : "send",
-          prompt: basePrompt,
-          sessionId: target.id,
-        });
+        if (!streamedText) {
+          try {
+            const response = await requestLuna(target, basePrompt, { applyToggles: options.applyToggles });
+            const assistantMessage = {
+              id: createId("assistant"),
+              role: "assistant",
+              content: response.reply,
+              createdAt: nowIso(),
+              llm: response.llm,
+            };
+
+            updateSession(target.id, (session) => ({
+              ...session,
+              messages: [...session.messages, assistantMessage],
+              backendConversationId: response.conversationId || session.backendConversationId,
+              updatedAt: nowIso(),
+            }));
+            return;
+          } catch (fallbackError) {
+            showErrorToast(fallbackError.message || "Luna request failed.", {
+              type: options.regenerate ? "regenerate" : "send",
+              prompt: basePrompt,
+              sessionId: target.id,
+            });
+          }
+        } else {
+          showErrorToast(error.message || "Stream failed.", {
+            type: options.regenerate ? "regenerate" : "send",
+            prompt: basePrompt,
+            sessionId: target.id,
+          });
+        }
       } finally {
+        streamAbortRef.current = null;
         setIsTyping(false);
       }
     },
-    [activeSession, inputValue, isTranscribing, isTyping, requestLuna, sessions, showErrorToast, updateSession],
+    [
+      activeSession,
+      inputValue,
+      isTranscribing,
+      isTyping,
+      requestLuna,
+      requestLunaStream,
+      sessions,
+      showErrorToast,
+      updateSession,
+    ],
   );
 
   const regenerateLatest = useCallback(async () => {
@@ -1824,6 +1951,14 @@ export default function Luna() {
     </motion.main>
   );
 }
+
+
+
+
+
+
+
+
 
 
 
