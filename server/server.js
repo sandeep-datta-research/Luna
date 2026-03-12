@@ -35,6 +35,8 @@ import {
   submitUpgradeRequest,
 } from "./pro-db.js";
 import { getAdminSettings, updateProMonthlyPrice, updateProSystemPrompt } from "./admin-settings.js";
+import { classifyMessage } from "./luna-classifier.js";
+import { getRoutingPlan, handleToolCommand, runRoutedProviders } from "./luna-router.js";
 
 dotenv.config();
 
@@ -580,6 +582,14 @@ function buildProviders(messages, detailedMode) {
   ];
 }
 
+function buildProviderRunners(messages, detailedMode) {
+  const providers = buildProviders(messages, detailedMode);
+  return providers.reduce((acc, provider) => {
+    acc[provider.llm] = provider;
+    return acc;
+  }, {});
+}
+
 async function requestBestReply(messages, detailedMode) {
   const providers = buildProviders(messages, detailedMode);
   const attempts = [];
@@ -961,21 +971,48 @@ app.post("/api/luna", async (req, res) => {
     const history = toHistoryPayload(conversation, MAX_HISTORY_MESSAGES);
     const conversationMessages = buildConversationMessages(history, message, detailedMode, membershipContext);
 
+    const classification = classifyMessage(message);
+    const routingPlan = getRoutingPlan(classification.label);
+    const providerRunners = buildProviderRunners(conversationMessages, detailedMode);
+
     let reply = "";
     let llm = "";
     let warning = "";
     let details = null;
 
-    try {
-      const cloud = await requestBestReply(conversationMessages, detailedMode);
-      llm = cloud.llm;
-      reply = clampReplyLength(cloud.rawReply, detailedMode);
-    } catch (providerErr) {
-      const normalized = extractProviderError(providerErr);
-      warning = normalized.providerMessage;
-      details = normalized.responseData;
-      llm = "local-fallback";
-      reply = generateLocalFallbackReply(message);
+    if (routingPlan.profile === "tool") {
+      const toolResult = handleToolCommand(message);
+      reply = toolResult.reply;
+      llm = "tool";
+      details = {
+        category: classification.label,
+        profile: routingPlan.profile,
+        tool: toolResult.tool,
+      };
+    } else {
+      try {
+        const routed = await runRoutedProviders({
+          order: routingPlan.order,
+          runners: providerRunners,
+          normalizeError: extractProviderError,
+        });
+        llm = routed.llm;
+        reply = clampReplyLength(routed.rawReply, detailedMode);
+        details = {
+          attempts: routed.attempts,
+          category: classification.label,
+          profile: routingPlan.profile,
+        };
+      } catch (providerErr) {
+        const normalized = extractProviderError(providerErr);
+        warning = normalized.providerMessage;
+        details = normalized.responseData || {
+          category: classification.label,
+          profile: routingPlan.profile,
+        };
+        llm = "local-fallback";
+        reply = generateLocalFallbackReply(message);
+      }
     }
 
     if (!reply) {
@@ -1010,6 +1047,11 @@ app.post("/api/luna", async (req, res) => {
     return res.json({
       reply,
       llm,
+      category: classification.label,
+      routing: {
+        profile: routingPlan.profile,
+        order: routingPlan.order,
+      },
       selectedBy: llm === "local-fallback" ? "fallback" : "auto",
       warning,
       details,
