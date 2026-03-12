@@ -127,6 +127,9 @@ function pickTextTarget(message) {
 function shouldUseCalculator(message) {
   const text = normalizeText(message).toLowerCase();
   if (!text) return false;
+  if (/(differentiat|derivative|integrat|limit|matrix|determinant|eigen|proof|solve equation|laplace|fourier|gradient|divergence|curl)/.test(text)) {
+    return false;
+  }
   if (/(calculate|compute|eval|evaluate|what is|solve)/.test(text)) return true;
   return /^[0-9+\-*/().^%\s]+$/.test(text);
 }
