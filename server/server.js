@@ -1353,7 +1353,7 @@ app.post("/api/luna/stream", async (req, res) => {
 
     const classification = classifyMessage(message);
     let routingPlan = getRoutingPlan(classification.label);
-    if (routingPlan.profile === "tool" && toolPlan.length === 0) {
+    if (routingPlan.profile === "tool") {
       routingPlan = getRoutingPlan(CATEGORY_LABELS.CASUAL);
     }
     const providerRunners = buildProviderRunners(conversationMessages, detailedMode, abortController.signal);
@@ -1362,18 +1362,7 @@ app.post("/api/luna/stream", async (req, res) => {
     let warning = "";
     let details = null;
 
-    if (routingPlan.profile === "tool" && toolPlan.length) {
-      const toolReply = toolSummary || "No tool results available yet.";
-      llm = "tool";
-      details = {
-        category: classification.label,
-        profile: routingPlan.profile,
-        tools: toolResults,
-      };
-      streamTextChunks(toolReply, sendToken);
-      reply = toolReply;
-    } else {
-      try {
+    try {
         const routed = await runRoutedProvidersStream({
           order: routingPlan.order,
           runners: providerRunners,
@@ -1406,7 +1395,6 @@ app.post("/api/luna/stream", async (req, res) => {
           streamTextChunks(reply, sendToken);
         }
       }
-    }
 
     if (!reply) {
       if (toolSummary) {
@@ -1508,7 +1496,7 @@ app.post("/api/luna", async (req, res) => {
 
     const classification = classifyMessage(message);
     let routingPlan = getRoutingPlan(classification.label);
-    if (routingPlan.profile === "tool" && toolPlan.length === 0) {
+    if (routingPlan.profile === "tool") {
       routingPlan = getRoutingPlan(CATEGORY_LABELS.CASUAL);
     }
     const providerRunners = buildProviderRunners(conversationMessages, detailedMode);
@@ -1518,17 +1506,7 @@ app.post("/api/luna", async (req, res) => {
     let warning = "";
     let details = null;
 
-    if (routingPlan.profile === "tool" && toolPlan.length) {
-      const toolReply = toolSummary || "No tool results available yet.";
-      reply = toolReply;
-      llm = "tool";
-      details = {
-        category: classification.label,
-        profile: routingPlan.profile,
-        tools: toolResults,
-      };
-    } else {
-      try {
+    try {
         const routed = await runRoutedProviders({
           order: routingPlan.order,
           runners: providerRunners,
@@ -1558,7 +1536,6 @@ app.post("/api/luna", async (req, res) => {
           reply = generateLocalFallbackReply(message);
         }
       }
-    }
 
     if (!reply) {
       if (toolSummary) {
