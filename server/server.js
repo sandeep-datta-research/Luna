@@ -35,9 +35,9 @@ import {
   submitUpgradeRequest,
 } from "./pro-db.js";
 import { getAdminSettings, updateProMonthlyPrice, updateProSystemPrompt } from "./admin-settings.js";
-import { classifyMessage } from "./luna-classifier.js";
-import { getRoutingPlan, handleToolCommand, runRoutedProviders, runRoutedProvidersStream } from "./luna-router.js";
-
+import { CATEGORY_LABELS, classifyMessage } from "./luna-classifier.js";
+import { getRoutingPlan, runRoutedProviders, runRoutedProvidersStream } from "./luna-router.js";
+import { buildToolSystemPrompt, executeToolCalls, formatToolResults, planToolCalls } from "./luna-tools.js";
 dotenv.config();
 
 const app = express();
@@ -422,7 +422,7 @@ function sendSseEvent(res, event, data) {
     res.flush();
   }
 }
-function buildConversationMessages(history, message, detailedMode, membershipContext) {
+function buildConversationMessages(history, message, detailedMode, membershipContext, toolSummary) {
   const safeHistory = Array.isArray(history) ? history : [];
   const systemMessages = [
     { role: "system", content: LUNA_SYSTEM_PROMPT },
@@ -432,6 +432,11 @@ function buildConversationMessages(history, message, detailedMode, membershipCon
   const proPrompt = sanitizePromptText(membershipContext?.plan === "pro" ? membershipContext?.proSystemPrompt : "");
   if (proPrompt) {
     systemMessages.push({ role: "system", content: `Luna Pro custom instruction:\n${proPrompt}` });
+  }
+
+  const toolPrompt = buildToolSystemPrompt(toolSummary);
+  if (toolPrompt) {
+    systemMessages.push({ role: "system", content: toolPrompt });
   }
 
   return [
@@ -587,6 +592,11 @@ function splitTextForStream(text, maxChunk = 18) {
     } else {
       current += part;
     }
+  }
+
+  const toolPrompt = buildToolSystemPrompt(toolSummary);
+  if (toolPrompt) {
+    systemMessages.push({ role: "system", content: toolPrompt });
   }
 
   if (current) chunks.push(current);
@@ -1329,26 +1339,39 @@ app.post("/api/luna/stream", async (req, res) => {
     const conversation = await ensureConversation(requestedConversationId, userContext.userId);
     const detailedMode = wantsDetailedResponse(message);
     const history = toHistoryPayload(conversation, MAX_HISTORY_MESSAGES);
-    const conversationMessages = buildConversationMessages(history, message, detailedMode, membershipContext);
+    const toolPlan = planToolCalls(message);
+    const toolResults = toolPlan.length ? await executeToolCalls(toolPlan) : [];
+    const toolSummary = formatToolResults(toolResults);
+
+    const conversationMessages = buildConversationMessages(
+      history,
+      message,
+      detailedMode,
+      membershipContext,
+      toolSummary,
+    );
 
     const classification = classifyMessage(message);
-    const routingPlan = getRoutingPlan(classification.label);
+    let routingPlan = getRoutingPlan(classification.label);
+    if (routingPlan.profile === "tool" && toolPlan.length === 0) {
+      routingPlan = getRoutingPlan(CATEGORY_LABELS.CASUAL);
+    }
     const providerRunners = buildProviderRunners(conversationMessages, detailedMode, abortController.signal);
 
     let llm = "";
     let warning = "";
     let details = null;
 
-    if (routingPlan.profile === "tool") {
-      const toolResult = handleToolCommand(message);
+    if (routingPlan.profile === "tool" && toolPlan.length) {
+      const toolReply = toolSummary || "No tool results available yet.";
       llm = "tool";
       details = {
         category: classification.label,
         profile: routingPlan.profile,
-        tool: toolResult.tool,
+        tools: toolResults,
       };
-      streamTextChunks(toolResult.reply, sendToken);
-      reply = toolResult.reply;
+      streamTextChunks(toolReply, sendToken);
+      reply = toolReply;
     } else {
       try {
         const routed = await runRoutedProvidersStream({
@@ -1363,6 +1386,7 @@ app.post("/api/luna/stream", async (req, res) => {
           attempts: routed.attempts,
           category: classification.label,
           profile: routingPlan.profile,
+          tools: toolResults,
         };
       } catch (providerErr) {
         const normalized = extractProviderError(providerErr);
@@ -1370,17 +1394,30 @@ app.post("/api/luna/stream", async (req, res) => {
         details = normalized.responseData || {
           category: classification.label,
           profile: routingPlan.profile,
+          tools: toolResults,
         };
-        llm = "local-fallback";
-        reply = generateLocalFallbackReply(message);
-        streamTextChunks(reply, sendToken);
+        if (toolSummary) {
+          llm = "tool";
+          reply = toolSummary;
+          streamTextChunks(reply, sendToken);
+        } else {
+          llm = "local-fallback";
+          reply = generateLocalFallbackReply(message);
+          streamTextChunks(reply, sendToken);
+        }
       }
     }
 
     if (!reply) {
-      llm = "local-fallback";
-      reply = generateLocalFallbackReply(message);
-      streamTextChunks(reply, sendToken);
+      if (toolSummary) {
+        llm = "tool";
+        reply = toolSummary;
+        streamTextChunks(reply, sendToken);
+      } else {
+        llm = "local-fallback";
+        reply = generateLocalFallbackReply(message);
+        streamTextChunks(reply, sendToken);
+      }
     }
 
     const updatedConversation = await saveConversationTurn({
@@ -1418,6 +1455,7 @@ app.post("/api/luna/stream", async (req, res) => {
       selectedBy: llm === "local-fallback" ? "fallback" : "auto",
       warning,
       details,
+      tools: toolResults,
       conversationId: updatedConversation.id,
       conversation: updatedConversation,
       membership: {
@@ -1456,10 +1494,23 @@ app.post("/api/luna", async (req, res) => {
     const conversation = await ensureConversation(requestedConversationId, userContext.userId);
     const detailedMode = wantsDetailedResponse(message);
     const history = toHistoryPayload(conversation, MAX_HISTORY_MESSAGES);
-    const conversationMessages = buildConversationMessages(history, message, detailedMode, membershipContext);
+    const toolPlan = planToolCalls(message);
+    const toolResults = toolPlan.length ? await executeToolCalls(toolPlan) : [];
+    const toolSummary = formatToolResults(toolResults);
+
+    const conversationMessages = buildConversationMessages(
+      history,
+      message,
+      detailedMode,
+      membershipContext,
+      toolSummary,
+    );
 
     const classification = classifyMessage(message);
-    const routingPlan = getRoutingPlan(classification.label);
+    let routingPlan = getRoutingPlan(classification.label);
+    if (routingPlan.profile === "tool" && toolPlan.length === 0) {
+      routingPlan = getRoutingPlan(CATEGORY_LABELS.CASUAL);
+    }
     const providerRunners = buildProviderRunners(conversationMessages, detailedMode);
 
     let reply = "";
@@ -1467,14 +1518,14 @@ app.post("/api/luna", async (req, res) => {
     let warning = "";
     let details = null;
 
-    if (routingPlan.profile === "tool") {
-      const toolResult = handleToolCommand(message);
-      reply = toolResult.reply;
+    if (routingPlan.profile === "tool" && toolPlan.length) {
+      const toolReply = toolSummary || "No tool results available yet.";
+      reply = toolReply;
       llm = "tool";
       details = {
         category: classification.label,
         profile: routingPlan.profile,
-        tool: toolResult.tool,
+        tools: toolResults,
       };
     } else {
       try {
@@ -1489,6 +1540,7 @@ app.post("/api/luna", async (req, res) => {
           attempts: routed.attempts,
           category: classification.label,
           profile: routingPlan.profile,
+          tools: toolResults,
         };
       } catch (providerErr) {
         const normalized = extractProviderError(providerErr);
@@ -1496,15 +1548,26 @@ app.post("/api/luna", async (req, res) => {
         details = normalized.responseData || {
           category: classification.label,
           profile: routingPlan.profile,
+          tools: toolResults,
         };
-        llm = "local-fallback";
-        reply = generateLocalFallbackReply(message);
+        if (toolSummary) {
+          llm = "tool";
+          reply = toolSummary;
+        } else {
+          llm = "local-fallback";
+          reply = generateLocalFallbackReply(message);
+        }
       }
     }
 
     if (!reply) {
-      llm = "local-fallback";
-      reply = generateLocalFallbackReply(message);
+      if (toolSummary) {
+        llm = "tool";
+        reply = toolSummary;
+      } else {
+        llm = "local-fallback";
+        reply = generateLocalFallbackReply(message);
+      }
     }
 
     const updatedConversation = await saveConversationTurn({
@@ -1542,6 +1605,7 @@ app.post("/api/luna", async (req, res) => {
       selectedBy: llm === "local-fallback" ? "fallback" : "auto",
       warning,
       details,
+      tools: toolResults,
       conversationId: updatedConversation.id,
       conversation: updatedConversation,
       membership: {
