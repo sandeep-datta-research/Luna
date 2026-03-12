@@ -97,7 +97,7 @@ async function fetchAuthApi(path, options = {}) {
   return result;
 }
 
-export default function GoogleOAuthCard() {
+export default function GoogleOAuthCard({ onSignedIn } = {}) {
   const buttonRef = useRef(null);
   const [isReady, setIsReady] = useState(false);
   const [runtimeError, setRuntimeError] = useState("");
@@ -170,6 +170,9 @@ export default function GoogleOAuthCard() {
             setToken(result.data.token);
             setUser(result.data.user);
             setStoredAuth({ user: result.data.user, token: result.data.token });
+            if (typeof onSignedIn === "function") {
+              onSignedIn(result.data.user);
+            }
           },
         });
 
@@ -246,3 +249,5 @@ export default function GoogleOAuthCard() {
     </div>
   );
 }
+
+

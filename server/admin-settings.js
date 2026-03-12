@@ -1,5 +1,6 @@
 import fs from "fs/promises";
 import path from "path";
+import { randomUUID } from "crypto";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -18,10 +19,57 @@ function normalizeText(value) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function normalizeCode(value) {
+  if (typeof value !== "string") return "";
+  return value
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "")
+    .replace(/[^A-Z0-9_-]/g, "")
+    .slice(0, 32);
+}
+
 function toPositiveAmount(value, fallback = 90) {
   const n = Number(value);
   if (!Number.isFinite(n) || n <= 0) return Math.max(1, Math.round(fallback * 100) / 100);
   return Math.round(n * 100) / 100;
+}
+
+function toPercent(value, fallback = 0, max = 90) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 0) return Math.max(0, Math.min(max, fallback));
+  return Math.max(0, Math.min(max, Math.round(n * 100) / 100));
+}
+
+function toIsoDate(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toISOString();
+}
+
+function sanitizeReferralCode(raw, defaults) {
+  const code = normalizeCode(raw?.code);
+  if (!code) return null;
+
+  return {
+    id: normalizeText(raw?.id) || `ref-${randomUUID()}`,
+    code,
+    discountPercent: toPercent(raw?.discountPercent, defaults.defaultReferralDiscountPercent),
+    expiresAt: toIsoDate(raw?.expiresAt),
+    active: raw?.active !== false,
+    createdAt: normalizeText(raw?.createdAt) || nowIso(),
+    createdBy: normalizeText(raw?.createdBy),
+    updatedAt: normalizeText(raw?.updatedAt) || nowIso(),
+    updatedBy: normalizeText(raw?.updatedBy),
+  };
+}
+
+function sanitizeReferralCodes(rawList, defaults) {
+  if (!Array.isArray(rawList)) return [];
+  return rawList
+    .map((item) => sanitizeReferralCode(item, defaults))
+    .filter(Boolean);
 }
 
 function sanitizeSettings(raw, defaults) {
@@ -29,6 +77,7 @@ function sanitizeSettings(raw, defaults) {
     proMonthlyPriceInr: toPositiveAmount(raw?.proMonthlyPriceInr, defaults.defaultMonthlyPriceInr),
     proSystemPrompt: normalizeText(raw?.proSystemPrompt).slice(0, 5000),
     upiId: normalizeText(raw?.upiId) || defaults.defaultUpiId,
+    referralCodes: sanitizeReferralCodes(raw?.referralCodes, defaults),
     updatedAt: normalizeText(raw?.updatedAt),
     updatedBy: normalizeText(raw?.updatedBy),
   };
@@ -88,6 +137,7 @@ function getDefaults(overrides = {}) {
   return {
     defaultMonthlyPriceInr: toPositiveAmount(overrides.defaultMonthlyPriceInr, 90),
     defaultUpiId: normalizeText(overrides.defaultUpiId) || "9366183700@fam",
+    defaultReferralDiscountPercent: toPercent(overrides.defaultReferralDiscountPercent, 0),
   };
 }
 
@@ -118,4 +168,166 @@ export async function updateProSystemPrompt({ proSystemPrompt, adminUserId = "" 
     db.settings.updatedBy = normalizeText(adminUserId);
     return clone(db.settings);
   });
+}
+
+function isReferralExpired(referral) {
+  if (!referral?.expiresAt) return false;
+  const expiresTime = Date.parse(referral.expiresAt);
+  if (Number.isNaN(expiresTime)) return true;
+  return Date.now() > expiresTime;
+}
+
+export async function upsertReferralCode(
+  { code, discountPercent, expiresAt, active = true, adminUserId = "" },
+  overrides = {},
+) {
+  const defaults = getDefaults(overrides);
+  const safeCode = normalizeCode(code);
+  if (!safeCode) throw new Error("Referral code is required");
+
+  const percent = toPercent(discountPercent, defaults.defaultReferralDiscountPercent);
+  if (percent <= 0 || percent > 90) throw new Error("discountPercent must be between 1 and 90");
+
+  const expiresIso = toIsoDate(expiresAt);
+  if (!expiresIso) throw new Error("expiresAt is required");
+
+  return mutate(defaults, (db) => {
+    const now = nowIso();
+    const list = Array.isArray(db.settings.referralCodes) ? db.settings.referralCodes : [];
+    const existing = list.find((item) => normalizeCode(item.code) === safeCode);
+
+    if (existing) {
+      existing.discountPercent = percent;
+      existing.expiresAt = expiresIso;
+      existing.active = Boolean(active);
+      existing.updatedAt = now;
+      existing.updatedBy = normalizeText(adminUserId);
+    } else {
+      list.unshift(
+        sanitizeReferralCode(
+          {
+            id: `ref-${randomUUID()}`,
+            code: safeCode,
+            discountPercent: percent,
+            expiresAt: expiresIso,
+            active: Boolean(active),
+            createdAt: now,
+            createdBy: normalizeText(adminUserId),
+            updatedAt: now,
+            updatedBy: normalizeText(adminUserId),
+          },
+          defaults,
+        ),
+      );
+    }
+
+    db.settings.referralCodes = list.filter(Boolean);
+    db.settings.updatedAt = now;
+    db.settings.updatedBy = normalizeText(adminUserId);
+    return clone(db.settings);
+  });
+}
+
+export async function updateReferralCode(
+  { code, discountPercent, expiresAt, active, adminUserId = "" },
+  overrides = {},
+) {
+  const defaults = getDefaults(overrides);
+  const safeCode = normalizeCode(code);
+  if (!safeCode) throw new Error("Referral code is required");
+
+  return mutate(defaults, (db) => {
+    const now = nowIso();
+    const list = Array.isArray(db.settings.referralCodes) ? db.settings.referralCodes : [];
+    const existing = list.find((item) => normalizeCode(item.code) === safeCode);
+
+    if (!existing) {
+      throw new Error("Referral code not found");
+    }
+
+    if (discountPercent !== undefined) {
+      const percent = toPercent(discountPercent, existing.discountPercent);
+      if (percent <= 0 || percent > 90) throw new Error("discountPercent must be between 1 and 90");
+      existing.discountPercent = percent;
+    }
+
+    if (expiresAt !== undefined) {
+      const expiresIso = toIsoDate(expiresAt);
+      if (!expiresIso) throw new Error("expiresAt is required");
+      existing.expiresAt = expiresIso;
+    }
+
+    if (active !== undefined) {
+      existing.active = Boolean(active);
+    }
+
+    existing.updatedAt = now;
+    existing.updatedBy = normalizeText(adminUserId);
+    db.settings.updatedAt = now;
+    db.settings.updatedBy = normalizeText(adminUserId);
+    db.settings.referralCodes = list;
+    return clone(db.settings);
+  });
+}
+
+export async function removeReferralCode({ code, adminUserId = "" }, overrides = {}) {
+  const defaults = getDefaults(overrides);
+  const safeCode = normalizeCode(code);
+  if (!safeCode) throw new Error("Referral code is required");
+
+  return mutate(defaults, (db) => {
+    const now = nowIso();
+    const list = Array.isArray(db.settings.referralCodes) ? db.settings.referralCodes : [];
+    const nextList = list.filter((item) => normalizeCode(item.code) !== safeCode);
+
+    if (nextList.length === list.length) {
+      throw new Error("Referral code not found");
+    }
+
+    db.settings.referralCodes = nextList;
+    db.settings.updatedAt = now;
+    db.settings.updatedBy = normalizeText(adminUserId);
+    return clone(db.settings);
+  });
+}
+
+export async function validateReferralCode({ code, amountInr }, overrides = {}) {
+  const defaults = getDefaults(overrides);
+  const safeCode = normalizeCode(code);
+  if (!safeCode) {
+    return { ok: false, message: "Referral code is required" };
+  }
+
+  const settings = await getAdminSettings(defaults);
+  const referrals = Array.isArray(settings?.referralCodes) ? settings.referralCodes : [];
+  const referral = referrals.find((item) => normalizeCode(item.code) === safeCode);
+
+  if (!referral) {
+    return { ok: false, message: "Referral code not found" };
+  }
+  if (!referral.active) {
+    return { ok: false, message: "Referral code is inactive" };
+  }
+  if (isReferralExpired(referral)) {
+    return { ok: false, message: "Referral code expired" };
+  }
+
+  const baseAmountInr = toPositiveAmount(amountInr, defaults.defaultMonthlyPriceInr);
+  const discountPercent = toPercent(referral.discountPercent, 0);
+  if (discountPercent <= 0) {
+    return { ok: false, message: "Referral code has no discount" };
+  }
+
+  const discountValue = Math.round(baseAmountInr * (discountPercent / 100) * 100) / 100;
+  const finalAmountInr = Math.max(1, Math.round((baseAmountInr - discountValue) * 100) / 100);
+
+  return {
+    ok: true,
+    referral: clone(referral),
+    code: referral.code,
+    discountPercent,
+    baseAmountInr,
+    finalAmountInr,
+    expiresAt: referral.expiresAt,
+  };
 }

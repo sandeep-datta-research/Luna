@@ -25,6 +25,16 @@ function normalizeText(value) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function normalizeCode(value) {
+  if (typeof value !== "string") return "";
+  return value
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "")
+    .replace(/[^A-Z0-9_-]/g, "")
+    .slice(0, 32);
+}
+
 function normalizePlan(value) {
   return value === "pro" ? "pro" : "free";
 }
@@ -44,6 +54,12 @@ function toAmount(value, fallback = 90) {
   return Math.round(num * 100) / 100;
 }
 
+function toPercent(value, fallback = 0, max = 90) {
+  const num = Number(value);
+  if (!Number.isFinite(num) || num < 0) return Math.max(0, Math.min(max, fallback));
+  return Math.max(0, Math.min(max, Math.round(num * 100) / 100));
+}
+
 function sanitizeMembership(raw) {
   return {
     userId: normalizeText(raw?.userId),
@@ -58,13 +74,19 @@ function sanitizeMembership(raw) {
 }
 
 function sanitizeUpgradeRequest(raw) {
+  const amountInr = toAmount(raw?.amountInr, 90);
+  const baseAmountInr = toAmount(raw?.baseAmountInr ?? raw?.amountInr, amountInr);
+
   return {
     id: normalizeText(raw?.id) || createId("upr"),
     userId: normalizeText(raw?.userId),
     userEmail: normalizeText(raw?.userEmail).toLowerCase(),
     userName: normalizeText(raw?.userName),
     transactionId: normalizeText(raw?.transactionId),
-    amountInr: toAmount(raw?.amountInr, 90),
+    amountInr,
+    baseAmountInr,
+    discountPercent: toPercent(raw?.discountPercent, 0),
+    referralCode: normalizeCode(raw?.referralCode),
     status: normalizeStatus(raw?.status),
     note: normalizeText(raw?.note),
     createdAt: normalizeText(raw?.createdAt) || nowIso(),
@@ -209,12 +231,26 @@ export async function listMemberships() {
   return clone(db.memberships).sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 }
 
-export async function submitUpgradeRequest({ userId, userEmail, userName, transactionId, amountInr = 90 }) {
+export async function submitUpgradeRequest({
+  userId,
+  userEmail,
+  userName,
+  transactionId,
+  amountInr = 90,
+  baseAmountInr,
+  discountPercent = 0,
+  referralCode = "",
+}) {
   const safeUserId = normalizeText(userId);
   const safeTxn = normalizeText(transactionId);
 
   if (!safeUserId) throw new Error("userId is required");
   if (!safeTxn || safeTxn.length < 6) throw new Error("A valid transaction id / UPI reference is required");
+
+  const safeBaseAmount = toAmount(baseAmountInr ?? amountInr, 90);
+  const safeAmountInr = toAmount(amountInr, safeBaseAmount);
+  const safeDiscountPercent = toPercent(discountPercent, 0);
+  const safeReferralCode = normalizeCode(referralCode);
 
   return runDbMutation((db) => {
     const now = nowIso();
@@ -239,7 +275,10 @@ export async function submitUpgradeRequest({ userId, userEmail, userName, transa
       userEmail,
       userName,
       transactionId: safeTxn,
-      amountInr,
+      amountInr: safeAmountInr,
+      baseAmountInr: safeBaseAmount,
+      discountPercent: safeDiscountPercent,
+      referralCode: safeReferralCode,
       status: "pending",
       note: "",
       createdAt: now,

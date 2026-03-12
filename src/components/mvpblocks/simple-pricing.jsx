@@ -28,6 +28,10 @@ export default function SimplePricing() {
   const [submitting, setSubmitting] = useState(false);
   const [submitNote, setSubmitNote] = useState("");
   const [showPaymentPanel, setShowPaymentPanel] = useState(false);
+  const [referralCode, setReferralCode] = useState("");
+  const [referralInfo, setReferralInfo] = useState(null);
+  const [referralBusy, setReferralBusy] = useState(false);
+  const [referralNote, setReferralNote] = useState("");
 
   const loadProfile = async () => {
     setLoading(true);
@@ -51,31 +55,76 @@ export default function SimplePricing() {
   const isGuest = Boolean(profile?.isGuest);
   const currentPlan = profile?.membership?.plan === "pro" ? "pro" : "free";
   const upiId = profile?.billing?.upiId || FALLBACK_UPI_ID;
-  const priceInr = Number(profile?.billing?.monthlyPriceInr || FALLBACK_PRICE_INR);
+  const basePriceInr = Number(profile?.billing?.monthlyPriceInr || FALLBACK_PRICE_INR);
+  const payableInr = referralInfo?.finalAmountInr || basePriceInr;
+  const discountPercent = referralInfo?.discountPercent || 0;
   const requests = Array.isArray(profile?.upgradeRequests) ? profile.upgradeRequests : [];
 
   useEffect(() => {
     if (currentPlan === "pro") {
       setShowPaymentPanel(false);
+      setReferralInfo(null);
+      setReferralCode("");
+      setReferralNote("");
     }
   }, [currentPlan]);
+
+  useEffect(() => {
+    if (!showPaymentPanel) {
+      setReferralInfo(null);
+      setReferralCode("");
+      setReferralNote("");
+    }
+  }, [showPaymentPanel]);
 
   const upiLink = useMemo(() => {
     const params = new URLSearchParams({
       pa: upiId,
       pn: "Luna AI",
-      am: String(priceInr),
+      am: String(payableInr),
       cu: "INR",
       tn: "Luna Pro Upgrade",
     });
 
     return `upi://pay?${params.toString()}`;
-  }, [priceInr, upiId]);
-
+  }, [payableInr, upiId]);
   const qrUrl = useMemo(
     () => `https://quickchart.io/qr?size=220&text=${encodeURIComponent(upiLink)}`,
     [upiLink],
   );
+
+  const handleApplyReferral = async () => {
+    const code = referralCode.trim();
+
+    if (!code) {
+      setReferralNote("Enter a referral code.");
+      setReferralInfo(null);
+      return;
+    }
+
+    setReferralBusy(true);
+    setReferralNote("");
+
+    const result = await fetchApi("/api/referrals/validate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code, amountInr: basePriceInr }),
+    });
+
+    setReferralBusy(false);
+
+    if (!result.ok) {
+      setReferralInfo(null);
+      setReferralNote(result.message || "Referral code invalid.");
+      return;
+    }
+
+    setReferralInfo(result.data || null);
+    if (result.data?.discountPercent) {
+      setReferralNote(`Applied ${result.data.discountPercent}% discount.`);
+    }
+  };
+
 
   const handleUpgradeSubmit = async (event) => {
     event.preventDefault();
@@ -97,7 +146,7 @@ export default function SimplePricing() {
     const result = await fetchApi("/api/payments/upgrade-request", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ transactionId, amountInr: priceInr }),
+      body: JSON.stringify({ transactionId, amountInr: payableInr, referralCode: referralInfo?.code || "" }),
     });
 
     setSubmitting(false);
@@ -177,10 +226,16 @@ export default function SimplePricing() {
               </div>
             </div>
 
-            <div className="mt-5 flex items-end gap-2">
-              <span className="text-4xl font-bold text-white">Rs {priceInr}</span>
+            <div className="mt-5 flex flex-wrap items-end gap-2">
+              <span className={`text-4xl font-bold ${discountPercent ? "text-zinc-400 line-through" : "text-white"}`}>
+                Rs {basePriceInr}
+              </span>
+              {discountPercent ? <span className="text-3xl font-semibold text-white">Rs {payableInr}</span> : null}
               <span className="pb-1 text-sm text-zinc-300">/ month</span>
             </div>
+            {discountPercent ? (
+              <p className="mt-2 text-xs text-emerald-300">Referral applied: {discountPercent}% off</p>
+            ) : null}
 
             <ul className="mt-5 space-y-3 text-sm text-zinc-200">
               <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 text-emerald-300" />Unlimited messages/day</li>
@@ -218,7 +273,26 @@ export default function SimplePricing() {
                   <div className="space-y-3 rounded-xl border border-zinc-700/80 bg-zinc-950/70 p-3">
                     <div className="flex items-center gap-2 text-sm text-zinc-300">
                       <Wallet className="h-4 w-4 text-violet-300" />
-                      Pay to <span className="font-semibold text-zinc-100">{upiId}</span>
+                      Pay Rs {payableInr} to <span className="font-semibold text-zinc-100">{upiId}</span>
+                    </div>                    <div className="rounded-lg border border-zinc-700/80 bg-zinc-900/50 p-2">
+                      <label className="text-xs text-zinc-400">Referral code (optional)</label>
+                      <div className="mt-1 flex flex-wrap gap-2">
+                        <input
+                          value={referralCode}
+                          onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                          placeholder="Enter code"
+                          className="flex-1 rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs text-zinc-100 outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleApplyReferral}
+                          disabled={referralBusy}
+                          className="rounded-md border border-violet-400/40 bg-violet-500/15 px-3 py-2 text-xs text-violet-100 hover:bg-violet-500/25 disabled:opacity-60"
+                        >
+                          {referralBusy ? "Checking..." : "Apply"}
+                        </button>
+                      </div>
+                      {referralNote ? <p className="mt-2 text-[11px] text-emerald-200">{referralNote}</p> : null}
                     </div>
 
                     <form onSubmit={handleUpgradeSubmit} className="space-y-2">
@@ -283,3 +357,14 @@ export default function SimplePricing() {
     </section>
   );
 }
+
+
+
+
+
+
+
+
+
+
+

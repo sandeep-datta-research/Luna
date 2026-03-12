@@ -53,7 +53,7 @@ export default function SignInPage() {
       }
 
       setLoading(false);
-      navigate("/chat");
+      navigate("/profile");
     }, 700);
   };
 
@@ -173,12 +173,12 @@ export default function SignInPage() {
                   <span className="relative bg-zinc-950 px-2">Or continue with Google</span>
                 </div>
 
-                <GoogleOAuthCard />
+                <GoogleOAuthCard onSignedIn={() => navigate("/profile")} />
 
                 <p className="mt-6 text-center text-sm text-zinc-400">
                   Already signed in?{" "}
-                  <Link to="/chat" className="text-violet-300 hover:text-violet-200">
-                    Open Luna chat
+                  <Link to="/profile" className="text-violet-300 hover:text-violet-200">
+                    Open profile
                   </Link>
                 </p>
               </div>
@@ -189,3 +189,4 @@ export default function SignInPage() {
     </div>
   );
 }
+

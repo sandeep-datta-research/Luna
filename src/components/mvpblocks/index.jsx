@@ -105,12 +105,26 @@ export default function AdminDashboard() {
   const [proPromptInput, setProPromptInput] = useState("");
   const [settingsBusy, setSettingsBusy] = useState(false);
   const [settingsNote, setSettingsNote] = useState("");
+  const [referralCodes, setReferralCodes] = useState([]);
+  const [referralCodeInput, setReferralCodeInput] = useState("");
+  const [referralPercentInput, setReferralPercentInput] = useState("10");
+  const [referralExpiryInput, setReferralExpiryInput] = useState("");
+  const [referralActiveInput, setReferralActiveInput] = useState(true);
+  const [referralNote, setReferralNote] = useState("");
 
   const isAllowed = useMemo(() => ALLOWED_ADMIN_EMAILS.has(normalizeEmail(userEmail)), [userEmail]);
+
+  const isReferralExpired = (expiresAt) => {
+    if (!expiresAt) return false;
+    const date = new Date(expiresAt);
+    if (Number.isNaN(date.getTime())) return true;
+    return date.getTime() < Date.now();
+  };
 
   const applySettings = (rawSettings) => {
     const price = Number(rawSettings?.proMonthlyPriceInr || 90);
     const prompt = typeof rawSettings?.proSystemPrompt === "string" ? rawSettings.proSystemPrompt : "";
+    const referrals = Array.isArray(rawSettings?.referralCodes) ? rawSettings.referralCodes : [];
 
     setSettings({
       proMonthlyPriceInr: Number.isFinite(price) && price > 0 ? price : 90,
@@ -120,6 +134,7 @@ export default function AdminDashboard() {
     });
     setProPriceInput(String(Number.isFinite(price) && price > 0 ? price : 90));
     setProPromptInput(prompt);
+    setReferralCodes(referrals);
   };
 
   const loadAdminData = async () => {
@@ -285,6 +300,92 @@ export default function AdminDashboard() {
     setSettingsNote("Pro custom prompt saved. It now applies to Pro users only.");
   };
 
+    const saveReferral = async () => {
+    const code = referralCodeInput.trim();
+    const discountPercent = Number(referralPercentInput);
+    const expiresAt = referralExpiryInput ? new Date(referralExpiryInput).toISOString() : "";
+
+    if (!code) {
+      setReferralNote("Enter a referral code.");
+      return;
+    }
+
+    if (!Number.isFinite(discountPercent) || discountPercent <= 0 || discountPercent > 90) {
+      setReferralNote("Discount must be between 1 and 90.");
+      return;
+    }
+
+    if (!expiresAt) {
+      setReferralNote("Select an expiry date/time.");
+      return;
+    }
+
+    setSettingsBusy(true);
+    setReferralNote("");
+
+    const result = await fetchApi("/api/admin/referrals", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        code,
+        discountPercent,
+        expiresAt,
+        active: referralActiveInput,
+      }),
+    });
+
+    setSettingsBusy(false);
+
+    if (!result.ok) {
+      setReferralNote(result.message || "Failed to save referral code.");
+      return;
+    }
+
+    applySettings(result.data?.settings || {});
+    setReferralNote("Referral code saved.");
+    setReferralCodeInput("");
+    setReferralPercentInput("10");
+    setReferralExpiryInput("");
+  };
+
+  const toggleReferral = async (code, active) => {
+    setSettingsBusy(true);
+    setReferralNote("");
+
+    const result = await fetchApi(`/api/admin/referrals/${encodeURIComponent(code)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ active }),
+    });
+
+    setSettingsBusy(false);
+
+    if (!result.ok) {
+      setReferralNote(result.message || "Failed to update referral.");
+      return;
+    }
+
+    applySettings(result.data?.settings || {});
+  };
+
+  const deleteReferral = async (code) => {
+    setSettingsBusy(true);
+    setReferralNote("");
+
+    const result = await fetchApi(`/api/admin/referrals/${encodeURIComponent(code)}`, {
+      method: "DELETE",
+    });
+
+    setSettingsBusy(false);
+
+    if (!result.ok) {
+      setReferralNote(result.message || "Failed to remove referral.");
+      return;
+    }
+
+    applySettings(result.data?.settings || {});
+  };
+
   if (authState === "loading") {
     return <main className="flex min-h-screen items-center justify-center bg-[#07070d] text-zinc-300">Checking admin access...</main>;
   }
@@ -402,6 +503,116 @@ export default function AdminDashboard() {
               <span>{settings.updatedAt ? `Updated: ${formatDate(settings.updatedAt)}` : "Not updated yet"}</span>
             </div>
             {settingsNote ? <p className="mt-2 text-xs text-cyan-200">{settingsNote}</p> : null}
+          </section>          <section className="mb-6 rounded-2xl border border-zinc-800 bg-zinc-900/65 p-4">
+            <div className="mb-4 flex items-center gap-2 text-lg font-semibold text-white">
+              <Shield className="h-5 w-5 text-violet-200" />
+              Referral Codes
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-[1fr_1.2fr]">
+              <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-4">
+                <p className="text-sm font-medium text-zinc-200">Create referral code</p>
+                <div className="mt-3 grid gap-3">
+                  <input
+                    value={referralCodeInput}
+                    onChange={(event) => setReferralCodeInput(event.target.value.toUpperCase())}
+                    placeholder="e.g. LUNA10"
+                    className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none"
+                  />
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <input
+                      type="number"
+                      min="1"
+                      max="90"
+                      value={referralPercentInput}
+                      onChange={(event) => setReferralPercentInput(event.target.value)}
+                      placeholder="Discount %"
+                      className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none"
+                    />
+                    <input
+                      type="datetime-local"
+                      value={referralExpiryInput}
+                      onChange={(event) => setReferralExpiryInput(event.target.value)}
+                      className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none"
+                    />
+                  </div>
+                  <label className="flex items-center gap-2 text-xs text-zinc-400">
+                    <input
+                      type="checkbox"
+                      checked={referralActiveInput}
+                      onChange={(event) => setReferralActiveInput(event.target.checked)}
+                      className="h-4 w-4 rounded border border-zinc-600 bg-zinc-900"
+                    />
+                    Active on creation
+                  </label>
+                </div>
+
+                <div className="mt-4 flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={saveReferral}
+                    disabled={settingsBusy}
+                    className="inline-flex items-center gap-1 rounded-lg border border-violet-400/35 bg-violet-500/20 px-3 py-2 text-xs text-violet-100 hover:bg-violet-500/30 disabled:opacity-60"
+                  >
+                    <Save className="h-3.5 w-3.5" />Save Code
+                  </button>
+                </div>
+
+                {referralNote ? <p className="mt-2 text-xs text-cyan-200">{referralNote}</p> : null}
+              </div>
+
+              <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-4">
+                <p className="text-sm font-medium text-zinc-200">Active referral codes</p>
+                {referralCodes.length === 0 ? (
+                  <p className="mt-3 text-xs text-zinc-500">No referral codes yet.</p>
+                ) : (
+                  <div className="mt-3 max-h-64 space-y-2 overflow-auto pr-1">
+                    {referralCodes.map((ref) => {
+                      const expired = isReferralExpired(ref.expiresAt);
+                      const statusLabel = expired ? "Expired" : ref.active ? "Active" : "Paused";
+                      const statusClass = expired
+                        ? "border-rose-400/35 bg-rose-500/15 text-rose-200"
+                        : ref.active
+                          ? "border-emerald-400/35 bg-emerald-500/15 text-emerald-200"
+                          : "border-amber-400/35 bg-amber-500/15 text-amber-200";
+
+                      return (
+                        <div key={ref.id || ref.code} className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div>
+                              <p className="text-sm text-zinc-100">{ref.code}</p>
+                              <p className="text-xs text-zinc-500">
+                                {ref.discountPercent}% off · Expires {formatDate(ref.expiresAt) || "-"}
+                              </p>
+                            </div>
+                            <span className={`rounded-md border px-2 py-1 text-[11px] ${statusClass}`}>{statusLabel}</span>
+                          </div>
+
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              disabled={settingsBusy}
+                              onClick={() => toggleReferral(ref.code, !ref.active)}
+                              className="rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs text-zinc-200 hover:bg-zinc-800 disabled:opacity-60"
+                            >
+                              {ref.active ? "Disable" : "Activate"}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={settingsBusy}
+                              onClick={() => deleteReferral(ref.code)}
+                              className="rounded-md border border-rose-400/35 bg-rose-500/10 px-2 py-1 text-xs text-rose-200 hover:bg-rose-500/20 disabled:opacity-60"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
           </section>
 
           <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -541,3 +752,11 @@ export default function AdminDashboard() {
     </div>
   );
 }
+
+
+
+
+
+
+
+

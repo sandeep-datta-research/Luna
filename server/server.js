@@ -34,7 +34,7 @@ import {
   setMembershipPlan,
   submitUpgradeRequest,
 } from "./pro-db.js";
-import { getAdminSettings, updateProMonthlyPrice, updateProSystemPrompt } from "./admin-settings.js";
+import { getAdminSettings, removeReferralCode, updateProMonthlyPrice, updateProSystemPrompt, updateReferralCode, upsertReferralCode, validateReferralCode } from "./admin-settings.js";
 import { CATEGORY_LABELS, classifyMessage } from "./luna-classifier.js";
 import { getRoutingPlan, runRoutedProviders, runRoutedProvidersStream } from "./luna-router.js";
 import { buildToolSystemPrompt, executeToolCalls, formatToolResults, planToolCalls } from "./luna-tools.js";
@@ -100,6 +100,7 @@ async function getLunaSettings() {
       proMonthlyPriceInr: Number(settings?.proMonthlyPriceInr || DEFAULT_PRO_MONTHLY_PRICE_INR),
       upiId: `${settings?.upiId || DEFAULT_UPI_ID}`.trim() || DEFAULT_UPI_ID,
       proSystemPrompt: sanitizePromptText(settings?.proSystemPrompt),
+      referralCodes: Array.isArray(settings?.referralCodes) ? settings.referralCodes : [],
       updatedAt: settings?.updatedAt || "",
       updatedBy: settings?.updatedBy || "",
     };
@@ -108,6 +109,7 @@ async function getLunaSettings() {
       proMonthlyPriceInr: DEFAULT_PRO_MONTHLY_PRICE_INR,
       upiId: DEFAULT_UPI_ID,
       proSystemPrompt: "",
+      referralCodes: [],
       updatedAt: "",
       updatedBy: "",
     };
@@ -1158,6 +1160,36 @@ app.patch("/api/profile", async (req, res) => {
   }
 });
 
+app.post("/api/referrals/validate", async (req, res) => {
+  try {
+    const code = typeof req.body?.code === "string" ? req.body.code : "";
+    const lunaSettings = await getLunaSettings();
+    const baseAmountInr = Number(lunaSettings?.proMonthlyPriceInr || DEFAULT_PRO_MONTHLY_PRICE_INR);
+
+    const validation = await validateReferralCode(
+      { code, amountInr: baseAmountInr },
+      { defaultMonthlyPriceInr: DEFAULT_PRO_MONTHLY_PRICE_INR, defaultUpiId: DEFAULT_UPI_ID },
+    );
+
+    if (!validation.ok) {
+      return res.status(400).json({ error: validation.message || "Invalid referral code", valid: false });
+    }
+
+    return res.json({
+      ok: true,
+      valid: true,
+      code: validation.code,
+      discountPercent: validation.discountPercent,
+      baseAmountInr: validation.baseAmountInr,
+      finalAmountInr: validation.finalAmountInr,
+      expiresAt: validation.expiresAt || "",
+    });
+  } catch (error) {
+    const n = extractProviderError(error);
+    return res.status(error.status || n.status || 400).json({ error: error.message || n.providerMessage });
+  }
+});
+
 app.post("/api/payments/upgrade-request", async (req, res) => {
   try {
     const auth = await requireAuthenticatedUser(req, res);
@@ -1165,7 +1197,26 @@ app.post("/api/payments/upgrade-request", async (req, res) => {
 
     const lunaSettings = await getLunaSettings();
     const transactionId = typeof req.body?.transactionId === "string" ? req.body.transactionId : "";
-    const amountInr = Number(req.body?.amountInr || lunaSettings.proMonthlyPriceInr || DEFAULT_PRO_MONTHLY_PRICE_INR);
+    const referralCode = typeof req.body?.referralCode === "string" ? req.body.referralCode : "";
+    const baseAmountInr = Number(lunaSettings.proMonthlyPriceInr || DEFAULT_PRO_MONTHLY_PRICE_INR);
+    let finalAmountInr = baseAmountInr;
+    let discountPercent = 0;
+    let appliedReferralCode = "";
+
+    if (referralCode.trim()) {
+      const validation = await validateReferralCode(
+        { code: referralCode, amountInr: baseAmountInr },
+        { defaultMonthlyPriceInr: DEFAULT_PRO_MONTHLY_PRICE_INR, defaultUpiId: DEFAULT_UPI_ID },
+      );
+
+      if (!validation.ok) {
+        return res.status(400).json({ error: validation.message || "Invalid referral code" });
+      }
+
+      finalAmountInr = validation.finalAmountInr;
+      discountPercent = validation.discountPercent;
+      appliedReferralCode = validation.code;
+    }
 
     await ensureMembershipUser({ userId: auth.user.id, email: auth.user.email, name: auth.user.name });
     const request = await submitUpgradeRequest({
@@ -1173,7 +1224,10 @@ app.post("/api/payments/upgrade-request", async (req, res) => {
       userEmail: auth.user.email,
       userName: auth.user.name,
       transactionId,
-      amountInr,
+      amountInr: finalAmountInr,
+      baseAmountInr,
+      discountPercent,
+      referralCode: appliedReferralCode,
     });
 
     return res.status(201).json({
@@ -1758,6 +1812,68 @@ app.post("/api/admin/settings/pro-prompt", async (req, res) => {
   }
 });
 
+app.post("/api/admin/referrals", async (req, res) => {
+  try {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+
+    const code = typeof req.body?.code === "string" ? req.body.code : "";
+    const discountPercent = req.body?.discountPercent;
+    const expiresAt = req.body?.expiresAt;
+    const active = req.body?.active;
+
+    const settings = await upsertReferralCode(
+      { code, discountPercent, expiresAt, active, adminUserId: admin.user.id },
+      { defaultMonthlyPriceInr: DEFAULT_PRO_MONTHLY_PRICE_INR, defaultUpiId: DEFAULT_UPI_ID },
+    );
+
+    return res.json({ ok: true, settings });
+  } catch (error) {
+    const n = extractProviderError(error);
+    return res.status(error.status || n.status || 400).json({ error: error.message || n.providerMessage });
+  }
+});
+
+app.patch("/api/admin/referrals/:code", async (req, res) => {
+  try {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+
+    const code = req.params.code;
+    const discountPercent = req.body?.discountPercent;
+    const expiresAt = req.body?.expiresAt;
+    const active = req.body?.active;
+
+    const settings = await updateReferralCode(
+      { code, discountPercent, expiresAt, active, adminUserId: admin.user.id },
+      { defaultMonthlyPriceInr: DEFAULT_PRO_MONTHLY_PRICE_INR, defaultUpiId: DEFAULT_UPI_ID },
+    );
+
+    return res.json({ ok: true, settings });
+  } catch (error) {
+    const n = extractProviderError(error);
+    return res.status(error.status || n.status || 400).json({ error: error.message || n.providerMessage });
+  }
+});
+
+app.delete("/api/admin/referrals/:code", async (req, res) => {
+  try {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+
+    const code = req.params.code;
+    const settings = await removeReferralCode(
+      { code, adminUserId: admin.user.id },
+      { defaultMonthlyPriceInr: DEFAULT_PRO_MONTHLY_PRICE_INR, defaultUpiId: DEFAULT_UPI_ID },
+    );
+
+    return res.json({ ok: true, settings });
+  } catch (error) {
+    const n = extractProviderError(error);
+    return res.status(error.status || n.status || 400).json({ error: error.message || n.providerMessage });
+  }
+});
+
 app.get("/api/admin/feedback", async (req, res) => {
   try {
     const admin = await requireAdmin(req, res);
@@ -1917,6 +2033,14 @@ async function startServer() {
 }
 
 startServer();
+
+
+
+
+
+
+
+
 
 
 
