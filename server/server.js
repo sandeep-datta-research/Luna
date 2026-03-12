@@ -387,18 +387,12 @@ function wantsDetailedResponse(message) {
   );
 }
 
-function clampReplyLength(reply, detailedMode) {
+function clampReplyLength(reply) {
   if (!reply) return "";
   let normalized = reply.replace(/\n{3,}/g, "\n\n").trim();
-  if (detailedMode || normalized.includes("```")) return normalized;
-
-  const words = normalized.split(/\s+/).filter(Boolean);
-  if (words.length > MAX_REPLY_WORDS) {
-    normalized = words.slice(0, MAX_REPLY_WORDS).join(" ").trim();
-  }
 
   if (!/[.!?]$/.test(normalized)) {
-    return `${normalized}.`;
+    return normalized + ".";
   }
 
   return normalized;
@@ -472,7 +466,7 @@ async function requestGroq(messages, detailedMode) {
       model: GROQ_MODEL,
       messages,
       temperature: detailedMode ? 0.75 : 0.45,
-      max_completion_tokens: detailedMode ? 900 : 260,
+      max_completion_tokens: detailedMode ? 900 : 600,
       top_p: 1,
     },
     {
@@ -494,7 +488,7 @@ async function requestOpenRouter(messages, detailedMode, model = OPENROUTER_MODE
       model,
       messages,
       temperature: detailedMode ? 0.75 : 0.45,
-      max_tokens: detailedMode ? 900 : 260,
+      max_tokens: detailedMode ? 900 : 600,
       top_p: 1,
     },
     {
@@ -552,7 +546,7 @@ async function requestGemini(messages, detailedMode) {
     generationConfig: {
       temperature: detailedMode ? 0.75 : 0.45,
       topP: 1,
-      maxOutputTokens: detailedMode ? 900 : 260,
+      maxOutputTokens: detailedMode ? 900 : 600,
     },
   };
 
@@ -717,7 +711,7 @@ async function streamGroq(messages, detailedMode, onToken, signal) {
       model: GROQ_MODEL,
       messages,
       temperature: detailedMode ? 0.75 : 0.45,
-      max_completion_tokens: detailedMode ? 900 : 260,
+      max_completion_tokens: detailedMode ? 900 : 600,
       top_p: 1,
     },
     onToken,
@@ -736,7 +730,7 @@ async function streamOpenRouter(messages, detailedMode, model, onToken, signal) 
       model,
       messages,
       temperature: detailedMode ? 0.75 : 0.45,
-      max_tokens: detailedMode ? 900 : 260,
+      max_tokens: detailedMode ? 900 : 600,
       top_p: 1,
     },
     onToken,
@@ -755,7 +749,7 @@ async function streamGemini(messages, detailedMode, onToken, signal) {
     generationConfig: {
       temperature: detailedMode ? 0.75 : 0.45,
       topP: 1,
-      maxOutputTokens: detailedMode ? 900 : 260,
+      maxOutputTokens: detailedMode ? 900 : 600,
     },
   };
 
@@ -1513,7 +1507,7 @@ app.post("/api/luna", async (req, res) => {
           normalizeError: extractProviderError,
         });
         llm = routed.llm;
-        reply = clampReplyLength(routed.rawReply, detailedMode);
+        reply = clampReplyLength(routed.rawReply);
         details = {
           attempts: routed.attempts,
           category: classification.label,
