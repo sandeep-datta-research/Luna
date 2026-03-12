@@ -263,10 +263,12 @@ async function streamSse(url, options = {}, handlers = {}, headerMode = { includ
     if (done) break;
 
     buffer += decoder.decode(value, { stream: true });
-    let idx;
-    while ((idx = buffer.indexOf("\n\n")) >= 0) {
+    let match;
+    while ((match = buffer.match(/\r?\n\r?\n/))) {
+      const idx = match.index ?? -1;
+      if (idx < 0) break;
       const rawEvent = buffer.slice(0, idx);
-      buffer = buffer.slice(idx + 2);
+      buffer = buffer.slice(idx + match[0].length);
 
       const parsed = parseSseEvent(rawEvent);
       if (!parsed) continue;

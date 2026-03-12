@@ -418,6 +418,9 @@ function startSseResponse(res) {
 function sendSseEvent(res, event, data) {
   res.write(`event: ${event}\n`);
   res.write(`data: ${JSON.stringify(data)}\n\n`);
+  if (typeof res.flush === "function") {
+    res.flush();
+  }
 }
 function buildConversationMessages(history, message, detailedMode, membershipContext) {
   const safeHistory = Array.isArray(history) ? history : [];
