@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "postinstall": "npm --prefix server ci --omit=dev",
+    "start": "node server/server.js"
   },
   "dependencies": {
     "@number-flow/react": "^0.6.0",
