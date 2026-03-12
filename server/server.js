@@ -42,6 +42,10 @@ dotenv.config();
 
 const app = express();
 const PORT = Number(process.env.PORT) || 5108;
+const LUNA_MAX_RESPONSE_MS = Number(process.env.LUNA_MAX_RESPONSE_MS || 9000);
+const LUNA_PROVIDER_TIMEOUT_MS = Number(process.env.LUNA_PROVIDER_TIMEOUT_MS || 9000);
+const LUNA_STREAM_TIMEOUT_MS = Number(process.env.LUNA_STREAM_TIMEOUT_MS || 10000);
+const LUNA_MAX_PROVIDER_ATTEMPTS = Number(process.env.LUNA_MAX_PROVIDER_ATTEMPTS || 2);
 
 const GROQ_MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
 const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || "nvidia/nemotron-3-nano-30b-a3b:free";
@@ -476,7 +480,7 @@ async function requestGroq(messages, detailedMode) {
         Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
         "Content-Type": "application/json",
       },
-      timeout: 20000,
+      timeout: LUNA_PROVIDER_TIMEOUT_MS,
     },
   );
 
@@ -498,7 +502,7 @@ async function requestOpenRouter(messages, detailedMode, model = OPENROUTER_MODE
         Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
         "Content-Type": "application/json",
       },
-      timeout: 20000,
+      timeout: LUNA_PROVIDER_TIMEOUT_MS,
     },
   );
 
@@ -521,7 +525,7 @@ async function requestNvidiaGlm(messages, detailedMode) {
         Authorization: `Bearer ${process.env.NVIDIA_API_KEY}`,
         "Content-Type": "application/json",
       },
-      timeout: 20000,
+      timeout: LUNA_PROVIDER_TIMEOUT_MS,
     },
   );
 
@@ -564,7 +568,7 @@ async function requestGemini(messages, detailedMode) {
 
   const response = await axios.post(url, body, {
     headers: { "Content-Type": "application/json" },
-    timeout: 20000,
+    timeout: LUNA_PROVIDER_TIMEOUT_MS,
   });
 
   const parts = response.data?.candidates?.[0]?.content?.parts;
@@ -625,7 +629,7 @@ async function streamOpenAICompatible({ url, headers, body, onToken, signal }) {
     {
       headers,
       responseType: "stream",
-      timeout: 25000,
+      timeout: LUNA_STREAM_TIMEOUT_MS,
       signal,
     },
   );
@@ -768,7 +772,7 @@ async function streamGemini(messages, detailedMode, onToken, signal) {
   const response = await axios.post(url, body, {
     headers: { "Content-Type": "application/json" },
     responseType: "stream",
-    timeout: 25000,
+    timeout: LUNA_STREAM_TIMEOUT_MS,
     signal,
   });
 
@@ -862,7 +866,7 @@ async function requestHuggingFace(messages, detailedMode) {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
-      timeout: 25000,
+      timeout: LUNA_STREAM_TIMEOUT_MS,
     },
   );
 
@@ -1352,6 +1356,7 @@ app.post("/api/luna/stream", async (req, res) => {
     if (routingPlan.profile === "tool") {
       routingPlan = getRoutingPlan(CATEGORY_LABELS.CASUAL);
     }
+    const selectedOrder = routingPlan.order.slice(0, routingPlan.profile === "fast" ? 1 : Math.max(1, LUNA_MAX_PROVIDER_ATTEMPTS));
     const providerRunners = buildProviderRunners(conversationMessages, detailedMode, abortController.signal);
 
     let llm = "";
@@ -1360,11 +1365,11 @@ app.post("/api/luna/stream", async (req, res) => {
 
     try {
         const routed = await runRoutedProvidersStream({
-          order: routingPlan.order,
+          order: selectedOrder,
           runners: providerRunners,
           normalizeError: extractProviderError,
           onToken: sendToken,
-          maxDurationMs: routingPlan.profile === "fast" ? 20000 : 35000,
+          maxDurationMs: LUNA_MAX_RESPONSE_MS,
         });
         llm = routed.llm;
         reply = routed.rawReply || reply;
@@ -1496,6 +1501,7 @@ app.post("/api/luna", async (req, res) => {
     if (routingPlan.profile === "tool") {
       routingPlan = getRoutingPlan(CATEGORY_LABELS.CASUAL);
     }
+    const selectedOrder = routingPlan.order.slice(0, routingPlan.profile === "fast" ? 1 : Math.max(1, LUNA_MAX_PROVIDER_ATTEMPTS));
     const providerRunners = buildProviderRunners(conversationMessages, detailedMode);
 
     let reply = "";
@@ -1505,10 +1511,10 @@ app.post("/api/luna", async (req, res) => {
 
     try {
         const routed = await runRoutedProviders({
-          order: routingPlan.order,
+          order: selectedOrder,
           runners: providerRunners,
           normalizeError: extractProviderError,
-          maxDurationMs: routingPlan.profile === "fast" ? 20000 : 35000,
+          maxDurationMs: LUNA_MAX_RESPONSE_MS,
         });
         llm = routed.llm;
         reply = clampReplyLength(routed.rawReply);
