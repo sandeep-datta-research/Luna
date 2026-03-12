@@ -525,7 +525,9 @@ export async function executeToolCalls(toolCalls) {
 
 export function formatToolResults(results) {
   if (!Array.isArray(results) || results.length === 0) return "";
-  const blocks = results.map(formatToolResult).filter(Boolean);
+  const okResults = results.filter((item) => item && item.ok);
+  if (okResults.length === 0) return "";
+  const blocks = okResults.map(formatToolResult).filter(Boolean);
   return blocks.join("\n\n");
 }
 
