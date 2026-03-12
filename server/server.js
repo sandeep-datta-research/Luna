@@ -476,7 +476,7 @@ async function requestGroq(messages, detailedMode) {
         Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
         "Content-Type": "application/json",
       },
-      timeout: 30000,
+      timeout: 20000,
     },
   );
 
@@ -498,7 +498,7 @@ async function requestOpenRouter(messages, detailedMode, model = OPENROUTER_MODE
         Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
         "Content-Type": "application/json",
       },
-      timeout: 30000,
+      timeout: 20000,
     },
   );
 
@@ -521,7 +521,7 @@ async function requestNvidiaGlm(messages, detailedMode) {
         Authorization: `Bearer ${process.env.NVIDIA_API_KEY}`,
         "Content-Type": "application/json",
       },
-      timeout: 30000,
+      timeout: 20000,
     },
   );
 
@@ -564,7 +564,7 @@ async function requestGemini(messages, detailedMode) {
 
   const response = await axios.post(url, body, {
     headers: { "Content-Type": "application/json" },
-    timeout: 30000,
+    timeout: 20000,
   });
 
   const parts = response.data?.candidates?.[0]?.content?.parts;
@@ -625,7 +625,7 @@ async function streamOpenAICompatible({ url, headers, body, onToken, signal }) {
     {
       headers,
       responseType: "stream",
-      timeout: 60000,
+      timeout: 25000,
       signal,
     },
   );
@@ -768,7 +768,7 @@ async function streamGemini(messages, detailedMode, onToken, signal) {
   const response = await axios.post(url, body, {
     headers: { "Content-Type": "application/json" },
     responseType: "stream",
-    timeout: 60000,
+    timeout: 25000,
     signal,
   });
 
@@ -862,7 +862,7 @@ async function requestHuggingFace(messages, detailedMode) {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
-      timeout: 60000,
+      timeout: 25000,
     },
   );
 
@@ -1364,6 +1364,7 @@ app.post("/api/luna/stream", async (req, res) => {
           runners: providerRunners,
           normalizeError: extractProviderError,
           onToken: sendToken,
+          maxDurationMs: routingPlan.profile === "fast" ? 20000 : 35000,
         });
         llm = routed.llm;
         reply = routed.rawReply || reply;
@@ -1507,6 +1508,7 @@ app.post("/api/luna", async (req, res) => {
           order: routingPlan.order,
           runners: providerRunners,
           normalizeError: extractProviderError,
+          maxDurationMs: routingPlan.profile === "fast" ? 20000 : 35000,
         });
         llm = routed.llm;
         reply = clampReplyLength(routed.rawReply);

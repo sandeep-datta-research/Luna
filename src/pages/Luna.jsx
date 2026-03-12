@@ -1009,11 +1009,6 @@ export default function Luna() {
       let assistantId = "";
       let assistantAdded = false;
       let streamedText = "";
-
-      let pendingBuffer = "";
-      let flushTimer = null;
-      let streamFinished = false;
-      let flushResolve = null;
       const ensureAssistant = (initialContent = "") => {
         if (assistantAdded) return;
         assistantId = createId("assistant");
@@ -1051,49 +1046,10 @@ export default function Luna() {
         }));
       };
 
-      const resolveFlushIfDone = () => {
-        if (!streamFinished || pendingBuffer || !flushResolve) return;
-        flushResolve();
-        flushResolve = null;
-      };
-
-      const drainBuffer = () => {
-        if (!pendingBuffer) {
-          if (flushTimer) {
-            clearInterval(flushTimer);
-            flushTimer = null;
-          }
-          resolveFlushIfDone();
-          return;
-        }
-
-        const take = pendingBuffer.slice(0, 120);
-        pendingBuffer = pendingBuffer.slice(120);
-        applyChunk(take);
-      };
-
-      const scheduleFlush = () => {
-        if (flushTimer) return;
-        drainBuffer();
-        if (pendingBuffer) {
-          flushTimer = setInterval(drainBuffer, 10);
-        }
-      };
-
-      const waitForFlush = () =>
-        new Promise((resolve) => {
-          if (!pendingBuffer) return resolve();
-          flushResolve = resolve;
-        });
-
       const appendChunk = (chunk) => {
         if (!chunk) return;
         streamedText += chunk;
-        pendingBuffer += chunk;
-        if (!assistantAdded) {
-          ensureAssistant("");
-        }
-        scheduleFlush();
+        applyChunk(chunk);
       };
 
       try {
@@ -1115,8 +1071,6 @@ export default function Luna() {
         }
 
         const payload = streamResult.data || {};
-        streamFinished = true;
-        await waitForFlush();
         const finalReply = text(payload.reply) || streamedText || "I could not generate a reply. Please retry.";
         const llm = text(payload.llm);
 
@@ -1140,8 +1094,6 @@ export default function Luna() {
           updatedAt: nowIso(),
         }));
       } catch (error) {
-        streamFinished = true;
-        await waitForFlush();
         if (!streamedText) {
           try {
             const response = await requestLuna(target, basePrompt, { applyToggles: options.applyToggles });

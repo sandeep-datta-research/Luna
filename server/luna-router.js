@@ -52,10 +52,23 @@ export function shouldRetryProvider(normalizedError) {
   return message.includes("timeout") || message.includes("network") || message.includes("temporarily");
 }
 
-export async function runRoutedProviders({ order, runners, normalizeError }) {
+export async function runRoutedProviders({ order, runners, normalizeError, maxDurationMs = 0 }) {
   const attempts = [];
+  const startedAt = Date.now();
 
   for (const key of order) {
+    if (maxDurationMs > 0 && Date.now() - startedAt > maxDurationMs) {
+      const failure = new Error("Provider timeout");
+      failure.responseData = { attempts };
+      failure.status = 504;
+      throw failure;
+    }
+    if (maxDurationMs > 0 && Date.now() - startedAt > maxDurationMs) {
+      const failure = new Error("Provider timeout");
+      failure.responseData = { attempts };
+      failure.status = 504;
+      throw failure;
+    }
     const runner = runners[key];
 
     if (!runner || !runner.enabled || typeof runner.run !== "function") {
@@ -86,9 +99,10 @@ export async function runRoutedProviders({ order, runners, normalizeError }) {
   throw failure;
 }
 
-export async function runRoutedProvidersStream({ order, runners, normalizeError, onToken }) {
+export async function runRoutedProvidersStream({ order, runners, normalizeError, onToken, maxDurationMs = 0 }) {
   const attempts = [];
   let tokensEmitted = 0;
+  const startedAt = Date.now();
 
   const safeOnToken = (chunk) => {
     if (!chunk) return;
