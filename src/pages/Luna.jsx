@@ -1010,6 +1010,10 @@ export default function Luna() {
       let assistantAdded = false;
       let streamedText = "";
 
+      let pendingBuffer = "";
+      let flushTimer = null;
+      let streamFinished = false;
+      let flushResolve = null;
       const ensureAssistant = (initialContent = "") => {
         if (assistantAdded) return;
         assistantId = createId("assistant");
@@ -1030,10 +1034,8 @@ export default function Luna() {
         }));
       };
 
-      const appendChunk = (chunk) => {
+      const applyChunk = (chunk) => {
         if (!chunk) return;
-        streamedText += chunk;
-
         if (!assistantAdded) {
           ensureAssistant(chunk);
           setIsTyping(false);
@@ -1047,6 +1049,48 @@ export default function Luna() {
           ),
           updatedAt: nowIso(),
         }));
+      };
+
+      const resolveFlushIfDone = () => {
+        if (!streamFinished || pendingBuffer || !flushResolve) return;
+        flushResolve();
+        flushResolve = null;
+      };
+
+      const drainBuffer = () => {
+        if (!pendingBuffer) {
+          if (flushTimer) {
+            clearInterval(flushTimer);
+            flushTimer = null;
+          }
+          resolveFlushIfDone();
+          return;
+        }
+
+        const take = pendingBuffer.slice(0, 16);
+        pendingBuffer = pendingBuffer.slice(16);
+        applyChunk(take);
+      };
+
+      const scheduleFlush = () => {
+        if (flushTimer) return;
+        flushTimer = setInterval(drainBuffer, 30);
+      };
+
+      const waitForFlush = () =>
+        new Promise((resolve) => {
+          if (!pendingBuffer) return resolve();
+          flushResolve = resolve;
+        });
+
+      const appendChunk = (chunk) => {
+        if (!chunk) return;
+        streamedText += chunk;
+        pendingBuffer += chunk;
+        if (!assistantAdded) {
+          ensureAssistant("");
+        }
+        scheduleFlush();
       };
 
       try {
@@ -1068,6 +1112,8 @@ export default function Luna() {
         }
 
         const payload = streamResult.data || {};
+        streamFinished = true;
+        await waitForFlush();
         const finalReply = text(payload.reply) || streamedText || "I could not generate a reply. Please retry.";
         const llm = text(payload.llm);
 
@@ -1091,6 +1137,8 @@ export default function Luna() {
           updatedAt: nowIso(),
         }));
       } catch (error) {
+        streamFinished = true;
+        await waitForFlush();
         if (!streamedText) {
           try {
             const response = await requestLuna(target, basePrompt, { applyToggles: options.applyToggles });
@@ -1124,6 +1172,9 @@ export default function Luna() {
           });
         }
       } finally {
+        if (flushTimer) {
+          clearInterval(flushTimer);
+        }
         streamAbortRef.current = null;
         setIsTyping(false);
       }

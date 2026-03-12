@@ -643,7 +643,7 @@ async function streamOpenAICompatible({ url, headers, body, onToken, signal }) {
 
     response.data.on("data", (chunk) => {
       buffer += chunk.toString("utf8");
-      const parts = buffer.split(/\n\n/);
+      const parts = buffer.split(/\r?\n\r?\n/);
       buffer = parts.pop() || "";
 
       for (const part of parts) {
@@ -785,7 +785,7 @@ async function streamGemini(messages, detailedMode, onToken, signal) {
 
     response.data.on("data", (chunk) => {
       buffer += chunk.toString("utf8");
-      const parts = buffer.split(/\n\n/);
+      const parts = buffer.split(/\r?\n\r?\n/);
       buffer = parts.pop() || "";
 
       for (const part of parts) {
