@@ -2,6 +2,8 @@ const GITHUB_PAGES_API_FALLBACK = "https://luna-backend-production-c7ab.up.railw
 
 const IS_GITHUB_PAGES =
   typeof window !== "undefined" && window.location.hostname.endsWith("github.io");
+const IS_IOS =
+  typeof window !== "undefined" && /iPad|iPhone|iPod/i.test(window.navigator?.userAgent || "");
 
 function normalizeApiBase(input) {
   const value = typeof input === "string" ? input.trim() : "";
@@ -94,7 +96,7 @@ export function buildRequestHeaders(headers = {}, { includeAuth = true, includeG
     }
   }
 
-  if (includeGuest) {
+  if (includeGuest && !IS_IOS) {
     const guestId = getGuestId();
     if (guestId && !nextHeaders.has("x-luna-guest-id")) {
       nextHeaders.set("x-luna-guest-id", guestId);
