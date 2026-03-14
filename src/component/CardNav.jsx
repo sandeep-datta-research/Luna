@@ -23,7 +23,7 @@ const CardNav = ({
 
   const calculateHeight = () => {
     const navEl = navRef.current;
-    if (!navEl) return 320;
+    if (!navEl) return 280;
 
     const isMobile = window.matchMedia('(max-width: 768px)').matches;
     if (isMobile) {
@@ -41,7 +41,7 @@ const CardNav = ({
 
         contentEl.offsetHeight;
 
-        const topBar = 120;
+        const topBar = 80;
         const padding = 16;
         const contentHeight = contentEl.scrollHeight;
 
@@ -173,10 +173,10 @@ const CardNav = ({
     >
       <nav
         ref={navRef}
-        className={`card-nav ${isExpanded ? 'open' : ''} block h-[120px] p-0 rounded-xl shadow-md relative overflow-hidden will-change-[height]`}
+        className={`card-nav ${isExpanded ? 'open' : ''} block h-[80px] p-0 rounded-xl shadow-md relative overflow-hidden will-change-[height]`}
         style={{ backgroundColor: baseColor }}
       >
-        <div className="card-nav-top absolute inset-x-0 top-0 h-[120px] flex items-center justify-between p-3 pl-[1.4rem] z-[2]">
+        <div className="card-nav-top absolute inset-x-0 top-0 h-[80px] flex items-center justify-between p-3 pl-[1.2rem] z-[2]">
           <div
             className={`hamburger-menu ${isHamburgerOpen ? 'open' : ''} group h-full flex flex-col items-center justify-center cursor-pointer gap-[6px] order-2 md:order-none`}
             onClick={toggleMenu}
@@ -198,8 +198,8 @@ const CardNav = ({
           </div>
 
           <div className="logo-container flex items-center gap-3 md:absolute md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 order-1 md:order-none">
-            <img src={logo} alt={logoAlt} className="logo h-[100px] w-[100px] object-contain" />
-            <span className="text-3xl font-semibold tracking-wide text-zinc-100">Luna</span>
+            <img src={logo} alt={logoAlt} className="logo h-[44px] w-[44px] object-contain" />
+            <span className="text-xl font-semibold tracking-wide text-zinc-100">Luna</span>
           </div>
 
           <Link
@@ -212,7 +212,7 @@ const CardNav = ({
         </div>
 
         <div
-          className={`card-nav-content absolute left-0 right-0 top-[120px] bottom-0 p-2 flex flex-col items-stretch gap-2 justify-start z-[1] ${
+          className={`card-nav-content absolute left-0 right-0 top-[80px] bottom-0 p-2 flex flex-col items-stretch gap-2 justify-start z-[1] ${
             isExpanded ? 'visible pointer-events-auto' : 'invisible pointer-events-none'
           } md:flex-row md:items-end md:gap-[12px]`}
           aria-hidden={!isExpanded}
