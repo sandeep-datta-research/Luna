@@ -325,8 +325,8 @@ function MessageBubble({ message, showLunaHeader, isLatestAssistant, onCopy, onR
       <div className={`max-w-[88%] ${isUser ? "items-end" : "items-start"} flex flex-col gap-1`}>
         {!isUser && showLunaHeader ? (
           <div className="mb-1 flex items-center gap-2 text-xs text-[#9aa2c7]">
-            <span className="inline-flex h-6 w-6 items-center justify-center overflow-hidden rounded-full border border-white/20 bg-white/5">
-              <img src={lunaLogo} alt="Luna" className="h-4 w-4 object-contain" />
+            <span className="inline-flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border border-white/20 bg-white/5">
+              <img src={lunaLogo} alt="Luna" className="h-5 w-5 object-contain" />
             </span>
             <span className="font-medium">Luna</span>
           </div>
@@ -381,8 +381,8 @@ function TypingIndicator() {
     >
       <div className="rounded-[18px] rounded-bl-[4px] border border-[#2a2d45] bg-[#1a1d2e]/95 px-4 py-3 text-[#cfd5ff]">
         <div className="mb-2 flex items-center gap-2 text-xs text-[#9aa2c7]">
-          <span className="inline-flex h-6 w-6 items-center justify-center overflow-hidden rounded-full border border-white/20 bg-white/5">
-            <img src={lunaLogo} alt="Luna" className="h-4 w-4 object-contain" />
+          <span className="inline-flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border border-white/20 bg-white/5">
+            <img src={lunaLogo} alt="Luna" className="h-5 w-5 object-contain" />
           </span>
           <span>Luna</span>
         </div>
@@ -1472,7 +1472,7 @@ export default function Luna() {
                     transition={{ repeat: Infinity, duration: 2.4, ease: "easeInOut" }}
                     className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl border border-white/20 bg-white/5"
                   >
-                    <img src={lunaLogo} alt="Luna logo" className="h-9 w-9 object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.45)]" />
+                    <img src={lunaLogo} alt="Luna logo" className="h-11 w-11 object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.45)]" />
                   </motion.div>
                   {isSidebarOpen ? (
                     <h1 className="text-xl font-semibold tracking-tight" style={{ fontFamily: "'Syne', sans-serif" }}>
@@ -1746,7 +1746,7 @@ export default function Luna() {
                 <div className="flex h-14 items-center justify-between border-b border-[#232841] px-3">
                   <div className="flex items-center gap-2">
                     <span className="inline-flex h-7 w-7 items-center justify-center overflow-hidden rounded-lg border border-white/20 bg-white/5">
-                      <img src={lunaLogo} alt="Luna logo" className="h-7 w-7 object-contain" />
+                      <img src={lunaLogo} alt="Luna logo" className="h-9 w-9 object-contain" />
                     </span>
                     <h2 style={{ fontFamily: "'Syne', sans-serif" }} className="text-lg">Luna</h2>
                   </div>

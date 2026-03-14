@@ -198,8 +198,8 @@ const CardNav = ({
           </div>
 
           <div className="logo-container flex items-center gap-2 md:absolute md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 order-1 md:order-none">
-            <img src={logo} alt={logoAlt} className="logo h-[28px] w-auto object-contain" />
-            <span className="text-sm font-semibold tracking-wide text-zinc-100">Luna</span>
+            <img src={logo} alt={logoAlt} className="logo h-[32px] w-[32px] object-contain" />
+            <span className="text-base font-semibold tracking-wide text-zinc-100">Luna</span>
           </div>
 
           <Link
