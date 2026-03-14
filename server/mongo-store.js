@@ -247,6 +247,46 @@ export function createMongoStore() {
     return clone(nextUser);
   }
 
+  async function upsertLocalUser({ email, name }) {
+    await init();
+    await cleanupExpiredSessions();
+
+    const safeEmail = normalizeText(email).toLowerCase();
+    if (!safeEmail) throw new Error("Email is required");
+
+    const derivedName = safeEmail.split("@")[0] || "Luna User";
+    const safeName = normalizeText(name) || derivedName;
+    const now = nowIso();
+
+    let existing = await users().findOne({ email: safeEmail });
+    if (!existing) {
+      const nextUser = sanitizeUserRecord({
+        id: createId("usr"),
+        googleSub: "",
+        email: safeEmail,
+        name: safeName,
+        picture: "",
+        createdAt: now,
+        updatedAt: now,
+        lastLoginAt: now,
+      });
+
+      await users().insertOne(nextUser);
+      return clone(nextUser);
+    }
+
+    const nextUser = {
+      ...sanitizeUserRecord(existing),
+      email: safeEmail,
+      name: safeName || normalizeText(existing.name),
+      updatedAt: now,
+      lastLoginAt: now,
+    };
+
+    await users().updateOne({ id: nextUser.id }, { $set: nextUser });
+    return clone(nextUser);
+  }
+
   async function createSession(userId) {
     await init();
     await cleanupExpiredSessions();
@@ -595,6 +635,7 @@ export function createMongoStore() {
     init,
     close,
     upsertGoogleUser,
+    upsertLocalUser,
     createSession,
     validateSessionToken,
     revokeSessionToken,

@@ -21,6 +21,7 @@ import {
   submitFeedback,
   toHistoryPayload,
   upsertGoogleUser,
+  upsertLocalUser,
   updateUserProfile,
   validateSessionToken,
 } from "./db-adapter.js";
@@ -1198,6 +1199,36 @@ async function requestBestReply(messages, detailedMode) {
     responseData: { attempts },
   });
 }
+
+app.post("/api/auth/local", async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body?.email);
+    if (!email) {
+      return res.status(400).json({ error: "Email is required." });
+    }
+
+    const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
+    const user = await upsertLocalUser({ email, name });
+    await ensureMembershipUser({ userId: user.id, email: user.email, name: user.name });
+    const membership = await getMembershipByUserId(user.id);
+    const session = await createSession(user.id);
+
+    return res.json({
+      token: session.token,
+      expiresAt: session.expiresAt,
+      user,
+      membership: {
+        plan: membership?.plan === "pro" ? "pro" : "free",
+        activatedAt: membership?.activatedAt || "",
+      },
+    });
+  } catch (error) {
+    const normalized = extractProviderError(error);
+    return res.status(error.status || normalized.status || 500).json({
+      error: error.message || normalized.providerMessage,
+    });
+  }
+});
 
 app.post("/api/auth/google", async (req, res) => {
   try {

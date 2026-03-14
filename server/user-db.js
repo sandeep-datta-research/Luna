@@ -173,6 +173,43 @@ export async function upsertGoogleUser({ sub, email, name, picture }) {
   });
 }
 
+export async function upsertLocalUser({ email, name }) {
+  const safeEmail = normalizeText(email).toLowerCase();
+  if (!safeEmail) {
+    throw new Error("Email is required");
+  }
+
+  const derivedName = safeEmail.split("@")[0] || "Luna User";
+  const safeName = normalizeText(name) || derivedName;
+  const now = nowIso();
+
+  return runDbMutation((db) => {
+    cleanupExpiredSessions(db);
+
+    let user = db.users.find((item) => item.email === safeEmail);
+    if (!user) {
+      user = {
+        id: createId("usr"),
+        googleSub: "",
+        email: safeEmail,
+        name: safeName,
+        picture: "",
+        createdAt: now,
+        updatedAt: now,
+        lastLoginAt: now,
+      };
+      db.users.unshift(user);
+    } else {
+      user.email = safeEmail;
+      if (safeName) user.name = safeName;
+      user.updatedAt = now;
+      user.lastLoginAt = now;
+    }
+
+    return clone(user);
+  });
+}
+
 export async function createSession(userId) {
   const safeUserId = normalizeText(userId);
   if (!safeUserId) {

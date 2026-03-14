@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Mail, Lock, Eye, EyeOff, Loader2, Palette, Users, Cloud, ShieldCheck } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import GoogleOAuthCard from "@/components/auth/GoogleOAuthCard";
+import { AUTH_TOKEN_STORAGE_KEY, AUTH_USER_STORAGE_KEY, fetchApi } from "@/lib/api-client";
 
 const featureItems = [
   {
@@ -34,27 +35,41 @@ export default function SignInPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     setLoading(true);
+    setErrorMessage("");
 
-    setTimeout(() => {
+    try {
+      const normalizedEmail = (email || "").trim().toLowerCase();
+      const displayName = normalizedEmail.split("@")[0] || "Luna User";
+
+      const result = await fetchApi("/api/auth/local", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: normalizedEmail, name: displayName }),
+      });
+
+      if (!result.ok || !result.data?.token || !result.data?.user) {
+        setErrorMessage(result.message || "Unable to sign in. Please try again.");
+        setLoading(false);
+        return;
+      }
+
       if (typeof window !== "undefined") {
-        const normalizedEmail = (email || "").trim().toLowerCase();
-        if (normalizedEmail) {
-          const existingToken = (localStorage.getItem("luna_auth_token") || "").trim();
-          const nextToken = existingToken || `local_${Date.now()}`;
-          const displayName = normalizedEmail.split("@")[0] || "Luna User";
-          localStorage.setItem("luna_google_user", JSON.stringify({ name: displayName, email: normalizedEmail }));
-          localStorage.setItem("luna_auth_token", nextToken);
-          window.dispatchEvent(new Event("luna-auth-changed"));
-        }
+        localStorage.setItem(AUTH_USER_STORAGE_KEY, JSON.stringify(result.data.user));
+        localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, result.data.token);
+        window.dispatchEvent(new Event("luna-auth-changed"));
       }
 
       setLoading(false);
       navigate("/profile");
-    }, 700);
+    } catch (error) {
+      setErrorMessage(error?.message || "Unable to sign in. Please try again.");
+      setLoading(false);
+    }
   };
 
   return (
@@ -164,6 +179,11 @@ export default function SignInPage() {
                       "Sign in"
                     )}
                   </button>
+                  {errorMessage ? (
+                    <div className="rounded-xl border border-rose-400/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+                      {errorMessage}
+                    </div>
+                  ) : null}
                 </form>
 
                 <div className="relative my-6 text-center text-xs text-zinc-500">

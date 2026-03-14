@@ -156,6 +156,13 @@ export async function upsertGoogleUser(payload) {
   );
 }
 
+export async function upsertLocalUser(payload) {
+  return runWithStore(
+    () => fileUsers.upsertLocalUser(payload),
+    (store) => store.upsertLocalUser(payload),
+  );
+}
+
 export async function createSession(userId) {
   return runWithStore(
     () => fileUsers.createSession(userId),
