@@ -42,10 +42,11 @@ dotenv.config();
 
 const app = express();
 const PORT = Number(process.env.PORT) || 5108;
-const LUNA_MAX_RESPONSE_MS = Number(process.env.LUNA_MAX_RESPONSE_MS || 9000);
-const LUNA_PROVIDER_TIMEOUT_MS = Number(process.env.LUNA_PROVIDER_TIMEOUT_MS || 9000);
-const LUNA_STREAM_TIMEOUT_MS = Number(process.env.LUNA_STREAM_TIMEOUT_MS || 10000);
-const LUNA_MAX_PROVIDER_ATTEMPTS = Number(process.env.LUNA_MAX_PROVIDER_ATTEMPTS || 2);
+const LUNA_MAX_RESPONSE_MS = Number(process.env.LUNA_MAX_RESPONSE_MS || 8000);
+const LUNA_PROVIDER_TIMEOUT_MS = Number(process.env.LUNA_PROVIDER_TIMEOUT_MS || 7000);
+const LUNA_STREAM_TIMEOUT_MS = Number(process.env.LUNA_STREAM_TIMEOUT_MS || 7000);
+const LUNA_MAX_PROVIDER_ATTEMPTS = Number(process.env.LUNA_MAX_PROVIDER_ATTEMPTS || 1);
+const LUNA_FAST_MESSAGE_WORDS = Number(process.env.LUNA_FAST_MESSAGE_WORDS || 6);
 
 const GROQ_MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
 const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || "nvidia/nemotron-3-nano-30b-a3b:free";
@@ -393,6 +394,12 @@ function wantsDetailedResponse(message) {
   return ["detailed", "in detail", "deep dive", "step by step", "full explanation"].some((h) =>
     input.includes(h),
   );
+}
+
+function isShortCasualMessage(message, label) {
+  if (!message || label !== CATEGORY_LABELS.CASUAL) return false;
+  const words = String(message).trim().split(/\s+/).filter(Boolean);
+  return words.length > 0 && words.length <= LUNA_FAST_MESSAGE_WORDS;
 }
 
 function clampReplyLength(reply) {
@@ -1460,9 +1467,17 @@ app.post("/api/luna/stream", async (req, res) => {
     const usageBefore = await enforceDailyLimitOrThrow(userContext, membershipContext);
 
     const conversation = await ensureConversation(requestedConversationId, userContext.userId);
+    const classification = classifyMessage(message);
+    let routingPlan = getRoutingPlan(classification.label);
+    if (routingPlan.profile === "tool") {
+      routingPlan = getRoutingPlan(CATEGORY_LABELS.CASUAL);
+    }
+    const forceFast = isShortCasualMessage(message, classification.label);
+    const maxAttempts = forceFast ? 1 : Math.max(1, LUNA_MAX_PROVIDER_ATTEMPTS);
+    const selectedOrder = routingPlan.order.slice(0, routingPlan.profile === "fast" || forceFast ? 1 : maxAttempts);
     const detailedMode = wantsDetailedResponse(message);
     const history = toHistoryPayload(conversation, MAX_HISTORY_MESSAGES);
-    const toolPlan = planToolCalls(message);
+    const toolPlan = forceFast ? [] : planToolCalls(message);
     const toolResults = toolPlan.length ? await executeToolCalls(toolPlan) : [];
     const toolSummary = formatToolResults(toolResults);
 
@@ -1473,13 +1488,6 @@ app.post("/api/luna/stream", async (req, res) => {
       membershipContext,
       toolSummary,
     );
-
-    const classification = classifyMessage(message);
-    let routingPlan = getRoutingPlan(classification.label);
-    if (routingPlan.profile === "tool") {
-      routingPlan = getRoutingPlan(CATEGORY_LABELS.CASUAL);
-    }
-    const selectedOrder = routingPlan.order.slice(0, routingPlan.profile === "fast" ? 1 : Math.max(1, LUNA_MAX_PROVIDER_ATTEMPTS));
     const providerRunners = buildProviderRunners(conversationMessages, detailedMode, abortController.signal);
     const requestedModel = resolveRequestedModel(req.body?.llm, providerRunners);
     const effectiveOrder = requestedModel ? [requestedModel] : selectedOrder;
@@ -1607,9 +1615,17 @@ app.post("/api/luna", async (req, res) => {
     const usageBefore = await enforceDailyLimitOrThrow(userContext, membershipContext);
 
     const conversation = await ensureConversation(requestedConversationId, userContext.userId);
+    const classification = classifyMessage(message);
+    let routingPlan = getRoutingPlan(classification.label);
+    if (routingPlan.profile === "tool") {
+      routingPlan = getRoutingPlan(CATEGORY_LABELS.CASUAL);
+    }
+    const forceFast = isShortCasualMessage(message, classification.label);
+    const maxAttempts = forceFast ? 1 : Math.max(1, LUNA_MAX_PROVIDER_ATTEMPTS);
+    const selectedOrder = routingPlan.order.slice(0, routingPlan.profile === "fast" || forceFast ? 1 : maxAttempts);
     const detailedMode = wantsDetailedResponse(message);
     const history = toHistoryPayload(conversation, MAX_HISTORY_MESSAGES);
-    const toolPlan = planToolCalls(message);
+    const toolPlan = forceFast ? [] : planToolCalls(message);
     const toolResults = toolPlan.length ? await executeToolCalls(toolPlan) : [];
     const toolSummary = formatToolResults(toolResults);
 
@@ -1620,13 +1636,6 @@ app.post("/api/luna", async (req, res) => {
       membershipContext,
       toolSummary,
     );
-
-    const classification = classifyMessage(message);
-    let routingPlan = getRoutingPlan(classification.label);
-    if (routingPlan.profile === "tool") {
-      routingPlan = getRoutingPlan(CATEGORY_LABELS.CASUAL);
-    }
-    const selectedOrder = routingPlan.order.slice(0, routingPlan.profile === "fast" ? 1 : Math.max(1, LUNA_MAX_PROVIDER_ATTEMPTS));
     const providerRunners = buildProviderRunners(conversationMessages, detailedMode);
     const requestedModel = resolveRequestedModel(req.body?.llm, providerRunners);
     const effectiveOrder = requestedModel ? [requestedModel] : selectedOrder;
