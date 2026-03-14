@@ -39,7 +39,7 @@ function ElegantShape({
       <Motion.div
         animate={{ y: [0, 15, 0] }}
         transition={{
-          duration: 11,
+          duration: 14,
           repeat: Number.POSITIVE_INFINITY,
           ease: "easeInOut",
         }}
@@ -51,10 +51,10 @@ function ElegantShape({
             "absolute inset-0 rounded-full",
             "bg-gradient-to-r to-transparent",
             gradient,
-            "border border-white/25 backdrop-blur-[2px]",
-            "shadow-[0_8px_30px_0_rgba(82,39,255,0.18)]",
+            "border border-white/25 bg-white/10 backdrop-blur-[10px]",
+            "shadow-[0_12px_32px_0_rgba(15,17,35,0.35)]",
             "after:absolute after:inset-0 after:rounded-full",
-            "after:bg-[radial-gradient(circle_at_50%_50%,rgba(200,180,255,0.24),transparent_70%)]",
+            "after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.32),transparent_70%)]",
           )}
         />
       </Motion.div>
@@ -166,6 +166,16 @@ export default function HeroGeometric() {
           className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 scale-[0.38] sm:scale-[0.52]"
           style={{ width: "1080px", height: "1080px", position: "relative" }}
         >
+          <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_50%_50%,rgba(124,58,237,0.22),transparent_58%)] blur-2xl" />
+          <div className="absolute inset-[6%] rounded-full bg-[radial-gradient(circle_at_50%_50%,rgba(124,58,237,0.22),transparent_65%)] opacity-80 blur-xl" />
+          <div className="absolute inset-[14%] rounded-full bg-[radial-gradient(circle_at_50%_50%,rgba(79,70,229,0.18),transparent_62%)] opacity-70 blur-lg" />
+          <div
+            className="absolute inset-[2%] rounded-full bg-[conic-gradient(from_120deg,rgba(124,58,237,0.55),rgba(79,70,229,0.08),rgba(124,58,237,0.55))] opacity-70"
+            style={{
+              WebkitMaskImage: "radial-gradient(circle, transparent 62%, #000 63%)",
+              maskImage: "radial-gradient(circle, transparent 62%, #000 63%)",
+            }}
+          />
           <Orb
             hue={262}
             hoverIntensity={2}
@@ -198,7 +208,7 @@ export default function HeroGeometric() {
             animate="visible"
           >
             <h1 className="mx-3 mb-6 text-white md:mb-8">
-              <span className="block text-2xl font-semibold leading-tight tracking-tight text-zinc-100 sm:text-4xl md:text-5xl lg:text-6xl">
+              <span className="block text-2xl font-semibold leading-tight tracking-[-0.02em] text-transparent bg-gradient-to-r from-white via-[#E9D5FF] to-[#C4B5FD] bg-clip-text sm:text-4xl md:text-5xl lg:text-6xl">
                 GROW AND LEARN
               </span>
               <span className="block pt-2 text-base font-medium leading-relaxed tracking-[0.08em] text-zinc-300 sm:pt-3 sm:text-lg md:text-xl">
@@ -240,7 +250,7 @@ export default function HeroGeometric() {
               asChild
               size="lg"
               variant="outline"
-              className="rounded-full border-zinc-600/70 bg-zinc-900/45 text-zinc-200 hover:bg-zinc-800/60"
+              className="rounded-full border border-white/10 bg-white/5 text-zinc-100 backdrop-blur-md transition-colors hover:border-white/30 hover:bg-white/10"
             >
               <a href="#features">View Features</a>
             </Button>

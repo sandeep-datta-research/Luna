@@ -178,7 +178,7 @@ const CardNav = ({
       >
         <div className="card-nav-top absolute inset-x-0 top-0 h-[88px] flex items-center justify-between p-3 pl-[1.4rem] z-[2]">
           <div
-            className={`hamburger-menu ${isHamburgerOpen ? 'open' : ''} group h-full flex flex-col items-center justify-center cursor-pointer gap-[6px] order-2 md:order-none`}
+            className={`hamburger-menu ${isHamburgerOpen ? 'open' : ''} group h-full flex flex-col items-center justify-center cursor-pointer gap-[5px] order-2 md:order-none`}
             onClick={toggleMenu}
             role="button"
             aria-label={isExpanded ? 'Close menu' : 'Open menu'}
@@ -186,26 +186,47 @@ const CardNav = ({
             style={{ color: menuColor || '#000' }}
           >
             <div
-              className={`hamburger-line w-[30px] h-[2px] bg-current transition-[transform,opacity,margin] duration-300 ease-linear [transform-origin:50%_50%] ${
+              className={`hamburger-line w-[18px] h-[2px] bg-current transition-[transform,opacity,margin] duration-300 ease-linear [transform-origin:50%_50%] ${
                 isHamburgerOpen ? 'translate-y-[4px] rotate-45' : ''
               } group-hover:opacity-75`}
             />
             <div
-              className={`hamburger-line w-[30px] h-[2px] bg-current transition-[transform,opacity,margin] duration-300 ease-linear [transform-origin:50%_50%] ${
+              className={`hamburger-line w-[18px] h-[2px] bg-current transition-[transform,opacity,margin] duration-300 ease-linear [transform-origin:50%_50%] ${
                 isHamburgerOpen ? '-translate-y-[4px] -rotate-45' : ''
               } group-hover:opacity-75`}
             />
           </div>
 
-          <div className="logo-container flex items-center gap-3 md:absolute md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 order-1 md:order-none">
-            <img src={logo} alt={logoAlt} className="logo h-[54px] w-[54px] object-contain" />
+          <div
+            className="logo-container flex items-center gap-3 md:absolute md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 order-1 md:order-none"
+            data-logo={logo ? 'provided' : 'default'}
+          >
+            <span className="logo" aria-hidden="true">
+              <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <linearGradient id="luna-nav-gradient" x1="4" y1="4" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#7C3AED" />
+                    <stop offset="1" stopColor="#4F46E5" />
+                  </linearGradient>
+                  <mask id="luna-nav-moon-mask">
+                    <rect width="28" height="28" fill="white" />
+                    <circle cx="19" cy="10" r="7.5" fill="black" />
+                  </mask>
+                </defs>
+                <circle cx="12" cy="14" r="10" fill="url(#luna-nav-gradient)" mask="url(#luna-nav-moon-mask)" />
+                <path
+                  d="M20.5 6.4l1.05 2.35 2.5 1.05-2.5 1.05-1.05 2.35-1.05-2.35-2.5-1.05 2.5-1.05 1.05-2.35z"
+                  fill="#E9D5FF"
+                />
+              </svg>
+            </span>
             <span className="text-2xl font-semibold tracking-wide text-zinc-100">Luna</span>
+            <span className="sr-only">{logoAlt}</span>
           </div>
 
           <Link
             to={ctaHref}
-            className="card-nav-cta-button hidden md:inline-flex border-0 rounded-[calc(0.75rem-0.2rem)] px-4 items-center h-full font-medium cursor-pointer transition-colors duration-300"
-            style={{ backgroundColor: buttonBgColor, color: buttonTextColor }}
+            className="card-nav-cta-button hidden md:inline-flex border-0 rounded-full px-5 items-center h-full font-medium cursor-pointer transition-all duration-300"
           >
             {ctaLabel}
           </Link>
