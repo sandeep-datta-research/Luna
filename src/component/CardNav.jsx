@@ -197,31 +197,9 @@ const CardNav = ({
             />
           </div>
 
-          <div
-            className="logo-container flex items-center gap-3 md:absolute md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 order-1 md:order-none"
-            data-logo={logo ? 'provided' : 'default'}
-          >
-            <span className="logo" aria-hidden="true">
-              <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <linearGradient id="luna-nav-gradient" x1="4" y1="4" x2="24" y2="24" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="#7C3AED" />
-                    <stop offset="1" stopColor="#4F46E5" />
-                  </linearGradient>
-                  <mask id="luna-nav-moon-mask">
-                    <rect width="28" height="28" fill="white" />
-                    <circle cx="19" cy="10" r="7.5" fill="black" />
-                  </mask>
-                </defs>
-                <circle cx="12" cy="14" r="10" fill="url(#luna-nav-gradient)" mask="url(#luna-nav-moon-mask)" />
-                <path
-                  d="M20.5 6.4l1.05 2.35 2.5 1.05-2.5 1.05-1.05 2.35-1.05-2.35-2.5-1.05 2.5-1.05 1.05-2.35z"
-                  fill="#E9D5FF"
-                />
-              </svg>
-            </span>
-            <span className="text-2xl font-semibold tracking-wide text-zinc-100">Luna</span>
-            <span className="sr-only">{logoAlt}</span>
+          <div className="logo-container flex items-center gap-2 md:absolute md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 order-1 md:order-none">
+            <img src={logo} alt={logoAlt} className="logo h-[32px] w-auto object-contain" />
+            <span className="text-[20px] font-semibold text-white">Luna</span>
           </div>
 
           <Link
