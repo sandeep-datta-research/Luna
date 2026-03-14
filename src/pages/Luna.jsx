@@ -604,6 +604,13 @@ export default function Luna() {
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
   const [toast, setToast] = useState(null);
+
+  const supportsStreaming = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    const ua = window.navigator?.userAgent || "";
+    const isIOS = /iPad|iPhone|iPod/i.test(ua);
+    return typeof ReadableStream !== "undefined" && !isIOS;
+  }, []);
   const [lastRetryPayload, setLastRetryPayload] = useState(null);
   const [storageReadyKey, setStorageReadyKey] = useState("");
 
@@ -1052,9 +1059,33 @@ export default function Luna() {
         applyChunk(chunk);
       };
 
+      let streamTimeout = null;
+
       try {
+        if (!supportsStreaming) {
+          const response = await requestLuna(target, basePrompt, { applyToggles: options.applyToggles });
+          const assistantMessage = {
+            id: createId("assistant"),
+            role: "assistant",
+            content: response.reply,
+            createdAt: nowIso(),
+            llm: response.llm,
+          };
+
+          updateSession(target.id, (session) => ({
+            ...session,
+            messages: [...session.messages, assistantMessage],
+            backendConversationId: response.conversationId || session.backendConversationId,
+            updatedAt: nowIso(),
+          }));
+          return;
+        }
+
         const abortController = new AbortController();
         streamAbortRef.current = abortController;
+        streamTimeout = window.setTimeout(() => {
+          abortController.abort();
+        }, 12000);
 
         const streamResult = await requestLunaStream(
           target,
@@ -1128,6 +1159,9 @@ export default function Luna() {
           });
         }
       } finally {
+        if (streamTimeout) {
+          clearTimeout(streamTimeout);
+        }
         if (flushTimer) {
           clearInterval(flushTimer);
         }
@@ -1144,6 +1178,7 @@ export default function Luna() {
       requestLunaStream,
       sessions,
       showErrorToast,
+      supportsStreaming,
       updateSession,
     ],
   );
