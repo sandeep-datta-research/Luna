@@ -13,7 +13,7 @@
  * SQL Migration:
  * create table if not exists public.users_memory (
  *   id uuid primary key default gen_random_uuid(),
- *   user_id uuid references auth.users on delete cascade,
+ *   user_id text not null,
  *   goals text[] default '{}',
  *   subjects text[] default '{}',
  *   response_style text default 'Detailed',
@@ -24,17 +24,18 @@
  * );
  * create unique index if not exists users_memory_user_id_key on public.users_memory (user_id);
  *
+ * -- If you previously created user_id with a foreign key, run this once:
+ * alter table public.users_memory drop constraint if exists users_memory_user_id_fkey;
+ * alter table public.users_memory alter column user_id type text using user_id::text;
+ *
  * -- RLS
  * alter table public.users_memory enable row level security;
- * create policy "Users can read their own memory"
- *   on public.users_memory for select
- *   using (auth.uid() = user_id);
- * create policy "Users can upsert their own memory"
- *   on public.users_memory for insert
- *   with check (auth.uid() = user_id);
- * create policy "Users can update their own memory"
- *   on public.users_memory for update
- *   using (auth.uid() = user_id);
+ * -- If you are using Luna's own auth (not Supabase auth), use the service role key
+ * -- on the backend OR create permissive policies:
+ * create policy "Allow server access"
+ *   on public.users_memory for all
+ *   using (true)
+ *   with check (true);
  */
 
 import { useEffect, useMemo, useState } from "react";

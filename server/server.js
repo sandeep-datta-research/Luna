@@ -36,7 +36,6 @@ import {
 } from "./pro-db.js";
 import { getAdminSettings, incrementReferralUsage, removeReferralCode, updateProMonthlyPrice, updateProSystemPrompt, updateReferralCode, upsertReferralCode, validateReferralCode } from "./admin-settings.js";
 import { CATEGORY_LABELS, classifyMessage } from "./luna-classifier.js";
-import { createHash } from "crypto";
 import { getRoutingPlan, runRoutedProviders, runRoutedProvidersStream } from "./luna-router.js";
 import { buildToolSystemPrompt, executeToolCalls, formatToolResults, planToolCalls } from "./luna-tools.js";
 import { getSupabaseAdmin } from "./supabase.js";
@@ -98,8 +97,6 @@ const DEFAULT_MEMORY = {
 
 const RESPONSE_STYLE_OPTIONS = new Set(["short", "detailed", "step by step", "step-by-step"]);
 const LEARNING_LEVEL_OPTIONS = new Set(["beginner", "intermediate", "advanced"]);
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
 function normalizeStringArray(value) {
   if (!Array.isArray(value)) return [];
   return value
@@ -120,31 +117,12 @@ function normalizeLearningLevel(value) {
   return raw[0].toUpperCase() + raw.slice(1);
 }
 
-function stableUuidFromString(value) {
-  const input = typeof value === "string" ? value.trim() : "";
-  if (!input) return "";
-  const hex = createHash("sha1").update(input).digest("hex").slice(0, 32);
-  const timeHi = (parseInt(hex.slice(12, 16), 16) & 0x0fff) | 0x5000;
-  const clockSeq = (parseInt(hex.slice(16, 20), 16) & 0x3fff) | 0x8000;
-
-  return [
-    hex.slice(0, 8),
-    hex.slice(8, 12),
-    timeHi.toString(16).padStart(4, "0"),
-    clockSeq.toString(16).padStart(4, "0"),
-    hex.slice(20, 32),
-  ].join("-");
-}
-
 function normalizeSupabaseUserId(value, fallbackSeed = "") {
   const raw = typeof value === "string" ? value.trim() : "";
   if (!raw && !fallbackSeed) return "";
-  if (raw && UUID_RE.test(raw)) return raw;
-  const match = raw.match(UUID_RE);
-  if (match) return match[0];
-
   const seed = raw || fallbackSeed;
-  return stableUuidFromString(seed);
+  const safe = seed.replace(/\s+/g, " ").trim();
+  return safe.slice(0, 160);
 }
 
 function normalizeMemoryPayload(payload = {}) {
@@ -199,7 +177,7 @@ async function upsertUserMemory(userId, payload, email = "") {
   }
   const normalizedId = normalizeSupabaseUserId(userId, email);
   if (!normalizedId) {
-    throw Object.assign(new Error("user_id is invalid."), { status: 400 });
+    throw Object.assign(new Error("user_id is required."), { status: 400 });
   }
 
   const normalizedPayload = normalizeMemoryPayload(payload);
