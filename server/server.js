@@ -36,6 +36,7 @@ import {
 } from "./pro-db.js";
 import { getAdminSettings, incrementReferralUsage, removeReferralCode, updateProMonthlyPrice, updateProSystemPrompt, updateReferralCode, upsertReferralCode, validateReferralCode } from "./admin-settings.js";
 import { CATEGORY_LABELS, classifyMessage } from "./luna-classifier.js";
+import { createHash } from "crypto";
 import { getRoutingPlan, runRoutedProviders, runRoutedProvidersStream } from "./luna-router.js";
 import { buildToolSystemPrompt, executeToolCalls, formatToolResults, planToolCalls } from "./luna-tools.js";
 import { getSupabaseAdmin } from "./supabase.js";
@@ -119,12 +120,31 @@ function normalizeLearningLevel(value) {
   return raw[0].toUpperCase() + raw.slice(1);
 }
 
-function normalizeSupabaseUserId(value) {
+function stableUuidFromString(value) {
+  const input = typeof value === "string" ? value.trim() : "";
+  if (!input) return "";
+  const hex = createHash("sha1").update(input).digest("hex").slice(0, 32);
+  const timeHi = (parseInt(hex.slice(12, 16), 16) & 0x0fff) | 0x5000;
+  const clockSeq = (parseInt(hex.slice(16, 20), 16) & 0x3fff) | 0x8000;
+
+  return [
+    hex.slice(0, 8),
+    hex.slice(8, 12),
+    timeHi.toString(16).padStart(4, "0"),
+    clockSeq.toString(16).padStart(4, "0"),
+    hex.slice(20, 32),
+  ].join("-");
+}
+
+function normalizeSupabaseUserId(value, fallbackSeed = "") {
   const raw = typeof value === "string" ? value.trim() : "";
-  if (!raw) return "";
-  if (UUID_RE.test(raw)) return raw;
+  if (!raw && !fallbackSeed) return "";
+  if (raw && UUID_RE.test(raw)) return raw;
   const match = raw.match(UUID_RE);
-  return match ? match[0] : "";
+  if (match) return match[0];
+
+  const seed = raw || fallbackSeed;
+  return stableUuidFromString(seed);
 }
 
 function normalizeMemoryPayload(payload = {}) {
@@ -148,10 +168,13 @@ function buildMemorySystemPrompt(memory) {
   return lines.length ? `User preferences:\n- ${lines.join("\n- ")}` : "";
 }
 
-async function fetchUserMemory(userId) {
+async function fetchUserMemory(userId, email = "") {
   const supabase = getSupabaseAdmin();
-  const normalizedId = normalizeSupabaseUserId(userId);
-  if (!supabase || !normalizedId) return { ...DEFAULT_MEMORY };
+  if (!supabase) return { ...DEFAULT_MEMORY };
+  if (String(userId || "").startsWith("guest:")) return { ...DEFAULT_MEMORY };
+
+  const normalizedId = normalizeSupabaseUserId(userId, email);
+  if (!normalizedId) return { ...DEFAULT_MEMORY };
 
   const { data, error } = await supabase
     .from("users_memory")
@@ -169,11 +192,14 @@ async function fetchUserMemory(userId) {
   };
 }
 
-async function upsertUserMemory(userId, payload) {
+async function upsertUserMemory(userId, payload, email = "") {
   const supabase = getSupabaseAdmin();
-  const normalizedId = normalizeSupabaseUserId(userId);
-  if (!supabase || !normalizedId) {
-    throw Object.assign(new Error("Supabase is not configured or user_id is invalid."), { status: 400 });
+  if (!supabase) {
+    throw Object.assign(new Error("Supabase is not configured."), { status: 400 });
+  }
+  const normalizedId = normalizeSupabaseUserId(userId, email);
+  if (!normalizedId) {
+    throw Object.assign(new Error("user_id is invalid."), { status: 400 });
   }
 
   const normalizedPayload = normalizeMemoryPayload(payload);
@@ -196,10 +222,11 @@ async function upsertUserMemory(userId, payload) {
   return data;
 }
 
-async function hasUserMemory(userId) {
+async function hasUserMemory(userId, email = "") {
   const supabase = getSupabaseAdmin();
-  const normalizedId = normalizeSupabaseUserId(userId);
-  if (!supabase || !normalizedId) return false;
+  if (!supabase) return false;
+  const normalizedId = normalizeSupabaseUserId(userId, email);
+  if (!normalizedId) return false;
 
   const { data, error } = await supabase
     .from("users_memory")
@@ -1271,7 +1298,7 @@ app.post("/api/onboarding", async (req, res) => {
     }
 
     const payload = normalizeMemoryPayload(req.body || {});
-    const saved = await upsertUserMemory(resolvedUserId, payload);
+    const saved = await upsertUserMemory(resolvedUserId, payload, userContext.user?.email);
 
     return res.json({ ok: true, memory: saved });
   } catch (error) {
@@ -1287,7 +1314,7 @@ app.get("/api/onboarding/status", async (req, res) => {
       return res.json({ answered: false, guest: true });
     }
 
-    const answered = await hasUserMemory(userContext.userId);
+    const answered = await hasUserMemory(userContext.userId, userContext.user?.email);
     return res.json({ answered });
   } catch (error) {
     const normalized = extractProviderError(error);
@@ -1667,7 +1694,7 @@ app.post("/api/luna/stream", async (req, res) => {
     const forceFast = isShortCasualMessage(message, classification.label);
     const maxAttempts = forceFast ? 1 : Math.max(1, LUNA_MAX_PROVIDER_ATTEMPTS);
     const selectedOrder = routingPlan.order.slice(0, routingPlan.profile === "fast" || forceFast ? 1 : maxAttempts);
-    const memoryContext = await fetchUserMemory(userContext.userId);
+    const memoryContext = await fetchUserMemory(userContext.userId, userContext.user?.email);
     const detailedMode = wantsDetailedResponse(message, memoryContext);
     const history = toHistoryPayload(conversation, MAX_HISTORY_MESSAGES);
     const toolPlan = forceFast ? [] : planToolCalls(message);
@@ -1817,7 +1844,7 @@ app.post("/api/luna", async (req, res) => {
     const forceFast = isShortCasualMessage(message, classification.label);
     const maxAttempts = forceFast ? 1 : Math.max(1, LUNA_MAX_PROVIDER_ATTEMPTS);
     const selectedOrder = routingPlan.order.slice(0, routingPlan.profile === "fast" || forceFast ? 1 : maxAttempts);
-    const memoryContext = await fetchUserMemory(userContext.userId);
+    const memoryContext = await fetchUserMemory(userContext.userId, userContext.user?.email);
     const detailedMode = wantsDetailedResponse(message, memoryContext);
     const history = toHistoryPayload(conversation, MAX_HISTORY_MESSAGES);
     const toolPlan = forceFast ? [] : planToolCalls(message);
