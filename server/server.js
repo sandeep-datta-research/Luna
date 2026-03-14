@@ -1008,6 +1008,27 @@ function buildProviderRunners(messages, detailedMode, streamSignal) {
   }, {});
 }
 
+const MODEL_ALIAS_MAP = {
+  "luna-2.5": ["gpt", "gemini", "glm45air"],
+  "luna-2.1": ["gemini", "gpt", "glm43"],
+  "luna-reasoning": ["gpt", "glm45air", "glm43"],
+};
+
+function resolveRequestedModel(requestedModel, providerRunners) {
+  const key = typeof requestedModel === "string" ? requestedModel.trim().toLowerCase() : "";
+  if (!key) return "";
+  if (providerRunners?.[key]?.enabled) return key;
+
+  const aliases = MODEL_ALIAS_MAP[key];
+  if (Array.isArray(aliases)) {
+    for (const candidate of aliases) {
+      if (providerRunners?.[candidate]?.enabled) return candidate;
+    }
+  }
+
+  return "";
+}
+
 async function requestBestReply(messages, detailedMode) {
   const providers = buildProviders(messages, detailedMode);
   const attempts = [];
