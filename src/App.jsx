@@ -4,6 +4,7 @@ import AdminDashboard from "./components/mvpblocks";
 import SignInPage from "./components/mvpblocks/login-form-3";
 import Home from "./pages/home";
 import Luna from "./pages/Luna";
+import Onboarding from "./pages/Onboarding";
 import Profile from "./pages/Profile";
 
 function PageTransition({ children }) {
@@ -28,6 +29,7 @@ function AnimatedRoutes() {
       <Routes location={location} key={location.pathname}>
         <Route path="/" element={<PageTransition><Home /></PageTransition>} />
         <Route path="/chat" element={<PageTransition><Luna /></PageTransition>} />
+        <Route path="/onboarding" element={<PageTransition><Onboarding /></PageTransition>} />
         <Route path="/profile" element={<PageTransition><Profile /></PageTransition>} />
         <Route path="/admin" element={<PageTransition><AdminDashboard /></PageTransition>} />
         <Route path="/signin" element={<PageTransition><SignInPage /></PageTransition>} />

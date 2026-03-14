@@ -38,6 +38,7 @@ import { getAdminSettings, incrementReferralUsage, removeReferralCode, updatePro
 import { CATEGORY_LABELS, classifyMessage } from "./luna-classifier.js";
 import { getRoutingPlan, runRoutedProviders, runRoutedProvidersStream } from "./luna-router.js";
 import { buildToolSystemPrompt, executeToolCalls, formatToolResults, planToolCalls } from "./luna-tools.js";
+import { getSupabaseAdmin } from "./supabase.js";
 dotenv.config();
 
 const app = express();
@@ -85,6 +86,115 @@ const DETAILED_STYLE_PROMPT = `Response style (detailed):
 - Be structured.
 - Use clear steps.
 - Keep it useful and non-repetitive.`;
+
+const DEFAULT_MEMORY = {
+  goals: [],
+  subjects: [],
+  response_style: "Detailed",
+  favorite_topics: [],
+  learning_level: "Beginner",
+};
+
+const RESPONSE_STYLE_OPTIONS = new Set(["short", "detailed", "step by step", "step-by-step"]);
+const LEARNING_LEVEL_OPTIONS = new Set(["beginner", "intermediate", "advanced"]);
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function normalizeStringArray(value) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => (typeof item === "string" ? item.trim() : ""))
+    .filter(Boolean);
+}
+
+function normalizeResponseStyle(value) {
+  const raw = typeof value === "string" ? value.trim().toLowerCase() : "";
+  if (!RESPONSE_STYLE_OPTIONS.has(raw)) return DEFAULT_MEMORY.response_style;
+  if (raw === "step-by-step") return "Step by step";
+  return raw === "short" ? "Short" : raw === "detailed" ? "Detailed" : "Step by step";
+}
+
+function normalizeLearningLevel(value) {
+  const raw = typeof value === "string" ? value.trim().toLowerCase() : "";
+  if (!LEARNING_LEVEL_OPTIONS.has(raw)) return DEFAULT_MEMORY.learning_level;
+  return raw[0].toUpperCase() + raw.slice(1);
+}
+
+function normalizeSupabaseUserId(value) {
+  const raw = typeof value === "string" ? value.trim() : "";
+  if (!raw) return "";
+  if (UUID_RE.test(raw)) return raw;
+  const match = raw.match(UUID_RE);
+  return match ? match[0] : "";
+}
+
+function normalizeMemoryPayload(payload = {}) {
+  return {
+    goals: normalizeStringArray(payload.goals),
+    subjects: normalizeStringArray(payload.subjects),
+    response_style: normalizeResponseStyle(payload.response_style),
+    favorite_topics: normalizeStringArray(payload.favorite_topics),
+    learning_level: normalizeLearningLevel(payload.learning_level),
+  };
+}
+
+function buildMemorySystemPrompt(memory) {
+  if (!memory) return "";
+  const lines = [];
+  if (memory.goals?.length) lines.push(`Goals: ${memory.goals.join(", ")}`);
+  if (memory.subjects?.length) lines.push(`Subjects: ${memory.subjects.join(", ")}`);
+  if (memory.favorite_topics?.length) lines.push(`Favorite topics: ${memory.favorite_topics.join(", ")}`);
+  lines.push(`Preferred response style: ${memory.response_style || DEFAULT_MEMORY.response_style}`);
+  lines.push(`Learning level: ${memory.learning_level || DEFAULT_MEMORY.learning_level}`);
+  return lines.length ? `User preferences:\n- ${lines.join("\n- ")}` : "";
+}
+
+async function fetchUserMemory(userId) {
+  const supabase = getSupabaseAdmin();
+  const normalizedId = normalizeSupabaseUserId(userId);
+  if (!supabase || !normalizedId) return { ...DEFAULT_MEMORY };
+
+  const { data, error } = await supabase
+    .from("users_memory")
+    .select("goals,subjects,response_style,favorite_topics,learning_level")
+    .eq("user_id", normalizedId)
+    .maybeSingle();
+
+  if (error || !data) return { ...DEFAULT_MEMORY };
+  return {
+    goals: normalizeStringArray(data.goals),
+    subjects: normalizeStringArray(data.subjects),
+    response_style: normalizeResponseStyle(data.response_style),
+    favorite_topics: normalizeStringArray(data.favorite_topics),
+    learning_level: normalizeLearningLevel(data.learning_level),
+  };
+}
+
+async function upsertUserMemory(userId, payload) {
+  const supabase = getSupabaseAdmin();
+  const normalizedId = normalizeSupabaseUserId(userId);
+  if (!supabase || !normalizedId) {
+    throw Object.assign(new Error("Supabase is not configured or user_id is invalid."), { status: 400 });
+  }
+
+  const normalizedPayload = normalizeMemoryPayload(payload);
+  const record = {
+    user_id: normalizedId,
+    ...normalizedPayload,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { data, error } = await supabase
+    .from("users_memory")
+    .upsert(record, { onConflict: "user_id" })
+    .select("user_id, goals, subjects, response_style, favorite_topics, learning_level, updated_at")
+    .single();
+
+  if (error) {
+    throw Object.assign(new Error(error.message || "Failed to save onboarding"), { status: 500 });
+  }
+
+  return data;
+}
 
 function sanitizePromptText(value) {
   return typeof value === "string" ? value.trim().slice(0, 5000) : "";
@@ -388,12 +498,18 @@ async function verifyGoogleCredential(credential) {
   return normalizeGoogleProfilePayload(data);
 }
 
-function wantsDetailedResponse(message) {
-  if (!message) return false;
-  const input = message.toLowerCase();
-  return ["detailed", "in detail", "deep dive", "step by step", "full explanation"].some((h) =>
-    input.includes(h),
-  );
+function wantsDetailedResponse(message, memory) {
+  if (message) {
+    const input = message.toLowerCase();
+    const explicit = ["detailed", "in detail", "deep dive", "step by step", "full explanation"].some((h) =>
+      input.includes(h),
+    );
+    if (explicit) return true;
+  }
+
+  const preference = normalizeResponseStyle(memory?.response_style || DEFAULT_MEMORY.response_style);
+  if (preference === "Short") return false;
+  return true;
 }
 
 function isShortCasualMessage(message, label) {
@@ -434,7 +550,7 @@ function sendSseEvent(res, event, data) {
     res.flush();
   }
 }
-function buildConversationMessages(history, message, detailedMode, membershipContext, toolSummary) {
+function buildConversationMessages(history, message, detailedMode, membershipContext, toolSummary, memoryContext) {
   const safeHistory = Array.isArray(history) ? history : [];
   const systemMessages = [
     { role: "system", content: LUNA_SYSTEM_PROMPT },
@@ -445,6 +561,11 @@ function buildConversationMessages(history, message, detailedMode, membershipCon
   if (proPrompt) {
     systemMessages.push({ role: "system", content: `Luna Pro custom instruction:
 ${proPrompt}` });
+  }
+
+  const memoryPrompt = buildMemorySystemPrompt(memoryContext);
+  if (memoryPrompt) {
+    systemMessages.push({ role: "system", content: memoryPrompt });
   }
 
   const toolPrompt = buildToolSystemPrompt(toolSummary);
@@ -1124,6 +1245,26 @@ app.post("/api/auth/logout", async (req, res) => {
   }
 });
 
+app.post("/api/onboarding", async (req, res) => {
+  try {
+    const userContext = await resolveRequestUser(req);
+    const bodyUserId = typeof req.body?.user_id === "string" ? req.body.user_id.trim() : "";
+    const resolvedUserId = bodyUserId || (isAuthenticatedUserContext(userContext) ? userContext.userId : "");
+
+    if (!resolvedUserId) {
+      return res.status(400).json({ error: "user_id is required" });
+    }
+
+    const payload = normalizeMemoryPayload(req.body || {});
+    const saved = await upsertUserMemory(resolvedUserId, payload);
+
+    return res.json({ ok: true, memory: saved });
+  } catch (error) {
+    const normalized = extractProviderError(error);
+    return res.status(error.status || normalized.status || 500).json({ error: error.message || normalized.providerMessage });
+  }
+});
+
 app.get("/api/profile", async (req, res) => {
   try {
     const lunaSettings = await getLunaSettings();
@@ -1496,7 +1637,8 @@ app.post("/api/luna/stream", async (req, res) => {
     const forceFast = isShortCasualMessage(message, classification.label);
     const maxAttempts = forceFast ? 1 : Math.max(1, LUNA_MAX_PROVIDER_ATTEMPTS);
     const selectedOrder = routingPlan.order.slice(0, routingPlan.profile === "fast" || forceFast ? 1 : maxAttempts);
-    const detailedMode = wantsDetailedResponse(message);
+    const memoryContext = await fetchUserMemory(userContext.userId);
+    const detailedMode = wantsDetailedResponse(message, memoryContext);
     const history = toHistoryPayload(conversation, MAX_HISTORY_MESSAGES);
     const toolPlan = forceFast ? [] : planToolCalls(message);
     const toolResults = toolPlan.length ? await executeToolCalls(toolPlan) : [];
@@ -1508,6 +1650,7 @@ app.post("/api/luna/stream", async (req, res) => {
       detailedMode,
       membershipContext,
       toolSummary,
+      memoryContext,
     );
     const providerRunners = buildProviderRunners(conversationMessages, detailedMode, abortController.signal);
     const requestedModel = resolveRequestedModel(req.body?.llm, providerRunners);
@@ -1644,7 +1787,8 @@ app.post("/api/luna", async (req, res) => {
     const forceFast = isShortCasualMessage(message, classification.label);
     const maxAttempts = forceFast ? 1 : Math.max(1, LUNA_MAX_PROVIDER_ATTEMPTS);
     const selectedOrder = routingPlan.order.slice(0, routingPlan.profile === "fast" || forceFast ? 1 : maxAttempts);
-    const detailedMode = wantsDetailedResponse(message);
+    const memoryContext = await fetchUserMemory(userContext.userId);
+    const detailedMode = wantsDetailedResponse(message, memoryContext);
     const history = toHistoryPayload(conversation, MAX_HISTORY_MESSAGES);
     const toolPlan = forceFast ? [] : planToolCalls(message);
     const toolResults = toolPlan.length ? await executeToolCalls(toolPlan) : [];
@@ -1656,6 +1800,7 @@ app.post("/api/luna", async (req, res) => {
       detailedMode,
       membershipContext,
       toolSummary,
+      memoryContext,
     );
     const providerRunners = buildProviderRunners(conversationMessages, detailedMode);
     const requestedModel = resolveRequestedModel(req.body?.llm, providerRunners);
