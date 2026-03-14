@@ -402,6 +402,7 @@ function Composer({
   onChange,
   onSend,
   disabled,
+  sendDisabled = false,
   voiceActive,
   transcribing,
   onToggleVoice,
@@ -546,9 +547,9 @@ function Composer({
             whileHover={{ scale: value.trim() ? 1.08 : 1 }}
             type="button"
             onClick={onSend}
-            disabled={disabled || !value.trim()}
+            disabled={sendDisabled || !value.trim()}
             className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition ${
-              value.trim() && !disabled
+              value.trim() && !sendDisabled
                 ? "bg-[#5b6af5] text-white shadow-[0_0_0_8px_rgba(91,106,245,0.14)]"
                 : "bg-[#343858] text-[#8b93bf]"
             }`}
@@ -740,6 +741,12 @@ export default function Luna() {
       if (timer) clearTimeout(timer);
     };
   }, [toast]);
+
+  useEffect(() => {
+    if (!isTyping) return undefined;
+    const timer = window.setTimeout(() => setIsTyping(false), 20000);
+    return () => clearTimeout(timer);
+  }, [isTyping]);
 
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -1824,7 +1831,8 @@ export default function Luna() {
                     value={inputValue}
                     onChange={setInputValue}
                     onSend={() => sendMessage()}
-                    disabled={isTyping || isTranscribing}
+                    disabled={isTranscribing}
+                    sendDisabled={isTyping || isTranscribing}
                     voiceActive={voiceActive}
                     transcribing={isTranscribing}
                     onToggleVoice={handleVoiceToggle}
@@ -1896,7 +1904,8 @@ export default function Luna() {
                   value={inputValue}
                   onChange={setInputValue}
                   onSend={() => sendMessage()}
-                  disabled={isTyping || isTranscribing}
+                  disabled={isTranscribing}
+                  sendDisabled={isTyping || isTranscribing}
                   voiceActive={voiceActive}
                   transcribing={isTranscribing}
                   onToggleVoice={handleVoiceToggle}
