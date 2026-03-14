@@ -1267,16 +1267,15 @@ app.post("/api/auth/logout", async (req, res) => {
 
 app.post("/api/onboarding", async (req, res) => {
   try {
-    const userContext = await resolveRequestUser(req);
-    const bodyUserId = typeof req.body?.user_id === "string" ? req.body.user_id.trim() : "";
-    const resolvedUserId = bodyUserId || userContext.userId || "";
-
-    if (!resolvedUserId) {
-      return res.status(400).json({ error: "user_id is required (sign in first)." });
+    const auth = await requireAuthenticatedUser(req, res);
+    if (!auth) return;
+    const existingUser = await getUserById(auth.userId);
+    if (!existingUser) {
+      return res.status(403).json({ error: "User not found." });
     }
 
     const payload = normalizeMemoryPayload(req.body || {});
-    const saved = await upsertUserMemory(resolvedUserId, payload, userContext.user?.email);
+    const saved = await upsertUserMemory(auth.userId, payload, auth.user?.email);
 
     return res.json({ ok: true, memory: saved });
   } catch (error) {
