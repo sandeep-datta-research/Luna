@@ -1062,6 +1062,7 @@ export default function Luna() {
           {
             signal: abortController.signal,
             onToken: appendChunk,
+            onDone: () => setIsTyping(false),
           },
           { applyToggles: options.applyToggles },
         );
@@ -1146,6 +1147,14 @@ export default function Luna() {
       updateSession,
     ],
   );
+
+  const showTyping = useMemo(() => {
+    if (!isTyping) return false;
+    const lastMessage = activeMessages[activeMessages.length - 1];
+    if (!lastMessage) return true;
+    if (lastMessage.role !== "assistant") return true;
+    return !text(lastMessage.content);
+  }, [activeMessages, isTyping]);
 
   const regenerateLatest = useCallback(async () => {
     const session = activeSession;
@@ -1837,7 +1846,7 @@ export default function Luna() {
                       />
                     ))}
 
-                    {isTyping ? <TypingIndicator /> : null}
+                    {showTyping ? <TypingIndicator /> : null}
                     <div ref={listEndRef} />
                   </div>
                 </motion.div>
