@@ -1291,10 +1291,10 @@ app.post("/api/onboarding", async (req, res) => {
   try {
     const userContext = await resolveRequestUser(req);
     const bodyUserId = typeof req.body?.user_id === "string" ? req.body.user_id.trim() : "";
-    const resolvedUserId = bodyUserId || (isAuthenticatedUserContext(userContext) ? userContext.userId : "");
+    const resolvedUserId = bodyUserId || userContext.userId || "";
 
     if (!resolvedUserId) {
-      return res.status(400).json({ error: "user_id is required" });
+      return res.status(400).json({ error: "user_id is required (sign in first)." });
     }
 
     const payload = normalizeMemoryPayload(req.body || {});
