@@ -28,6 +28,7 @@ import { useNavigate } from "react-router-dom";
 import { fetchApi, streamApi } from "@/lib/api-client";
 import lunaLogo from "@/assets/luna.png";
 import MarkdownMessage from "@/components/ui/chat/MarkdownMessage";
+import OnboardingFlow from "@/components/onboarding/OnboardingFlow";
 
 const STORAGE_KEY = "luna.chat.ui.v4";
 const MAX_HISTORY_ITEMS = 6;
@@ -605,6 +606,7 @@ export default function Luna() {
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
   const [toast, setToast] = useState(null);
+  const [onboardingState, setOnboardingState] = useState({ loading: true, answered: false });
 
   const supportsStreaming = useMemo(() => {
     if (typeof window === "undefined") return false;
@@ -724,6 +726,34 @@ export default function Luna() {
     setExpandedProjectId("");
     setStorageReadyKey(userStorageKey);
   }, [userStorageKey]);
+
+  useEffect(() => {
+    let canceled = false;
+
+    const loadOnboardingStatus = async () => {
+      if (typeof window === "undefined") return;
+      const token = (localStorage.getItem("luna_auth_token") || "").trim();
+      const isGuest = !user?.email || user.email === "guest@luna.ai";
+      if (!token || isGuest) {
+        if (!canceled) setOnboardingState({ loading: false, answered: true });
+        return;
+      }
+
+      setOnboardingState((prev) => ({ ...prev, loading: true }));
+      const result = await fetchApi("/api/onboarding/status");
+      if (canceled) return;
+      if (result.ok) {
+        setOnboardingState({ loading: false, answered: Boolean(result.data?.answered) });
+      } else {
+        setOnboardingState({ loading: false, answered: false });
+      }
+    };
+
+    loadOnboardingStatus();
+    return () => {
+      canceled = true;
+    };
+  }, [user?.email]);
 
   useEffect(() => {
     if (listEndRef.current) {
@@ -1806,6 +1836,11 @@ export default function Luna() {
           </div>
 
           <div className="relative flex-1 overflow-hidden px-3 pb-3 pt-2 md:px-6">
+            {!onboardingState.loading && !onboardingState.answered ? (
+              <div className="mb-6 flex justify-center">
+                <OnboardingFlow onComplete={() => setOnboardingState({ loading: false, answered: true })} />
+              </div>
+            ) : null}
             <AnimatePresence mode="wait">
               {!visibleMain ? (
                 <motion.div

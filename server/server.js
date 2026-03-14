@@ -196,6 +196,21 @@ async function upsertUserMemory(userId, payload) {
   return data;
 }
 
+async function hasUserMemory(userId) {
+  const supabase = getSupabaseAdmin();
+  const normalizedId = normalizeSupabaseUserId(userId);
+  if (!supabase || !normalizedId) return false;
+
+  const { data, error } = await supabase
+    .from("users_memory")
+    .select("id")
+    .eq("user_id", normalizedId)
+    .maybeSingle();
+
+  if (error) return false;
+  return Boolean(data?.id);
+}
+
 function sanitizePromptText(value) {
   return typeof value === "string" ? value.trim().slice(0, 5000) : "";
 }
@@ -1259,6 +1274,21 @@ app.post("/api/onboarding", async (req, res) => {
     const saved = await upsertUserMemory(resolvedUserId, payload);
 
     return res.json({ ok: true, memory: saved });
+  } catch (error) {
+    const normalized = extractProviderError(error);
+    return res.status(error.status || normalized.status || 500).json({ error: error.message || normalized.providerMessage });
+  }
+});
+
+app.get("/api/onboarding/status", async (req, res) => {
+  try {
+    const userContext = await resolveRequestUser(req);
+    if (!isAuthenticatedUserContext(userContext)) {
+      return res.json({ answered: false, guest: true });
+    }
+
+    const answered = await hasUserMemory(userContext.userId);
+    return res.json({ answered });
   } catch (error) {
     const normalized = extractProviderError(error);
     return res.status(error.status || normalized.status || 500).json({ error: error.message || normalized.providerMessage });
