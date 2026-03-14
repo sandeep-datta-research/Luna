@@ -10,6 +10,7 @@ import {
   ensureConversation,
   getConversationById,
   getConversationStats,
+  getUserById,
   getDbInfo,
   initDb,
   listConversationSummaries,

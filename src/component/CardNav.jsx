@@ -147,7 +147,7 @@ const CardNav = ({
   }, []);
 
   const ctaHref = isSignedIn ? '/chat' : '/signin';
-  const ctaLabel = isSignedIn ? 'Start Chat' : 'Get Started';
+  const ctaLabel = isSignedIn ? 'Start Chat' : 'Sign In';
 
   const toggleMenu = () => {
     const tl = tlRef.current;
