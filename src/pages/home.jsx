@@ -9,7 +9,7 @@ import SimplePricing from "@/components/mvpblocks/simple-pricing";
 import TestimonialsCarousel from "@/components/mvpblocks/testimonials-carousel";
 import { fetchApi } from "@/lib/api-client";
 import CardNav from "@/component/CardNav";
-import logo from "@/assets/luna-logo.svg";
+import logo from "@/assets/luna.jpeg";
 
 const ALLOWED_ADMIN_EMAILS = new Set([
   "seiuasatou@gmail.com",

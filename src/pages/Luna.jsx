@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { fetchApi, streamApi } from "@/lib/api-client";
-import lunaLogo from "@/assets/luna-logo.svg";
+import lunaLogo from "@/assets/luna.jpeg";
 import MarkdownMessage from "@/components/ui/chat/MarkdownMessage";
 
 const STORAGE_KEY = "luna.chat.ui.v4";
