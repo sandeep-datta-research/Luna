@@ -397,10 +397,7 @@ function wantsDetailedResponse(message) {
 
 function clampReplyLength(reply) {
   if (!reply) return "";
-  let normalized = reply.replace(/
-{3,}/g, "
-
-").trim();
+  let normalized = reply.replace(/\n{3,}/g, "\n\n").trim();
 
   if (!/[.!?]$/.test(normalized)) {
     return normalized + ".";
@@ -471,8 +468,7 @@ function generateLocalFallbackReply(message) {
     "- Step 1: Define exact output format.",
     "- Step 2: Break into 3 concrete tasks.",
     "- Step 3: Execute task 1 first, then iterate.",
-  ].join("
-");
+  ].join("\n");
 }
 
 async function requestGroq(messages, detailedMode) {
@@ -555,9 +551,7 @@ async function requestGemini(messages, detailedMode) {
   const systemText = (messages || [])
     .filter((m) => m?.role === "system" && typeof m?.content === "string")
     .map((m) => m.content)
-    .join("
-
-");
+    .join("\n\n");
 
   const body = {
     contents: toGeminiContents(messages),
@@ -652,8 +646,7 @@ function toPlainPrompt(messages) {
       const role = item?.role === "assistant" ? "Assistant" : item?.role === "user" ? "User" : "System";
       return `${role}: ${item?.content || ""}`.trim();
     })
-    .join("
-")
+    .join("\n")
     .trim();
 }
 
@@ -688,17 +681,14 @@ async function streamOpenAICompatible({ url, headers, body, onToken, signal }) {
 
     response.data.on("data", (chunk) => {
       buffer += chunk.toString("utf8");
-      const parts = buffer.split(/\r?
-\r?
-/);
+      const parts = buffer.split(/\r?\n\r?\n/);
       buffer = parts.pop() || "";
 
       for (const part of parts) {
         const cleaned = part.replace(/\r/g, "").trim();
         if (!cleaned) continue;
 
-        const lines = cleaned.split("
-");
+        const lines = cleaned.split("\n");
         const dataLines = [];
         for (const line of lines) {
           if (line.startsWith("data:")) {
@@ -805,9 +795,7 @@ async function streamGemini(messages, detailedMode, onToken, signal) {
   const systemText = (messages || [])
     .filter((m) => m?.role === "system" && typeof m?.content === "string")
     .map((m) => m.content)
-    .join("
-
-");
+    .join("\n\n");
 
   const body = {
     contents: toGeminiContents(messages),
@@ -854,17 +842,14 @@ async function streamGemini(messages, detailedMode, onToken, signal) {
 
     response.data.on("data", (chunk) => {
       buffer += chunk.toString("utf8");
-      const parts = buffer.split(/\r?
-\r?
-/);
+      const parts = buffer.split(/\r?\n\r?\n/);
       buffer = parts.pop() || "";
 
       for (const part of parts) {
         const cleaned = part.replace(/\r/g, "").trim();
         if (!cleaned) continue;
 
-        const lines = cleaned.split("
-");
+        const lines = cleaned.split("\n");
         const dataLines = [];
         for (const line of lines) {
           if (line.startsWith("data:")) {
