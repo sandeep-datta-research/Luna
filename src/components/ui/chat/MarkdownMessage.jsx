@@ -7,13 +7,19 @@ import rehypeKatex from "rehype-katex";
 export default function MarkdownMessage({ content }) {
   const value = typeof content === "string" ? content : "";
   const normalized = value
-    .replace(/\\\[((?:.|\n|\r)*?)\\\]/g, (_, equation) => `$$${equation}$$`)
-    .replace(/\\\(((?:.|\n|\r)*?)\\\)/g, (_, equation) => `$${equation}$`);
+    .replace(/\\\\\[/g, "$$")
+    .replace(/\\\\\]/g, "$$")
+    .replace(/\\\\\(/g, "$")
+    .replace(/\\\\\)/g, "$")
+    .replace(/\\\[/g, "$$")
+    .replace(/\\\]/g, "$$")
+    .replace(/\\\(/g, "$")
+    .replace(/\\\)/g, "$");
 
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm, remarkMath]}
-      rehypePlugins={[rehypeKatex, rehypeHighlight]}
+      rehypePlugins={[[rehypeKatex, { strict: false }], rehypeHighlight]}
       className="luna-markdown"
       components={{
         code({ inline, className, children, ...props }) {
