@@ -138,14 +138,14 @@ function normalizeMemoryPayload(payload = {}) {
 }
 
 function buildMemorySystemPrompt(memory) {
-  if (!memory) return "";
+  const safeMemory = { ...DEFAULT_MEMORY, ...(memory || {}) };
   const lines = [];
-  if (memory.goals?.length) lines.push(`Goals: ${memory.goals.join(", ")}`);
-  if (memory.subjects?.length) lines.push(`Subjects: ${memory.subjects.join(", ")}`);
-  if (memory.favorite_topics?.length) lines.push(`Favorite topics: ${memory.favorite_topics.join(", ")}`);
-  lines.push(`Preferred response style: ${memory.response_style || DEFAULT_MEMORY.response_style}`);
-  lines.push(`Learning level: ${memory.learning_level || DEFAULT_MEMORY.learning_level}`);
-  return lines.length ? `User preferences:\n- ${lines.join("\n- ")}` : "";
+  if (safeMemory.goals?.length) lines.push(`Goals: ${safeMemory.goals.join(", ")}`);
+  if (safeMemory.subjects?.length) lines.push(`Subjects: ${safeMemory.subjects.join(", ")}`);
+  if (safeMemory.favorite_topics?.length) lines.push(`Favorite topics: ${safeMemory.favorite_topics.join(", ")}`);
+  lines.push(`Preferred response style: ${safeMemory.response_style || DEFAULT_MEMORY.response_style}`);
+  lines.push(`Learning level: ${safeMemory.learning_level || DEFAULT_MEMORY.learning_level}`);
+  return `Luna personalization (apply to every response):\n- ${lines.join("\n- ")}`;
 }
 
 async function fetchUserMemory(userId, email = "") {
