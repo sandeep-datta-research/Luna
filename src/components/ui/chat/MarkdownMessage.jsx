@@ -6,6 +6,9 @@ import rehypeKatex from "rehype-katex";
 
 export default function MarkdownMessage({ content }) {
   const value = typeof content === "string" ? content : "";
+  const normalized = value
+    .replace(/\\\[((?:.|\n|\r)*?)\\\]/g, (_, equation) => `$$${equation}$$`)
+    .replace(/\\\(((?:.|\n|\r)*?)\\\)/g, (_, equation) => `$${equation}$`);
 
   return (
     <ReactMarkdown
@@ -32,7 +35,7 @@ export default function MarkdownMessage({ content }) {
         },
       }}
     >
-      {value}
+      {normalized}
     </ReactMarkdown>
   );
 }
