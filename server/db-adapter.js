@@ -32,8 +32,12 @@ function readDbConfig() {
 async function initializeDb() {
   const config = readDbConfig();
   initWarning = "";
+  const isProduction = (process.env.NODE_ENV || "").toLowerCase() === "production";
 
   if (!config.useMongo) {
+    if (isProduction) {
+      throw new Error("MONGODB_URI is required in production. Refusing to use file storage.");
+    }
     activeEngine = "file";
     activeStore = null;
     return;
@@ -50,7 +54,7 @@ async function initializeDb() {
     activeStore = mongoStore;
     activeEngine = "mongo";
   } catch (error) {
-    if (config.mode === "mongo") {
+    if (config.mode === "mongo" || isProduction) {
       throw error;
     }
 

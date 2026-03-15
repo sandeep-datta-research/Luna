@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
+import { useEffect } from "react";
 import { HashRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import AdminDashboard from "./components/mvpblocks";
 import SignInPage from "./components/mvpblocks/login-form-3";
@@ -8,6 +9,7 @@ import Luna from "./pages/Luna";
 import Onboarding from "./pages/Onboarding";
 import Pricing from "./pages/Pricing";
 import Profile from "./pages/Profile";
+import { hydrateUser } from "./lib/api-client";
 
 function PageTransition({ children }) {
   return (
@@ -44,6 +46,10 @@ function AnimatedRoutes() {
 }
 
 function App() {
+  useEffect(() => {
+    hydrateUser().catch(() => {});
+  }, []);
+
   return (
     <HashRouter>
       <AnimatedRoutes />

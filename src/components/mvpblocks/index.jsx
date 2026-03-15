@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { CheckCircle2, Crown, Megaphone, RefreshCw, Save, Shield, ShieldAlert, SlidersHorizontal, Users, WandSparkles, XCircle } from "lucide-react";
-import { fetchApi, getAuthToken, getStoredUser } from "@/lib/api-client";
+import { fetchApi, getAuthToken, getStoredUser, hydrateUser } from "@/lib/api-client";
 import CardNav from "@/component/CardNav";
 import logo from "@/assets/luna.png";
 
@@ -210,6 +210,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     const boot = async () => {
+      await hydrateUser();
       const localUser = getStoredUser();
       const email = normalizeEmail(localUser?.email);
       setUserEmail(email);

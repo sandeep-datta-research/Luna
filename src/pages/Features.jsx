@@ -6,6 +6,7 @@ import HeroGeometric from "@/components/ui/hero-geometric";
 import Earth from "@/components/ui/globe";
 import Feature1 from "@/components/mvpblocks/feature-1";
 import logo from "@/assets/luna.png";
+import { getAuthToken, getStoredUser, hydrateUser } from "@/lib/api-client";
 
 const ALLOWED_ADMIN_EMAILS = new Set(["seiuasatou@gmail.com", "sandeepdatta866@gmail.com"]);
 
@@ -59,20 +60,15 @@ function getSignedInSnapshot() {
     return { email: "", name: "", isSignedIn: false };
   }
 
-  const token = (localStorage.getItem("luna_auth_token") || "").trim();
-  const raw = localStorage.getItem("luna_google_user");
-  if (!raw || !token) {
+  const token = getAuthToken();
+  const user = getStoredUser();
+  if (!user || !token) {
     return { email: "", name: "", isSignedIn: false };
   }
 
-  try {
-    const parsed = JSON.parse(raw);
-    const email = normalizeEmail(parsed?.email);
-    const name = typeof parsed?.name === "string" ? parsed.name.trim() : "";
-    return { email, name, isSignedIn: Boolean(email && token) };
-  } catch {
-    return { email: "", name: "", isSignedIn: false };
-  }
+  const email = normalizeEmail(user?.email);
+  const name = typeof user?.name === "string" ? user.name.trim() : "";
+  return { email, name, isSignedIn: Boolean(email && token) };
 }
 
 export default function Features() {
@@ -87,6 +83,7 @@ export default function Features() {
     };
 
     syncAdminVisibility();
+    hydrateUser().then(syncAdminVisibility).catch(syncAdminVisibility);
     window.addEventListener("storage", syncAdminVisibility);
     window.addEventListener("luna-auth-changed", syncAdminVisibility);
     window.addEventListener("focus", syncAdminVisibility);

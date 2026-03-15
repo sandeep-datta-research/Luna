@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import {
   AUTH_TOKEN_STORAGE_KEY,
-  AUTH_USER_STORAGE_KEY,
   fetchApi,
   getAuthToken,
   getStoredUser,
+  setStoredUser,
+  clearStoredUser,
 } from "@/lib/api-client";
 
 const GOOGLE_CLIENT_ID = (import.meta.env.VITE_GOOGLE_CLIENT_ID || "").trim();
@@ -18,15 +19,15 @@ function notifyAuthChange() {
 
 function setStoredAuth({ user, token }) {
   if (typeof window === "undefined") return;
-  if (user) localStorage.setItem(AUTH_USER_STORAGE_KEY, JSON.stringify(user));
   if (token) localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
+  if (user) setStoredUser(user);
   notifyAuthChange();
 }
 
 function clearStoredAuth() {
   if (typeof window === "undefined") return;
-  localStorage.removeItem(AUTH_USER_STORAGE_KEY);
   localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+  clearStoredUser();
   notifyAuthChange();
 }
 

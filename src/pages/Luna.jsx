@@ -25,7 +25,7 @@ import {
   X,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { fetchApi, streamApi } from "@/lib/api-client";
+import { fetchApi, streamApi, getAuthToken, getStoredUser, hydrateUser } from "@/lib/api-client";
 import lunaLogo from "@/assets/luna.png";
 import MarkdownMessage from "@/components/ui/chat/MarkdownMessage";
 import OnboardingFlow from "@/components/onboarding/OnboardingFlow";
@@ -170,66 +170,27 @@ function createUserStorageKey(userLike) {
   return email || "guest";
 }
 
-function loadUser() {
-  if (typeof window === "undefined") {
-    return { name: "Guest", email: "guest@luna.ai", picture: "" };
+  function loadUser() {
+    if (typeof window === "undefined") {
+      return { name: "Guest", email: "guest@luna.ai", picture: "" };
+    }
+
+    const user = getStoredUser();
+    if (!user) return { name: "Guest", email: "guest@luna.ai", picture: "" };
+
+    return {
+      name: text(user?.name) || "Guest",
+      email: text(user?.email) || "guest@luna.ai",
+      picture: text(user?.picture),
+    };
   }
 
-  const raw = localStorage.getItem("luna_google_user");
-  if (!raw) return { name: "Guest", email: "guest@luna.ai", picture: "" };
-
-  const parsed = safeParse(raw, {});
-  return {
-    name: text(parsed?.name) || "Guest",
-    email: text(parsed?.email) || "guest@luna.ai",
-    picture: text(parsed?.picture),
-  };
-}
-
 function loadPersistedState(userStorageKey = "guest") {
-  if (typeof window === "undefined") return null;
-
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return null;
-
-  const store = safeParse(raw, {});
-  if (!store || typeof store !== "object") return null;
-
-  const parsed = store[userStorageKey];
-  if (!parsed || typeof parsed !== "object") return null;
-
-  const sessions = Array.isArray(parsed.sessions)
-    ? parsed.sessions.map(sanitizeSession).sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
-    : [];
-
-  const projects = Array.isArray(parsed.projects)
-    ? parsed.projects.map(sanitizeProject).filter(Boolean)
-    : [];
-
-  return {
-    sessions,
-    projects,
-    activeSessionId: text(parsed.activeSessionId),
-    selectedModel: text(parsed.selectedModel) || "luna-2.5",
-  };
+  return null;
 }
 
 function persistState(payload, userStorageKey = "guest") {
-  if (typeof window === "undefined") return;
-
-  const body = {
-    sessions: payload.sessions || [],
-    projects: payload.projects || [],
-    activeSessionId: payload.activeSessionId || "",
-    selectedModel: payload.selectedModel || "luna-2.5",
-  };
-
-  const raw = localStorage.getItem(STORAGE_KEY);
-  const existing = safeParse(raw, {});
-  const store = existing && typeof existing === "object" ? existing : {};
-  store[userStorageKey] = body;
-
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+  return;
 }
 
 function toBase64DataUrl(blob) {
@@ -569,11 +530,11 @@ export default function Luna() {
 
   const initialUser = useMemo(() => loadUser(), []);
   const [user, setUser] = useState(initialUser);
-  const isSignedIn = useMemo(() => {
-    if (typeof window === "undefined") return false;
-    const token = (localStorage.getItem("luna_auth_token") || "").trim();
-    return Boolean(token && user?.email && user.email !== "guest@luna.ai");
-  }, [user?.email]);
+    const isSignedIn = useMemo(() => {
+      if (typeof window === "undefined") return false;
+      const token = getAuthToken();
+      return Boolean(token && user?.email && user.email !== "guest@luna.ai");
+    }, [user?.email]);
   const userStorageKey = useMemo(() => createUserStorageKey(user), [user?.email]);
 
   const persisted = useMemo(
@@ -693,8 +654,13 @@ export default function Luna() {
   }, [activeSessionId, projects, selectedModel, sessions, storageReadyKey, userStorageKey]);
 
   useEffect(() => {
-    const syncUser = () => setUser(loadUser());
+    const syncUser = () => {
+      hydrateUser()
+        .then(() => setUser(loadUser()))
+        .catch(() => setUser(loadUser()));
+    };
 
+    syncUser();
     window.addEventListener("storage", syncUser);
     window.addEventListener("luna-auth-changed", syncUser);
     window.addEventListener("focus", syncUser);
@@ -738,8 +704,8 @@ export default function Luna() {
 
     const loadOnboardingStatus = async () => {
       if (typeof window === "undefined") return;
-      const token = (localStorage.getItem("luna_auth_token") || "").trim();
-      const isGuest = !user?.email || user.email === "guest@luna.ai";
+        const token = getAuthToken();
+        const isGuest = !user?.email || user.email === "guest@luna.ai";
       if (!token || isGuest) {
         if (!canceled) setOnboardingState({ loading: false, answered: true });
         return;

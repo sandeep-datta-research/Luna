@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import Orb from "@/components/ui/orb";
 import { cn } from "@/lib/utils";
+import { getAuthToken, getStoredUser, hydrateUser } from "@/lib/api-client";
 
 const Motion = motion;
 
@@ -81,21 +82,13 @@ export default function HeroGeometric() {
   useEffect(() => {
     const syncAuth = () => {
       if (typeof window === "undefined") return;
-      const raw = localStorage.getItem("luna_google_user");
-      const token = (localStorage.getItem("luna_auth_token") || "").trim();
-      let hasUser = false;
-      if (raw) {
-        try {
-          const parsed = JSON.parse(raw);
-          hasUser = Boolean(parsed?.email || parsed?.name);
-        } catch {
-          hasUser = false;
-        }
-      }
-      setIsSignedIn(Boolean(hasUser && token));
+      const token = getAuthToken();
+      const user = getStoredUser();
+      setIsSignedIn(Boolean(token && (user?.email || user?.name)));
     };
 
     syncAuth();
+    hydrateUser().then(syncAuth).catch(syncAuth);
     window.addEventListener("storage", syncAuth);
     window.addEventListener("luna-auth-changed", syncAuth);
     window.addEventListener("focus", syncAuth);

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Camera, Crown, Loader2, MessageSquare, ShieldCheck, UserCircle2, Wallet } from "lucide-react";
-import { fetchApi } from "@/lib/api-client";
+import { fetchApi, getStoredUser, setStoredUser } from "@/lib/api-client";
 
 function formatDate(value) {
   if (!value) return "";
@@ -116,22 +116,16 @@ export default function Profile() {
     setPictureUrl(updatedUser.picture || payload.picture);
     setSaveNote("Profile updated successfully.");
 
-    if (typeof window !== "undefined") {
-      try {
-        const raw = localStorage.getItem("luna_google_user");
-        const parsed = raw ? JSON.parse(raw) : {};
+      if (typeof window !== "undefined") {
+        const current = getStoredUser() || {};
         const next = {
-          ...parsed,
-          name: updatedUser.name || payload.name || parsed?.name || "",
-          picture: updatedUser.picture || payload.picture || parsed?.picture || "",
-          email: updatedUser.email || parsed?.email || "",
+          ...current,
+          name: updatedUser.name || payload.name || current?.name || "",
+          picture: updatedUser.picture || payload.picture || current?.picture || "",
+          email: updatedUser.email || current?.email || "",
         };
-        localStorage.setItem("luna_google_user", JSON.stringify(next));
-        window.dispatchEvent(new Event("luna-auth-changed"));
-      } catch {
-        // Ignore local storage sync errors.
+        setStoredUser(next);
       }
-    }
   };
 
   return (

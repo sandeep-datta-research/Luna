@@ -43,6 +43,9 @@ export const AUTH_TOKEN_STORAGE_KEY = "luna_auth_token";
 export const AUTH_USER_STORAGE_KEY = "luna_google_user";
 export const GUEST_ID_STORAGE_KEY = "luna_guest_id";
 
+let cachedUser = null;
+let cachedGuestId = "";
+
 function isHtml(rawText) {
   const text = (rawText || "").trim();
   return text.startsWith("<!DOCTYPE") || text.startsWith("<html");
@@ -63,27 +66,29 @@ export function getAuthToken() {
 }
 
 export function getStoredUser() {
-  if (typeof window === "undefined") return null;
+  return cachedUser;
+}
 
-  const raw = localStorage.getItem(AUTH_USER_STORAGE_KEY);
-  if (!raw) return null;
+export function setStoredUser(user) {
+  cachedUser = user ? { ...user } : null;
+  if (typeof window !== "undefined") {
+    localStorage.removeItem(AUTH_USER_STORAGE_KEY);
+    window.dispatchEvent(new Event("luna-auth-changed"));
+  }
+}
 
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return null;
+export function clearStoredUser() {
+  cachedUser = null;
+  if (typeof window !== "undefined") {
+    localStorage.removeItem(AUTH_USER_STORAGE_KEY);
+    window.dispatchEvent(new Event("luna-auth-changed"));
   }
 }
 
 export function getGuestId() {
-  if (typeof window === "undefined") return "guest_local";
-
-  const current = (localStorage.getItem(GUEST_ID_STORAGE_KEY) || "").trim();
-  if (current) return current;
-
-  const next = createGuestId();
-  localStorage.setItem(GUEST_ID_STORAGE_KEY, next);
-  return next;
+  if (cachedGuestId) return cachedGuestId;
+  cachedGuestId = createGuestId();
+  return cachedGuestId;
 }
 
 export function buildRequestHeaders(headers = {}, { includeAuth = true, includeGuest = true } = {}) {
@@ -173,6 +178,27 @@ export async function fetchApi(path, options = {}, headerMode = { includeAuth: t
   }
 
   return lastResult;
+}
+
+export async function hydrateUser() {
+  const token = getAuthToken();
+  if (!token) {
+    clearStoredUser();
+    return null;
+  }
+
+  if (cachedUser?.id) {
+    return cachedUser;
+  }
+
+  const result = await fetchApi("/api/auth/me", { headers: { Authorization: `Bearer ${token}` } }, { includeAuth: false, includeGuest: false });
+  if (result.ok && result.data?.user) {
+    setStoredUser(result.data.user);
+    return result.data.user;
+  }
+
+  clearStoredUser();
+  return null;
 }
 function parseSseEvent(rawEvent) {
   if (!rawEvent) return null;
