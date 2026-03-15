@@ -1678,6 +1678,9 @@ app.delete("/api/history/:conversationId", async (req, res) => {
 });
 
 app.post("/api/luna/stream", async (req, res) => {
+  const auth = await requireAuthenticatedUser(req, res);
+  if (!auth) return;
+
   const message = req.body?.message?.trim();
   const requestedConversationId = typeof req.body?.conversationId === "string" ? req.body.conversationId.trim() : "";
 
@@ -1703,7 +1706,7 @@ app.post("/api/luna/stream", async (req, res) => {
 
   try {
     const lunaSettings = await getLunaSettings();
-    const userContext = await resolveRequestUser(req);
+    const userContext = { userId: auth.userId, user: auth.user, token: auth.token };
     const membershipContext = await resolveMembershipContext(userContext, lunaSettings);
     const usageBefore = await enforceDailyLimitOrThrow(userContext, membershipContext);
 
@@ -1846,6 +1849,9 @@ app.post("/api/luna/stream", async (req, res) => {
   }
 });
 app.post("/api/luna", async (req, res) => {
+  const auth = await requireAuthenticatedUser(req, res);
+  if (!auth) return;
+
   const message = req.body?.message?.trim();
   const requestedConversationId = typeof req.body?.conversationId === "string" ? req.body.conversationId.trim() : "";
 
@@ -1853,7 +1859,7 @@ app.post("/api/luna", async (req, res) => {
 
   try {
     const lunaSettings = await getLunaSettings();
-    const userContext = await resolveRequestUser(req);
+    const userContext = { userId: auth.userId, user: auth.user, token: auth.token };
     const membershipContext = await resolveMembershipContext(userContext, lunaSettings);
     const usageBefore = await enforceDailyLimitOrThrow(userContext, membershipContext);
 

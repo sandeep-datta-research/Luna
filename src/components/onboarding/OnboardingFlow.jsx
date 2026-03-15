@@ -93,6 +93,13 @@ const cardVariants = {
 export default function OnboardingFlow({ onComplete }) {
   const [stepIndex, setStepIndex] = useState(0);
   const [answers, setAnswers] = useState(DEFAULT_ANSWERS);
+  const [customInputs, setCustomInputs] = useState({
+    goals: "",
+    subjects: "",
+    response_style: "",
+    favorite_topics: "",
+    learning_level: "",
+  });
   const [submitting, setSubmitting] = useState(false);
   const [status, setStatus] = useState("");
   const [userId, setUserId] = useState("");
@@ -124,6 +131,19 @@ export default function OnboardingFlow({ onComplete }) {
   const step = STEP_DEFINITIONS[stepIndex];
   const totalSteps = STEP_DEFINITIONS.length;
   const progress = useMemo(() => ((stepIndex + 1) / totalSteps) * 100, [stepIndex, totalSteps]);
+  const renderedOptions = useMemo(() => {
+    const base = Array.isArray(step?.options) ? step.options : [];
+    const selected =
+      step?.type === "multi"
+        ? Array.isArray(answers[step.id])
+          ? answers[step.id]
+          : []
+        : answers[step.id]
+          ? [answers[step.id]]
+          : [];
+    const extras = selected.filter((value) => !base.includes(value));
+    return [...base, ...extras];
+  }, [answers, step]);
 
   const toggleMulti = (key, value) => {
     setAnswers((prev) => {
@@ -136,6 +156,23 @@ export default function OnboardingFlow({ onComplete }) {
 
   const setSingle = (key, value) => {
     setAnswers((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const addCustomOption = () => {
+    const raw = (customInputs[step.id] || "").trim();
+    if (!raw) return;
+
+    if (step.type === "multi") {
+      setAnswers((prev) => {
+        const current = new Set(prev[step.id]);
+        current.add(raw);
+        return { ...prev, [step.id]: Array.from(current) };
+      });
+    } else {
+      setAnswers((prev) => ({ ...prev, [step.id]: raw }));
+    }
+
+    setCustomInputs((prev) => ({ ...prev, [step.id]: "" }));
   };
 
   const handleNext = () => {
@@ -200,7 +237,7 @@ export default function OnboardingFlow({ onComplete }) {
         <motion.div key={step.id} variants={cardVariants} initial="initial" animate="animate" exit="exit" className="space-y-4">
           <h2 className="text-xl font-semibold text-white">{step.title}</h2>
           <div className="flex flex-wrap gap-2">
-            {step.options.map((option) => {
+            {renderedOptions.map((option) => {
               const isActive =
                 step.type === "multi"
                   ? answers[step.id].includes(option)
@@ -225,6 +262,30 @@ export default function OnboardingFlow({ onComplete }) {
                 </motion.button>
               );
             })}
+          </div>
+
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+            <input
+              value={customInputs[step.id] || ""}
+              onChange={(event) =>
+                setCustomInputs((prev) => ({ ...prev, [step.id]: event.target.value }))
+              }
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  addCustomOption();
+                }
+              }}
+              placeholder="Add your own answer..."
+              className="w-full rounded-xl border border-zinc-700 bg-zinc-900/70 px-4 py-3 text-sm text-zinc-100 outline-none placeholder:text-zinc-500 focus:border-violet-400/70"
+            />
+            <button
+              type="button"
+              onClick={addCustomOption}
+              className="rounded-xl border border-violet-400/40 bg-violet-500/20 px-4 py-3 text-sm font-semibold text-violet-100 hover:bg-violet-500/30"
+            >
+              Add
+            </button>
           </div>
         </motion.div>
       </AnimatePresence>

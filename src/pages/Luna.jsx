@@ -568,6 +568,11 @@ export default function Luna() {
 
   const initialUser = useMemo(() => loadUser(), []);
   const [user, setUser] = useState(initialUser);
+  const isSignedIn = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    const token = (localStorage.getItem("luna_auth_token") || "").trim();
+    return Boolean(token && user?.email && user.email !== "guest@luna.ai");
+  }, [user?.email]);
   const userStorageKey = useMemo(() => createUserStorageKey(user), [user?.email]);
 
   const persisted = useMemo(
@@ -1434,6 +1439,33 @@ export default function Luna() {
   }, []);
 
   const visibleMain = activeMessages.length > 0;
+
+  if (!isSignedIn) {
+    return (
+      <div className="min-h-screen bg-[#07070d] text-zinc-100">
+        <div className="mx-auto flex min-h-screen w-full max-w-4xl items-center justify-center px-6 py-12">
+          <div className="w-full rounded-3xl border border-zinc-800/80 bg-zinc-950/70 p-8 text-center shadow-[0_25px_90px_rgba(0,0,0,0.55)]">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-violet-300/30 bg-violet-500/15">
+              <img src={lunaLogo} alt="Luna Logo" className="h-10 w-10 object-contain" />
+            </div>
+            <h1 className="mt-4 text-2xl font-semibold text-white">Sign in to chat with Luna</h1>
+            <p className="mt-2 text-sm text-zinc-400">
+              Luna chat is available for signed-in users so we can save your history and onboarding preferences.
+            </p>
+            <div className="mt-6 flex justify-center">
+              <button
+                type="button"
+                onClick={() => navigate("/signin")}
+                className="rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500 px-6 py-2 text-sm font-semibold text-white hover:from-violet-400 hover:to-fuchsia-400"
+              >
+                Go to Sign In
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <motion.main
