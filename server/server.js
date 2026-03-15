@@ -11,6 +11,7 @@ import {
   getConversationById,
   getConversationStats,
   getUserById,
+  getUserSignupStats,
   getDbInfo,
   initDb,
   listConversationSummaries,
@@ -1615,6 +1616,18 @@ app.post("/api/audio/transcribe", async (req, res) => {
 app.get("/api/providers/status", (_req, res) => {
   const providers = buildProviders([], false).map((p) => ({ llm: p.llm, configured: p.enabled }));
   res.json({ providers });
+});
+
+app.get("/api/metrics/users", async (req, res) => {
+  try {
+    const rawDays = Number(req.query?.days || 14);
+    const days = Number.isFinite(rawDays) ? Math.max(1, Math.min(60, rawDays)) : 14;
+    const stats = await getUserSignupStats(days);
+    return res.json({ ok: true, ...stats, days });
+  } catch (error) {
+    const n = extractProviderError(error);
+    return res.status(500).json({ error: n.providerMessage });
+  }
 });
 
 app.get("/api/history", async (req, res) => {

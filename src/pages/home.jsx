@@ -8,6 +8,7 @@ import { fetchApi } from "@/lib/api-client";
 import CardNav from "@/component/CardNav";
 import logo from "@/assets/luna.png";
 import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 const ALLOWED_ADMIN_EMAILS = new Set([
   "seiuasatou@gmail.com",
@@ -111,6 +112,7 @@ export default function Home() {
   const [feedbackBusy, setFeedbackBusy] = useState(false);
   const [feedbackNote, setFeedbackNote] = useState("");
   const [featuredFeedback, setFeaturedFeedback] = useState([]);
+  const [userMetrics, setUserMetrics] = useState({ total: 0, series: [], days: 14 });
 
   useEffect(() => {
     const syncAdminVisibility = () => {
@@ -176,6 +178,27 @@ export default function Home() {
     };
   }, []);
 
+  useEffect(() => {
+    let canceled = false;
+
+    const loadUserMetrics = async () => {
+      const result = await fetchApi("/api/metrics/users?days=14");
+      if (!canceled && result.ok) {
+        const series = Array.isArray(result.data?.series) ? result.data.series : [];
+        setUserMetrics({
+          total: Number(result.data?.total || 0),
+          series,
+          days: Number(result.data?.days || 14),
+        });
+      }
+    };
+
+    loadUserMetrics();
+    return () => {
+      canceled = true;
+    };
+  }, []);
+
   const handleFeedbackSubmit = async (event) => {
     event.preventDefault();
 
@@ -235,6 +258,23 @@ export default function Home() {
     });
   }, [featuredFeedback]);
 
+  const chartPoints = useMemo(() => {
+    const series = userMetrics.series || [];
+    if (series.length === 0) return "";
+    const width = 560;
+    const height = 140;
+    const maxCount = Math.max(1, ...series.map((item) => Number(item.count || 0)));
+
+    return series
+      .map((item, index) => {
+        const x = 8 + (index / Math.max(1, series.length - 1)) * (width - 16);
+        const value = Number(item.count || 0);
+        const y = height - 12 - (value / maxCount) * (height - 24);
+        return `${x},${y}`;
+      })
+      .join(" ");
+  }, [userMetrics.series]);
+
   return (    <div className="dark min-h-screen overflow-x-hidden bg-[#07070d] text-zinc-100">
       <nav className="sticky top-0 z-50 border-b border-zinc-800/80 bg-[#07070d]/85 px-4 py-3 backdrop-blur-xl sm:px-6 lg:px-8">
         <div className="mx-auto w-full max-w-6xl">
@@ -261,7 +301,59 @@ export default function Home() {
           </div>
         </motion.section>
 
+        <motion.section
+          {...fadeInUp}
+          className="mx-auto mt-8 w-full max-w-6xl px-4 sm:px-6 lg:px-8"
+        >
+          <div className="rounded-3xl border border-indigo-300/25 bg-gradient-to-b from-[#121225] to-[#0c0c16] px-6 py-6 shadow-[0_30px_90px_-55px_rgba(91,106,245,0.7)] sm:px-8">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <p className="text-xs uppercase tracking-[0.3em] text-indigo-200/70">User Growth</p>
+                <h3 className="mt-2 text-2xl font-semibold text-white sm:text-3xl">
+                  {userMetrics.total.toLocaleString()} total users
+                </h3>
+                <p className="mt-2 text-sm text-indigo-100/70">
+                  Last {userMetrics.days} days of signups
+                </p>
+              </div>
+              <div className="rounded-2xl border border-indigo-300/20 bg-indigo-500/5 px-4 py-2 text-xs text-indigo-100/70">
+                Updated automatically
+              </div>
+            </div>
+
+            <div className="mt-6 rounded-2xl border border-indigo-300/20 bg-[#0b0b14]/70 p-4">
+              <svg viewBox="0 0 560 140" className="h-[140px] w-full">
+                <defs>
+                  <linearGradient id="lunaUserLine" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="#5B6AF5" />
+                    <stop offset="50%" stopColor="#8B5CF6" />
+                    <stop offset="100%" stopColor="#EC4899" />
+                  </linearGradient>
+                  <linearGradient id="lunaUserArea" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="rgba(91,106,245,0.35)" />
+                    <stop offset="100%" stopColor="rgba(91,106,245,0)" />
+                  </linearGradient>
+                </defs>
+                <polyline
+                  points={chartPoints || "8,120 552,120"}
+                  fill="none"
+                  stroke="url(#lunaUserLine)"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <polyline
+                  points={`${chartPoints || "8,120 552,120"} 552,136 8,136`}
+                  fill="url(#lunaUserArea)"
+                  stroke="none"
+                />
+              </svg>
+            </div>
+          </div>
+        </motion.section>
+
         <Analytics />
+        <SpeedInsights />
 
         <motion.section
           id="feedback"

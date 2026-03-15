@@ -399,6 +399,68 @@ export function createMongoStore() {
     return docs.map((doc) => sanitizeUserRecord(doc));
   }
 
+  async function getUserSignupStats(days = 14) {
+    await init();
+    await cleanupExpiredSessions();
+
+    const countDays = Number.isFinite(Number(days)) ? Math.max(1, Number(days)) : 14;
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - (countDays - 1));
+
+    const startIso = start.toISOString();
+    const pipeline = [
+      {
+        $match: {
+          createdAt: { $gte: startIso },
+        },
+      },
+      {
+        $addFields: {
+          createdDate: {
+            $dateToString: {
+              format: "%Y-%m-%d",
+              date: { $toDate: "$createdAt" },
+            },
+          },
+        },
+      },
+      {
+        $group: {
+          _id: "$createdDate",
+          count: { $sum: 1 },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          date: "$_id",
+          count: 1,
+        },
+      },
+    ];
+
+    const agg = await users().aggregate(pipeline).toArray();
+    const total = await users().countDocuments({});
+
+    const buckets = new Map();
+    for (let i = 0; i < countDays; i += 1) {
+      const date = new Date(start);
+      date.setDate(start.getDate() + i);
+      const key = date.toISOString().slice(0, 10);
+      buckets.set(key, 0);
+    }
+
+    for (const item of agg) {
+      if (buckets.has(item.date)) {
+        buckets.set(item.date, item.count);
+      }
+    }
+
+    const series = Array.from(buckets.entries()).map(([date, count]) => ({ date, count }));
+    return { total, series };
+  }
+
   async function submitFeedback({ userId = "", name = "", email = "", message = "", rating = 5 }) {
     await init();
 
@@ -642,6 +704,7 @@ export function createMongoStore() {
     getUserById,
     updateUserProfile,
     listUsers,
+    getUserSignupStats,
     submitFeedback,
     listFeedback,
     setFeedbackFeatured,

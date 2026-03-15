@@ -321,3 +321,33 @@ export async function listUsers() {
   cleanupExpiredSessions(db);
   return clone(db.users).sort((a, b) => new Date(b.lastLoginAt).getTime() - new Date(a.lastLoginAt).getTime());
 }
+
+export async function getUserSignupStats(days = 14) {
+  const db = await readDb();
+  cleanupExpiredSessions(db);
+
+  const total = db.users.length;
+  const countDays = Number.isFinite(Number(days)) ? Math.max(1, Number(days)) : 14;
+  const end = new Date();
+  const start = new Date();
+  start.setDate(end.getDate() - (countDays - 1));
+
+  const buckets = new Map();
+  for (let i = 0; i < countDays; i += 1) {
+    const date = new Date(start);
+    date.setDate(start.getDate() + i);
+    const key = date.toISOString().slice(0, 10);
+    buckets.set(key, 0);
+  }
+
+  for (const user of db.users) {
+    const createdAt = typeof user?.createdAt === "string" ? user.createdAt : "";
+    if (!createdAt) continue;
+    const dateKey = new Date(createdAt).toISOString().slice(0, 10);
+    if (!buckets.has(dateKey)) continue;
+    buckets.set(dateKey, (buckets.get(dateKey) || 0) + 1);
+  }
+
+  const series = Array.from(buckets.entries()).map(([date, count]) => ({ date, count }));
+  return { total, series };
+}

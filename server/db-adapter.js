@@ -205,6 +205,13 @@ export async function listUsers() {
   );
 }
 
+export async function getUserSignupStats(days = 14) {
+  return runWithStore(
+    () => fileUsers.getUserSignupStats(days),
+    (store) => store.getUserSignupStats(days),
+  );
+}
+
 export async function submitFeedback(payload) {
   return runWithStore(
     () => fileFeedback.submitFeedback(payload),
