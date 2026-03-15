@@ -23,22 +23,10 @@ const BASE_CARD_NAV_ITEMS = [
     links: [{ label: "Features", href: "/features", ariaLabel: "View Luna features" }],
   },
   {
-    label: "About",
-    bgColor: "#1E1630",
-    textColor: "#fff",
-    links: [{ label: "About", href: "#about", ariaLabel: "View about section" }],
-  },
-  {
     label: "Pricing",
     bgColor: "#271E37",
     textColor: "#fff",
     links: [{ label: "Pricing", href: "/pricing", ariaLabel: "View pricing section" }],
-  },
-  {
-    label: "Feedback",
-    bgColor: "#2f1b3f",
-    textColor: "#fff",
-    links: [{ label: "Feedback", href: "#feedback", ariaLabel: "Leave feedback for Luna" }],
   },
   {
     label: "Luna",
