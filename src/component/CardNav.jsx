@@ -197,8 +197,10 @@ const CardNav = ({
             />
           </div>
 
-          <div className="logo-container flex items-center gap-2 md:absolute md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 order-1 md:order-none">
-            <img src={logo} alt={logoAlt} className="logo h-[32px] w-auto object-contain" />
+          <div className="logo-container flex items-center gap-3 md:absolute md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 order-1 md:order-none">
+            <div className="h-10 w-10 overflow-hidden rounded-full border border-white/15 bg-white/5">
+              <img src={logo} alt={logoAlt} className="logo h-full w-full object-cover" />
+            </div>
             <span className="text-[20px] font-semibold text-white">Luna</span>
           </div>
 
