@@ -7,6 +7,7 @@ import TestimonialsCarousel from "@/components/mvpblocks/testimonials-carousel";
 import { fetchApi } from "@/lib/api-client";
 import CardNav from "@/component/CardNav";
 import logo from "@/assets/luna.png";
+import { Analytics } from "@vercel/analytics/react";
 
 const ALLOWED_ADMIN_EMAILS = new Set([
   "seiuasatou@gmail.com",
@@ -271,6 +272,8 @@ export default function Home() {
             <AboutUs1 />
           </div>
         </motion.section>
+
+        <Analytics />
 
         <motion.section
           id="feedback"
