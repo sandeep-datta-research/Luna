@@ -2,10 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Shield } from "lucide-react";
 import HeroGeometric from "@/components/ui/hero-geometric";
-import Earth from "@/components/ui/globe";
-import Feature1 from "@/components/mvpblocks/feature-1";
 import AboutUs1 from "@/components/mvpblocks/about-us-1";
-import SimplePricing from "@/components/mvpblocks/simple-pricing";
 import TestimonialsCarousel from "@/components/mvpblocks/testimonials-carousel";
 import { fetchApi } from "@/lib/api-client";
 import CardNav from "@/component/CardNav";
@@ -27,7 +24,7 @@ const BASE_CARD_NAV_ITEMS = [
     label: "Features",
     bgColor: "#170D27",
     textColor: "#fff",
-    links: [{ label: "Features", href: "#features", ariaLabel: "View Luna features" }],
+    links: [{ label: "Features", href: "/features", ariaLabel: "View Luna features" }],
   },
   {
     label: "About",
@@ -39,7 +36,7 @@ const BASE_CARD_NAV_ITEMS = [
     label: "Pricing",
     bgColor: "#271E37",
     textColor: "#fff",
-    links: [{ label: "Pricing", href: "#pricing", ariaLabel: "View pricing section" }],
+    links: [{ label: "Pricing", href: "/pricing", ariaLabel: "View pricing section" }],
   },
   {
     label: "Feedback",
@@ -269,46 +266,9 @@ export default function Home() {
       <main className="relative pb-10 pt-14 md:pt-16">
         <HeroGeometric />
 
-        <motion.section id="features" {...fadeInUp} className="scroll-mt-28 mx-auto mt-10 w-full max-w-6xl px-4 sm:px-6 lg:px-8">
-          <div className="relative overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-900/70 px-6 py-8 shadow-[0_30px_80px_rgba(0,0,0,0.4)] sm:px-10 sm:py-10">
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(82,39,255,0.22),transparent_58%)]" />
-
-            <div className="relative z-10 text-center">
-              <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">Global Coverage</h2>
-              <p className="mx-auto mt-2 max-w-2xl text-sm text-zinc-300 sm:text-base">
-                Luna stays consistent across regions and providers with one polished experience.
-              </p>
-            </div>
-
-            <div className="relative z-10 mt-4 flex justify-center sm:mt-6">
-              <Earth
-                className="max-w-[520px] sm:max-w-[620px]"
-                theta={0.22}
-                dark={1}
-                scale={1.18}
-                baseColor={[0.34, 0.15, 1]}
-                glowColor={[0.27, 0.21, 0.82]}
-                markerColor={[0.8, 0.9, 1]}
-              />
-            </div>
-          </div>
-        </motion.section>
-
-        <motion.section {...fadeInUp} className="mx-auto mt-8 w-full max-w-6xl px-4 sm:px-6 lg:px-8">
-          <div className="rounded-3xl border border-violet-400/30 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 shadow-[0_25px_80px_-45px_rgba(82,39,255,0.95)]">
-            <Feature1 />
-          </div>
-        </motion.section>
-
         <motion.section id="about" {...fadeInUp} className="scroll-mt-28 mx-auto mt-8 w-full max-w-6xl px-4 sm:px-6 lg:px-8">
           <div className="dark about-glow-shell relative overflow-hidden rounded-3xl border border-cyan-300/35 bg-gradient-to-b from-zinc-900/92 to-zinc-950/95 shadow-[0_30px_90px_-55px_rgba(34,211,238,0.95)]">
             <AboutUs1 />
-          </div>
-        </motion.section>
-
-        <motion.section id="pricing" {...fadeInUp} className="scroll-mt-28 mx-auto mt-8 w-full max-w-6xl px-4 sm:px-6 lg:px-8">
-          <div className="dark rounded-3xl border border-emerald-300/30 bg-gradient-to-b from-zinc-900/96 to-zinc-950/98 shadow-[0_30px_90px_-55px_rgba(16,185,129,0.95)]">
-            <SimplePricing />
           </div>
         </motion.section>
 

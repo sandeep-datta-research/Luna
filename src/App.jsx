@@ -3,8 +3,10 @@ import { HashRouter, Navigate, Route, Routes, useLocation } from "react-router-d
 import AdminDashboard from "./components/mvpblocks";
 import SignInPage from "./components/mvpblocks/login-form-3";
 import Home from "./pages/home";
+import Features from "./pages/Features";
 import Luna from "./pages/Luna";
 import Onboarding from "./pages/Onboarding";
+import Pricing from "./pages/Pricing";
 import Profile from "./pages/Profile";
 
 function PageTransition({ children }) {
@@ -28,9 +30,11 @@ function AnimatedRoutes() {
     <AnimatePresence mode="wait" initial={false}>
       <Routes location={location} key={location.pathname}>
         <Route path="/" element={<PageTransition><Home /></PageTransition>} />
+        <Route path="/features" element={<PageTransition><Features /></PageTransition>} />
         <Route path="/chat" element={<PageTransition><Luna /></PageTransition>} />
         <Route path="/onboarding" element={<PageTransition><Onboarding /></PageTransition>} />
         <Route path="/profile" element={<PageTransition><Profile /></PageTransition>} />
+        <Route path="/pricing" element={<PageTransition><Pricing /></PageTransition>} />
         <Route path="/admin" element={<PageTransition><AdminDashboard /></PageTransition>} />
         <Route path="/signin" element={<PageTransition><SignInPage /></PageTransition>} />
         <Route path="*" element={<Navigate to="/" replace />} />
