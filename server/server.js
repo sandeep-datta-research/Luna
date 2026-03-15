@@ -12,6 +12,7 @@ import {
   getConversationStats,
   getUserById,
   getUserSignupStats,
+  getModelUsageStats,
   getDbInfo,
   initDb,
   listConversationSummaries,
@@ -2001,13 +2002,19 @@ app.get("/api/admin/overview", async (req, res) => {
     const admin = await requireAdmin(req, res);
     if (!admin) return;
 
-    const [users, conversationStats, billingStats, memberships, pendingRequests] = await Promise.all([
-      listUsers(),
-      getConversationStats(),
-      getBillingStats(),
-      listMemberships(),
-      listUpgradeRequests({ status: "pending", limit: 500 }),
-    ]);
+      const [users, conversationStats, billingStats, memberships, pendingRequests] = await Promise.all([
+        listUsers(),
+        getConversationStats(),
+        getBillingStats(),
+        listMemberships(),
+        listUpgradeRequests({ status: "pending", limit: 500 }),
+      ]);
+
+      const modelUsage = await getModelUsageStats();
+      const providerStatus = buildProviders([], false).map((provider) => ({
+        llm: provider.llm,
+        configured: provider.enabled,
+      }));
 
     const proUsers = memberships.filter((item) => item.plan === "pro").length;
 
@@ -2017,18 +2024,20 @@ app.get("/api/admin/overview", async (req, res) => {
         email: admin.user.email,
         name: admin.user.name,
       },
-      stats: {
-        users: users.length,
-        proUsers,
-        freeUsers: Math.max(0, users.length - proUsers),
-        conversations: conversationStats.totalConversations,
-        totalMessages: conversationStats.totalMessages,
-        totalUserMessages: conversationStats.totalUserMessages,
-        revenueInr: billingStats.revenueInr,
-        pendingUpgradeRequests: pendingRequests.length,
-        approvedUpgradeRequests: billingStats.approvedRequests,
-      },
-    });
+        stats: {
+          users: users.length,
+          proUsers,
+          freeUsers: Math.max(0, users.length - proUsers),
+          conversations: conversationStats.totalConversations,
+          totalMessages: conversationStats.totalMessages,
+          totalUserMessages: conversationStats.totalUserMessages,
+          modelUsage,
+          providerStatus,
+          revenueInr: billingStats.revenueInr,
+          pendingUpgradeRequests: pendingRequests.length,
+          approvedUpgradeRequests: billingStats.approvedRequests,
+        },
+      });
   } catch (error) {
     const n = extractProviderError(error);
     return res.status(error.status || n.status || 500).json({ error: error.message || n.providerMessage });

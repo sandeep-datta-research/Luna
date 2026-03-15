@@ -356,3 +356,20 @@ export async function getConversationStats(userId = "") {
     totalUserMessages,
   };
 }
+
+export async function getModelUsageStats() {
+  const db = await readDb();
+  const counts = {};
+  let totalAssistantMessages = 0;
+
+  for (const conversation of db.conversations) {
+    for (const message of conversation.messages || []) {
+      if (message.role !== "assistant") continue;
+      totalAssistantMessages += 1;
+      const llm = normalizeText(message.llm) || "unknown";
+      counts[llm] = (counts[llm] || 0) + 1;
+    }
+  }
+
+  return { totalAssistantMessages, counts };
+}

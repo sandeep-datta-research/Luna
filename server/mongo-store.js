@@ -461,6 +461,33 @@ export function createMongoStore() {
     return { total, series };
   }
 
+  async function getModelUsageStats() {
+    await init();
+
+    const pipeline = [
+      { $unwind: "$messages" },
+      { $match: { "messages.role": "assistant" } },
+      {
+        $group: {
+          _id: { $ifNull: ["$messages.llm", "unknown"] },
+          count: { $sum: 1 },
+        },
+      },
+    ];
+
+    const agg = await conversations().aggregate(pipeline).toArray();
+    const counts = {};
+    let totalAssistantMessages = 0;
+
+    for (const item of agg) {
+      const key = typeof item._id === "string" && item._id.trim() ? item._id : "unknown";
+      counts[key] = Number(item.count || 0);
+      totalAssistantMessages += counts[key];
+    }
+
+    return { totalAssistantMessages, counts };
+  }
+
   async function submitFeedback({ userId = "", name = "", email = "", message = "", rating = 5 }) {
     await init();
 
@@ -705,6 +732,7 @@ export function createMongoStore() {
     updateUserProfile,
     listUsers,
     getUserSignupStats,
+    getModelUsageStats,
     submitFeedback,
     listFeedback,
     setFeedbackFeatured,

@@ -212,6 +212,13 @@ export async function getUserSignupStats(days = 14) {
   );
 }
 
+export async function getModelUsageStats() {
+  return runWithStore(
+    () => fileHistory.getModelUsageStats(),
+    (store) => store.getModelUsageStats(),
+  );
+}
+
 export async function submitFeedback(payload) {
   return runWithStore(
     () => fileFeedback.submitFeedback(payload),
