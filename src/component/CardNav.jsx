@@ -178,7 +178,7 @@ const CardNav = ({
       >
         <div className="card-nav-top absolute inset-x-0 top-0 h-[88px] flex items-center justify-between p-3 pl-[1.4rem] z-[2]">
           <div
-            className={`hamburger-menu ${isHamburgerOpen ? 'open' : ''} group h-full flex flex-col items-center justify-center cursor-pointer gap-[5px] order-2 md:order-none`}
+            className={`hamburger-menu ${isHamburgerOpen ? 'open' : ''} group h-full flex flex-col items-center justify-center cursor-pointer gap-[5px] order-2 md:order-none -translate-y-[1px]`}
             onClick={toggleMenu}
             role="button"
             aria-label={isExpanded ? 'Close menu' : 'Open menu'}
@@ -206,7 +206,7 @@ const CardNav = ({
 
           <Link
             to={ctaHref}
-            className="card-nav-cta-button hidden md:inline-flex border-0 rounded-full px-5 items-center h-full font-medium cursor-pointer transition-all duration-300"
+            className="card-nav-cta-button hidden md:inline-flex border-0 rounded-full px-5 items-center h-full font-medium cursor-pointer transition-all duration-300 -translate-y-[1px]"
           >
             {ctaLabel}
           </Link>
