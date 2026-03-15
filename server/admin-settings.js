@@ -80,12 +80,46 @@ function sanitizeReferralCodes(rawList, defaults) {
     .filter(Boolean);
 }
 
+function normalizeVariant(value) {
+  const raw = normalizeText(value).toLowerCase();
+  if (["info", "event", "discount"].includes(raw)) return raw;
+  return "info";
+}
+
+function sanitizeAnnouncement(raw) {
+  const title = normalizeText(raw?.title).slice(0, 120);
+  const message = normalizeText(raw?.message).slice(0, 500);
+  if (!title || !message) return null;
+
+  return {
+    id: normalizeText(raw?.id) || `ann-${randomUUID()}`,
+    title,
+    message,
+    variant: normalizeVariant(raw?.variant),
+    startAt: toIsoDate(raw?.startAt) || nowIso(),
+    endAt: toIsoDate(raw?.endAt),
+    active: raw?.active !== false,
+    ctaLabel: normalizeText(raw?.ctaLabel).slice(0, 40),
+    ctaHref: normalizeText(raw?.ctaHref).slice(0, 200),
+    createdAt: normalizeText(raw?.createdAt) || nowIso(),
+    createdBy: normalizeText(raw?.createdBy),
+    updatedAt: normalizeText(raw?.updatedAt) || nowIso(),
+    updatedBy: normalizeText(raw?.updatedBy),
+  };
+}
+
+function sanitizeAnnouncements(rawList) {
+  if (!Array.isArray(rawList)) return [];
+  return rawList.map(sanitizeAnnouncement).filter(Boolean);
+}
+
 function sanitizeSettings(raw, defaults) {
   return {
     proMonthlyPriceInr: toPositiveAmount(raw?.proMonthlyPriceInr, defaults.defaultMonthlyPriceInr),
     proSystemPrompt: normalizeText(raw?.proSystemPrompt).slice(0, 5000),
     upiId: normalizeText(raw?.upiId) || defaults.defaultUpiId,
     referralCodes: sanitizeReferralCodes(raw?.referralCodes, defaults),
+    announcements: sanitizeAnnouncements(raw?.announcements),
     updatedAt: normalizeText(raw?.updatedAt),
     updatedBy: normalizeText(raw?.updatedBy),
   };
@@ -363,4 +397,123 @@ export async function validateReferralCode({ code, amountInr }, overrides = {}) 
     finalAmountInr,
     expiresAt: referral.expiresAt,
   };
+}
+
+function isAnnouncementActive(announcement, now = Date.now()) {
+  if (!announcement?.active) return false;
+  const start = announcement.startAt ? Date.parse(announcement.startAt) : 0;
+  const end = announcement.endAt ? Date.parse(announcement.endAt) : 0;
+  if (Number.isFinite(start) && start && now < start) return false;
+  if (Number.isFinite(end) && end && now > end) return false;
+  return true;
+}
+
+export async function listAnnouncements(overrides = {}) {
+  const settings = await getAdminSettings(overrides);
+  return Array.isArray(settings?.announcements) ? clone(settings.announcements) : [];
+}
+
+export async function listActiveAnnouncements(overrides = {}) {
+  const items = await listAnnouncements(overrides);
+  const now = Date.now();
+  return items.filter((item) => isAnnouncementActive(item, now));
+}
+
+export async function upsertAnnouncement(
+  { id = "", title, message, variant, startAt, endAt, active = true, ctaLabel, ctaHref, adminUserId = "" },
+  overrides = {},
+) {
+  const defaults = getDefaults(overrides);
+
+  return mutate(defaults, (db) => {
+    const now = nowIso();
+    const list = Array.isArray(db.settings.announcements) ? db.settings.announcements : [];
+    const safeId = normalizeText(id);
+    const incoming = sanitizeAnnouncement({
+      id: safeId || `ann-${randomUUID()}`,
+      title,
+      message,
+      variant,
+      startAt: startAt || now,
+      endAt: endAt || "",
+      active,
+      ctaLabel,
+      ctaHref,
+      createdAt: now,
+      createdBy: normalizeText(adminUserId),
+      updatedAt: now,
+      updatedBy: normalizeText(adminUserId),
+    });
+
+    if (!incoming) throw new Error("Announcement title and message are required");
+
+    const existingIndex = list.findIndex((item) => item.id === incoming.id);
+    if (existingIndex >= 0) {
+      list[existingIndex] = {
+        ...list[existingIndex],
+        ...incoming,
+        createdAt: list[existingIndex].createdAt || now,
+        createdBy: list[existingIndex].createdBy || normalizeText(adminUserId),
+        updatedAt: now,
+        updatedBy: normalizeText(adminUserId),
+      };
+    } else {
+      list.unshift(incoming);
+    }
+
+    db.settings.announcements = list;
+    db.settings.updatedAt = now;
+    db.settings.updatedBy = normalizeText(adminUserId);
+    return clone(incoming);
+  });
+}
+
+export async function updateAnnouncement(
+  { id, title, message, variant, startAt, endAt, active, ctaLabel, ctaHref, adminUserId = "" },
+  overrides = {},
+) {
+  const defaults = getDefaults(overrides);
+  const safeId = normalizeText(id);
+  if (!safeId) throw new Error("Announcement id is required");
+
+  return mutate(defaults, (db) => {
+    const list = Array.isArray(db.settings.announcements) ? db.settings.announcements : [];
+    const existing = list.find((item) => item.id === safeId);
+    if (!existing) throw new Error("Announcement not found");
+
+    const now = nowIso();
+    if (title !== undefined) existing.title = normalizeText(title).slice(0, 120);
+    if (message !== undefined) existing.message = normalizeText(message).slice(0, 500);
+    if (variant !== undefined) existing.variant = normalizeVariant(variant);
+    if (startAt !== undefined) existing.startAt = toIsoDate(startAt) || existing.startAt;
+    if (endAt !== undefined) existing.endAt = toIsoDate(endAt) || "";
+    if (active !== undefined) existing.active = Boolean(active);
+    if (ctaLabel !== undefined) existing.ctaLabel = normalizeText(ctaLabel).slice(0, 40);
+    if (ctaHref !== undefined) existing.ctaHref = normalizeText(ctaHref).slice(0, 200);
+
+    existing.updatedAt = now;
+    existing.updatedBy = normalizeText(adminUserId);
+
+    db.settings.announcements = list;
+    db.settings.updatedAt = now;
+    db.settings.updatedBy = normalizeText(adminUserId);
+    return clone(existing);
+  });
+}
+
+export async function removeAnnouncement({ id, adminUserId = "" }, overrides = {}) {
+  const defaults = getDefaults(overrides);
+  const safeId = normalizeText(id);
+  if (!safeId) throw new Error("Announcement id is required");
+
+  return mutate(defaults, (db) => {
+    const list = Array.isArray(db.settings.announcements) ? db.settings.announcements : [];
+    const nextList = list.filter((item) => item.id !== safeId);
+    if (nextList.length === list.length) throw new Error("Announcement not found");
+
+    db.settings.announcements = nextList;
+    db.settings.updatedAt = nowIso();
+    db.settings.updatedBy = normalizeText(adminUserId);
+    return true;
+  });
 }

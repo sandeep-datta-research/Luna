@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { CheckCircle2, Crown, RefreshCw, Save, Shield, ShieldAlert, SlidersHorizontal, Users, WandSparkles, XCircle } from "lucide-react";
+import { CheckCircle2, Crown, Megaphone, RefreshCw, Save, Shield, ShieldAlert, SlidersHorizontal, Users, WandSparkles, XCircle } from "lucide-react";
 import { fetchApi, getAuthToken, getStoredUser } from "@/lib/api-client";
 import CardNav from "@/component/CardNav";
 import logo from "@/assets/luna.png";
@@ -111,8 +111,23 @@ export default function AdminDashboard() {
   const [referralExpiryInput, setReferralExpiryInput] = useState("");
   const [referralActiveInput, setReferralActiveInput] = useState(true);
   const [referralNote, setReferralNote] = useState("");
+  const [announcements, setAnnouncements] = useState([]);
+  const [announcementId, setAnnouncementId] = useState("");
+  const [announcementTitle, setAnnouncementTitle] = useState("");
+  const [announcementMessage, setAnnouncementMessage] = useState("");
+  const [announcementVariant, setAnnouncementVariant] = useState("info");
+  const [announcementStartAt, setAnnouncementStartAt] = useState("");
+  const [announcementEndAt, setAnnouncementEndAt] = useState("");
+  const [announcementActive, setAnnouncementActive] = useState(true);
+  const [announcementCtaLabel, setAnnouncementCtaLabel] = useState("");
+  const [announcementCtaHref, setAnnouncementCtaHref] = useState("");
+  const [announcementNote, setAnnouncementNote] = useState("");
 
   const isAllowed = useMemo(() => ALLOWED_ADMIN_EMAILS.has(normalizeEmail(userEmail)), [userEmail]);
+  const modelUsageEntries = useMemo(() => {
+    const counts = overview?.modelUsage?.counts || {};
+    return Object.entries(counts).sort((a, b) => Number(b[1] || 0) - Number(a[1] || 0));
+  }, [overview]);
 
   const isReferralExpired = (expiresAt) => {
     if (!expiresAt) return false;
@@ -137,16 +152,41 @@ export default function AdminDashboard() {
     setReferralCodes(referrals);
   };
 
+  const resetAnnouncementForm = () => {
+    setAnnouncementId("");
+    setAnnouncementTitle("");
+    setAnnouncementMessage("");
+    setAnnouncementVariant("info");
+    setAnnouncementStartAt("");
+    setAnnouncementEndAt("");
+    setAnnouncementActive(true);
+    setAnnouncementCtaLabel("");
+    setAnnouncementCtaHref("");
+  };
+
+  const loadAnnouncementForm = (item) => {
+    setAnnouncementId(item?.id || "");
+    setAnnouncementTitle(item?.title || "");
+    setAnnouncementMessage(item?.message || "");
+    setAnnouncementVariant(item?.variant || "info");
+    setAnnouncementStartAt(item?.startAt ? item.startAt.slice(0, 16) : "");
+    setAnnouncementEndAt(item?.endAt ? item.endAt.slice(0, 16) : "");
+    setAnnouncementActive(item?.active !== false);
+    setAnnouncementCtaLabel(item?.ctaLabel || "");
+    setAnnouncementCtaHref(item?.ctaHref || "");
+  };
+
   const loadAdminData = async () => {
     setLoadingData(true);
     setError("");
 
-    const [overviewRes, usersRes, reqRes, settingsRes, feedbackRes] = await Promise.all([
+    const [overviewRes, usersRes, reqRes, settingsRes, feedbackRes, announcementsRes] = await Promise.all([
       fetchApi("/api/admin/overview"),
       fetchApi("/api/admin/users"),
       fetchApi("/api/admin/upgrade-requests"),
       fetchApi("/api/admin/settings"),
       fetchApi("/api/admin/feedback"),
+      fetchApi("/api/admin/announcements"),
     ]);
 
     if (!overviewRes.ok) {
@@ -159,6 +199,7 @@ export default function AdminDashboard() {
     setUsers(Array.isArray(usersRes.data?.users) ? usersRes.data.users : []);
     setRequests(Array.isArray(reqRes.data?.requests) ? reqRes.data.requests : []);
     setFeedbackItems(Array.isArray(feedbackRes.data?.feedback) ? feedbackRes.data.feedback : []);
+    setAnnouncements(Array.isArray(announcementsRes.data?.announcements) ? announcementsRes.data.announcements : []);
 
     if (settingsRes.ok) {
       applySettings(settingsRes.data?.settings || {});
@@ -384,6 +425,91 @@ export default function AdminDashboard() {
     }
 
     applySettings(result.data?.settings || {});
+  };
+
+  const saveAnnouncement = async () => {
+    const title = announcementTitle.trim();
+    const message = announcementMessage.trim();
+    if (!title || !message) {
+      setAnnouncementNote("Title and message are required.");
+      return;
+    }
+
+    setSettingsBusy(true);
+    setAnnouncementNote("");
+
+    const payload = {
+      title,
+      message,
+      variant: announcementVariant,
+      startAt: announcementStartAt ? new Date(announcementStartAt).toISOString() : "",
+      endAt: announcementEndAt ? new Date(announcementEndAt).toISOString() : "",
+      active: announcementActive,
+      ctaLabel: announcementCtaLabel.trim(),
+      ctaHref: announcementCtaHref.trim(),
+    };
+
+    const result = announcementId
+      ? await fetchApi(`/api/admin/announcements/${announcementId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        })
+      : await fetchApi("/api/admin/announcements", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+    setSettingsBusy(false);
+
+    if (!result.ok) {
+      setAnnouncementNote(result.message || "Failed to save announcement.");
+      return;
+    }
+
+    setAnnouncementNote(announcementId ? "Announcement updated." : "Announcement created.");
+    resetAnnouncementForm();
+    await loadAdminData();
+  };
+
+  const toggleAnnouncement = async (id, active) => {
+    setSettingsBusy(true);
+    setAnnouncementNote("");
+
+    const result = await fetchApi(`/api/admin/announcements/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ active }),
+    });
+
+    setSettingsBusy(false);
+    if (!result.ok) {
+      setAnnouncementNote(result.message || "Failed to update announcement.");
+      return;
+    }
+
+    await loadAdminData();
+  };
+
+  const deleteAnnouncement = async (id) => {
+    setSettingsBusy(true);
+    setAnnouncementNote("");
+
+    const result = await fetchApi(`/api/admin/announcements/${id}`, {
+      method: "DELETE",
+    });
+
+    setSettingsBusy(false);
+    if (!result.ok) {
+      setAnnouncementNote(result.message || "Failed to delete announcement.");
+      return;
+    }
+
+    if (announcementId === id) {
+      resetAnnouncementForm();
+    }
+    await loadAdminData();
   };
 
   if (authState === "loading") {
@@ -618,6 +744,154 @@ export default function AdminDashboard() {
             </div>
           </section>
 
+          <section className="mb-6 rounded-2xl border border-zinc-800 bg-zinc-900/65 p-4">
+            <div className="mb-4 flex items-center gap-2 text-lg font-semibold text-white">
+              <Megaphone className="h-5 w-5 text-violet-200" />
+              Announcements & Alerts
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-[1.1fr_1fr]">
+              <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-4">
+                <p className="text-sm font-medium text-zinc-200">Create announcement</p>
+                <div className="mt-3 grid gap-3">
+                  <input
+                    value={announcementTitle}
+                    onChange={(event) => setAnnouncementTitle(event.target.value)}
+                    placeholder="Title (e.g. Pro discount weekend)"
+                    className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none"
+                  />
+                  <textarea
+                    value={announcementMessage}
+                    onChange={(event) => setAnnouncementMessage(event.target.value)}
+                    placeholder="Write the announcement details"
+                    className="min-h-[90px] w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none"
+                  />
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <select
+                      value={announcementVariant}
+                      onChange={(event) => setAnnouncementVariant(event.target.value)}
+                      className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none"
+                    >
+                      <option value="info">Info</option>
+                      <option value="event">Event</option>
+                      <option value="discount">Discount</option>
+                    </select>
+                    <label className="flex items-center gap-2 text-xs text-zinc-400">
+                      <input
+                        type="checkbox"
+                        checked={announcementActive}
+                        onChange={(event) => setAnnouncementActive(event.target.checked)}
+                        className="h-4 w-4 rounded border border-zinc-600 bg-zinc-900"
+                      />
+                      Active
+                    </label>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <input
+                      type="datetime-local"
+                      value={announcementStartAt}
+                      onChange={(event) => setAnnouncementStartAt(event.target.value)}
+                      className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none"
+                    />
+                    <input
+                      type="datetime-local"
+                      value={announcementEndAt}
+                      onChange={(event) => setAnnouncementEndAt(event.target.value)}
+                      className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none"
+                    />
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <input
+                      value={announcementCtaLabel}
+                      onChange={(event) => setAnnouncementCtaLabel(event.target.value)}
+                      placeholder="CTA label (optional)"
+                      className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none"
+                    />
+                    <input
+                      value={announcementCtaHref}
+                      onChange={(event) => setAnnouncementCtaHref(event.target.value)}
+                      placeholder="CTA link (optional)"
+                      className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={saveAnnouncement}
+                    disabled={settingsBusy}
+                    className="inline-flex items-center gap-1 rounded-lg border border-violet-400/35 bg-violet-500/20 px-3 py-2 text-xs text-violet-100 hover:bg-violet-500/30 disabled:opacity-60"
+                  >
+                    <Save className="h-3.5 w-3.5" />
+                    {announcementId ? "Update" : "Publish"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={resetAnnouncementForm}
+                    disabled={settingsBusy}
+                    className="inline-flex items-center gap-1 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs text-zinc-200 hover:bg-zinc-800 disabled:opacity-60"
+                  >
+                    Clear
+                  </button>
+                </div>
+                {announcementNote ? <p className="mt-2 text-xs text-cyan-200">{announcementNote}</p> : null}
+              </div>
+
+              <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-4">
+                <p className="text-sm font-medium text-zinc-200">Live announcements</p>
+                {announcements.length === 0 ? (
+                  <p className="mt-3 text-xs text-zinc-500">No announcements scheduled.</p>
+                ) : (
+                  <div className="mt-3 max-h-72 space-y-2 overflow-auto pr-1">
+                    {announcements.map((item) => (
+                      <div key={item.id} className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div>
+                            <p className="text-sm text-zinc-100">{item.title}</p>
+                            <p className="text-xs text-zinc-500">{item.message}</p>
+                            <p className="mt-1 text-[11px] text-zinc-600">
+                              {item.variant || "info"} • {formatDate(item.startAt)} {item.endAt ? `→ ${formatDate(item.endAt)}` : ""}
+                            </p>
+                          </div>
+                          <span className={`rounded-md border px-2 py-1 text-[11px] ${item.active ? "border-emerald-400/35 bg-emerald-500/15 text-emerald-200" : "border-zinc-700 bg-zinc-800 text-zinc-300"}`}>
+                            {item.active ? "Active" : "Paused"}
+                          </span>
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            disabled={settingsBusy}
+                            onClick={() => loadAnnouncementForm(item)}
+                            className="rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs text-zinc-200 hover:bg-zinc-800 disabled:opacity-60"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            disabled={settingsBusy}
+                            onClick={() => toggleAnnouncement(item.id, !item.active)}
+                            className="rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs text-zinc-200 hover:bg-zinc-800 disabled:opacity-60"
+                          >
+                            {item.active ? "Disable" : "Activate"}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={settingsBusy}
+                            onClick={() => deleteAnnouncement(item.id)}
+                            className="rounded-md border border-rose-400/35 bg-rose-500/10 px-2 py-1 text-xs text-rose-200 hover:bg-rose-500/20 disabled:opacity-60"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+
           <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-4">
               <p className="text-xs text-zinc-500">Users</p>
@@ -634,6 +908,45 @@ export default function AdminDashboard() {
             <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-4">
               <p className="text-xs text-zinc-500">Pending Requests</p>
               <p className="mt-1 text-2xl font-semibold text-amber-200">{overview?.pendingUpgradeRequests ?? 0}</p>
+            </div>
+          </section>
+
+          <section className="mt-6 grid gap-6 lg:grid-cols-2">
+            <div className="rounded-2xl border border-zinc-800 bg-zinc-900/65 p-4">
+              <h2 className="mb-3 text-lg font-semibold text-white">Model Usage</h2>
+              {modelUsageEntries.length === 0 ? (
+                <p className="text-sm text-zinc-500">No model usage recorded yet.</p>
+              ) : (
+                <div className="space-y-2">
+                  {modelUsageEntries.map(([llm, count]) => (
+                    <div key={llm} className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-950/60 px-3 py-2 text-sm">
+                      <span className="truncate text-zinc-200">{llm}</span>
+                      <span className="text-xs text-zinc-400">{count} replies</span>
+                    </div>
+                  ))}
+                  <p className="pt-2 text-xs text-zinc-500">
+                    Total assistant replies: {overview?.modelUsage?.totalAssistantMessages ?? 0}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-2xl border border-zinc-800 bg-zinc-900/65 p-4">
+              <h2 className="mb-3 text-lg font-semibold text-white">Provider Status</h2>
+              {overview?.providerStatus?.length ? (
+                <div className="space-y-2">
+                  {overview.providerStatus.map((provider) => (
+                    <div key={provider.llm} className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-950/60 px-3 py-2 text-sm">
+                      <span className="text-zinc-200">{provider.llm}</span>
+                      <span className={`rounded-full px-2 py-0.5 text-xs ${provider.configured ? "bg-emerald-500/15 text-emerald-200" : "bg-rose-500/15 text-rose-200"}`}>
+                        {provider.configured ? "Configured" : "Missing key"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-zinc-500">Provider status unavailable.</p>
+              )}
             </div>
           </section>
 

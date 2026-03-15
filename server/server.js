@@ -38,7 +38,7 @@ import {
   setMembershipPlan,
   submitUpgradeRequest,
 } from "./pro-db.js";
-import { getAdminSettings, incrementReferralUsage, removeReferralCode, updateProMonthlyPrice, updateProSystemPrompt, updateReferralCode, upsertReferralCode, validateReferralCode } from "./admin-settings.js";
+import { getAdminSettings, incrementReferralUsage, listActiveAnnouncements, listAnnouncements, removeAnnouncement, removeReferralCode, updateAnnouncement, updateProMonthlyPrice, updateProSystemPrompt, updateReferralCode, upsertAnnouncement, upsertReferralCode, validateReferralCode } from "./admin-settings.js";
 import { CATEGORY_LABELS, classifyMessage } from "./luna-classifier.js";
 import { getRoutingPlan, runRoutedProviders, runRoutedProvidersStream } from "./luna-router.js";
 import { buildToolSystemPrompt, executeToolCalls, formatToolResults, planToolCalls } from "./luna-tools.js";
@@ -2041,6 +2041,111 @@ app.get("/api/admin/overview", async (req, res) => {
   } catch (error) {
     const n = extractProviderError(error);
     return res.status(error.status || n.status || 500).json({ error: error.message || n.providerMessage });
+  }
+});
+
+app.get("/api/announcements", async (_req, res) => {
+  try {
+    const announcements = await listActiveAnnouncements({
+      defaultMonthlyPriceInr: DEFAULT_PRO_MONTHLY_PRICE_INR,
+      defaultUpiId: DEFAULT_UPI_ID,
+    });
+
+    return res.json({ announcements });
+  } catch (error) {
+    const n = extractProviderError(error);
+    return res.status(error.status || n.status || 500).json({ error: error.message || n.providerMessage });
+  }
+});
+
+app.get("/api/admin/announcements", async (req, res) => {
+  try {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+
+    const announcements = await listAnnouncements({
+      defaultMonthlyPriceInr: DEFAULT_PRO_MONTHLY_PRICE_INR,
+      defaultUpiId: DEFAULT_UPI_ID,
+    });
+
+    return res.json({ announcements });
+  } catch (error) {
+    const n = extractProviderError(error);
+    return res.status(error.status || n.status || 500).json({ error: error.message || n.providerMessage });
+  }
+});
+
+app.post("/api/admin/announcements", async (req, res) => {
+  try {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+
+    const payload = {
+      title: req.body?.title,
+      message: req.body?.message,
+      variant: req.body?.variant,
+      startAt: req.body?.startAt,
+      endAt: req.body?.endAt,
+      active: req.body?.active,
+      ctaLabel: req.body?.ctaLabel,
+      ctaHref: req.body?.ctaHref,
+      adminUserId: admin.user.id,
+    };
+
+    const announcement = await upsertAnnouncement(payload, {
+      defaultMonthlyPriceInr: DEFAULT_PRO_MONTHLY_PRICE_INR,
+      defaultUpiId: DEFAULT_UPI_ID,
+    });
+
+    return res.json({ ok: true, announcement });
+  } catch (error) {
+    const n = extractProviderError(error);
+    return res.status(error.status || n.status || 400).json({ error: error.message || n.providerMessage });
+  }
+});
+
+app.patch("/api/admin/announcements/:id", async (req, res) => {
+  try {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+
+    const announcement = await updateAnnouncement(
+      {
+        id: req.params.id,
+        title: req.body?.title,
+        message: req.body?.message,
+        variant: req.body?.variant,
+        startAt: req.body?.startAt,
+        endAt: req.body?.endAt,
+        active: req.body?.active,
+        ctaLabel: req.body?.ctaLabel,
+        ctaHref: req.body?.ctaHref,
+        adminUserId: admin.user.id,
+      },
+      { defaultMonthlyPriceInr: DEFAULT_PRO_MONTHLY_PRICE_INR, defaultUpiId: DEFAULT_UPI_ID },
+    );
+
+    return res.json({ ok: true, announcement });
+  } catch (error) {
+    const n = extractProviderError(error);
+    return res.status(error.status || n.status || 400).json({ error: error.message || n.providerMessage });
+  }
+});
+
+app.delete("/api/admin/announcements/:id", async (req, res) => {
+  try {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+
+    await removeAnnouncement(
+      { id: req.params.id, adminUserId: admin.user.id },
+      { defaultMonthlyPriceInr: DEFAULT_PRO_MONTHLY_PRICE_INR, defaultUpiId: DEFAULT_UPI_ID },
+    );
+
+    return res.json({ ok: true });
+  } catch (error) {
+    const n = extractProviderError(error);
+    return res.status(error.status || n.status || 400).json({ error: error.message || n.providerMessage });
   }
 });
 

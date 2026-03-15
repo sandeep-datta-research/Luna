@@ -4,6 +4,7 @@ import { Shield } from "lucide-react";
 import CardNav from "@/component/CardNav";
 import SimplePricing from "@/components/mvpblocks/simple-pricing";
 import logo from "@/assets/luna.png";
+import AnnouncementBanner from "@/components/AnnouncementBanner";
 
 const ALLOWED_ADMIN_EMAILS = new Set(["seiuasatou@gmail.com", "sandeepdatta866@gmail.com"]);
 
@@ -137,6 +138,9 @@ export default function Pricing() {
       </nav>
 
       <main className="relative pb-12 pt-16">
+        <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8">
+          <AnnouncementBanner className="mb-6" />
+        </div>
         <motion.section {...fadeInUp} className="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8">
           <div className="rounded-3xl border border-emerald-300/30 bg-gradient-to-b from-zinc-900/96 to-zinc-950/98 shadow-[0_30px_90px_-55px_rgba(16,185,129,0.95)]">
             <SimplePricing />

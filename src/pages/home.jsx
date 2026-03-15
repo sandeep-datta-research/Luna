@@ -7,6 +7,7 @@ import TestimonialsCarousel from "@/components/mvpblocks/testimonials-carousel";
 import { fetchApi } from "@/lib/api-client";
 import CardNav from "@/component/CardNav";
 import logo from "@/assets/luna.png";
+import AnnouncementBanner from "@/components/AnnouncementBanner";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 
@@ -275,7 +276,8 @@ export default function Home() {
       .join(" ");
   }, [userMetrics.series]);
 
-  return (    <div className="dark min-h-screen overflow-x-hidden bg-[#07070d] text-zinc-100">
+  return (
+    <div className="dark min-h-screen overflow-x-hidden bg-[#07070d] text-zinc-100">
       <nav className="sticky top-0 z-50 border-b border-zinc-800/80 bg-[#07070d]/85 px-4 py-3 backdrop-blur-xl sm:px-6 lg:px-8">
         <div className="mx-auto w-full max-w-6xl">
           <CardNav
@@ -293,6 +295,9 @@ export default function Home() {
       </nav>
 
       <main className="relative pb-10 pt-14 md:pt-16">
+        <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8">
+          <AnnouncementBanner className="mb-6" />
+        </div>
         <HeroGeometric />
 
         <motion.section id="about" {...fadeInUp} className="scroll-mt-28 mx-auto mt-8 w-full max-w-6xl px-4 sm:px-6 lg:px-8">

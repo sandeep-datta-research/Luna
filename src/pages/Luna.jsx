@@ -29,6 +29,7 @@ import { fetchApi, streamApi } from "@/lib/api-client";
 import lunaLogo from "@/assets/luna.png";
 import MarkdownMessage from "@/components/ui/chat/MarkdownMessage";
 import OnboardingFlow from "@/components/onboarding/OnboardingFlow";
+import AnnouncementBanner from "@/components/AnnouncementBanner";
 
 const STORAGE_KEY = "luna.chat.ui.v4";
 const MAX_HISTORY_ITEMS = 6;
@@ -1863,7 +1864,10 @@ export default function Luna() {
           ) : null}
         </AnimatePresence>
         <section className="relative flex min-w-0 flex-1 flex-col">
-          <div className="flex items-center justify-end px-3 pt-3 md:px-6 md:pt-4">
+          <div className="px-3 pt-3 md:px-6 md:pt-4">
+            <AnnouncementBanner className="mb-3" />
+          </div>
+          <div className="flex items-center justify-end px-3 md:px-6">
             <ModelSelector selectedModel={selectedModel} onSelect={setSelectedModel} />
           </div>
 
