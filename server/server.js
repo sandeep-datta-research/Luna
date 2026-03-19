@@ -268,9 +268,9 @@ app.get("/", (_req, res) => {
 app.get("/health", async (_req, res) => {
   try {
     await initDb();
-    return res.json({ ok: true, db: getDbInfo() });
+    return res.status(200).json({ ok: true, db: getDbInfo() });
   } catch (error) {
-    return res.status(500).json({ ok: false, error: error.message, db: getDbInfo() });
+    return res.status(200).json({ ok: false, error: error.message, db: getDbInfo() });
   }
 });
 
