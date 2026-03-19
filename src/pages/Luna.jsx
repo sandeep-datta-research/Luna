@@ -31,7 +31,6 @@ import MarkdownMessage from "@/components/ui/chat/MarkdownMessage";
 import OnboardingFlow from "@/components/onboarding/OnboardingFlow";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 
-const STORAGE_KEY = "luna.chat.ui.v4";
 const MAX_HISTORY_ITEMS = 6;
 const VOICE_SILENCE_THRESHOLD = 0.015;
 const VOICE_SILENCE_MS = 1800;
@@ -165,11 +164,6 @@ function getDefaultProjects() {
   ];
 }
 
-function createUserStorageKey(userLike) {
-  const email = text(userLike?.email).toLowerCase();
-  return email || "guest";
-}
-
   function loadUser() {
     if (typeof window === "undefined") {
       return { name: "Guest", email: "guest@luna.ai", picture: "" };
@@ -185,12 +179,33 @@ function createUserStorageKey(userLike) {
     };
   }
 
-function loadPersistedState(userStorageKey = "guest") {
-  return null;
+function mapConversationSummaryToSession(summary, projectId = "") {
+  const id = text(summary?.id) || createId("session");
+  const createdAt = text(summary?.createdAt) || nowIso();
+  const updatedAt = text(summary?.updatedAt) || createdAt;
+  const title = text(summary?.title) || shortTitle(summary?.preview, "New chat");
+
+  return {
+    id,
+    title,
+    messages: [],
+    createdAt,
+    updatedAt,
+    projectId: text(projectId),
+    backendConversationId: id,
+  };
 }
 
-function persistState(payload, userStorageKey = "guest") {
-  return;
+function mapConversationMessages(conversation) {
+  const rawMessages = Array.isArray(conversation?.messages) ? conversation.messages : [];
+  return rawMessages
+    .map((message) =>
+      sanitizeMessage({
+        ...message,
+        content: message?.content ?? message?.text,
+      }),
+    )
+    .filter(Boolean);
 }
 
 function toBase64DataUrl(blob) {
@@ -530,37 +545,24 @@ export default function Luna() {
 
   const initialUser = useMemo(() => loadUser(), []);
   const [user, setUser] = useState(initialUser);
-    const isSignedIn = useMemo(() => {
-      if (typeof window === "undefined") return false;
-      const token = getAuthToken();
-      return Boolean(token && user?.email && user.email !== "guest@luna.ai");
-    }, [user?.email]);
-  const userStorageKey = useMemo(() => createUserStorageKey(user), [user?.email]);
+  const isSignedIn = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    const token = getAuthToken();
+    return Boolean(token && user?.email && user.email !== "guest@luna.ai");
+  }, [user?.email]);
 
-  const persisted = useMemo(
-    () => loadPersistedState(createUserStorageKey(initialUser)),
-    [initialUser],
+  const defaultProjects = useMemo(() => getDefaultProjects(), []);
+  const initialSession = useMemo(
+    () => createSession(defaultProjects[0]?.id || ""),
+    [defaultProjects],
   );
 
-  const defaultProjects = useMemo(() => {
-    const fromStorage = Array.isArray(persisted?.projects) ? persisted.projects : [];
-    return fromStorage.length > 0 ? fromStorage : getDefaultProjects();
-  }, [persisted?.projects]);
-
-  const initialSessions = useMemo(() => {
-    const fromStorage = Array.isArray(persisted?.sessions) ? persisted.sessions : [];
-    if (fromStorage.length > 0) return fromStorage;
-    return [createSession(defaultProjects[0]?.id || "")];
-  }, [defaultProjects, persisted?.sessions]);
-
-  const [sessions, setSessions] = useState(initialSessions);
+  const [sessions, setSessions] = useState([initialSession]);
   const [projects, setProjects] = useState(defaultProjects);
-  const [activeSessionId, setActiveSessionId] = useState(
-    text(persisted?.activeSessionId) || initialSessions[0]?.id || "",
-  );
+  const [activeSessionId, setActiveSessionId] = useState(initialSession.id);
   const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  const [selectedModel, setSelectedModel] = useState(text(persisted?.selectedModel) || "luna-2.5");
+  const [selectedModel, setSelectedModel] = useState("luna-2.5");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -582,7 +584,7 @@ export default function Luna() {
     return typeof ReadableStream !== "undefined" && !isIOS;
   }, []);
   const [lastRetryPayload, setLastRetryPayload] = useState(null);
-  const [storageReadyKey, setStorageReadyKey] = useState("");
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   const mediaRecorderRef = useRef(null);
   const mediaStreamRef = useRef(null);
@@ -596,6 +598,8 @@ export default function Luna() {
   const autoStoppedBySilenceRef = useRef(false);
   const listEndRef = useRef(null);
   const streamAbortRef = useRef(null);
+  const loadedConversationIdsRef = useRef(new Set());
+  const historyLoadedRef = useRef(false);
 
   const sortedSessions = useMemo(
     () => [...sessions].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)),
@@ -643,15 +647,12 @@ export default function Luna() {
   }, [activeSession, sessions]);
 
   useEffect(() => {
-    if (storageReadyKey !== userStorageKey) return;
-
-    persistState({
-      sessions,
-      projects,
-      activeSessionId,
-      selectedModel,
-    }, userStorageKey);
-  }, [activeSessionId, projects, selectedModel, sessions, storageReadyKey, userStorageKey]);
+    if (!activeSession?.id) return;
+    const conversationId = text(activeSession.backendConversationId || activeSession.id);
+    if (conversationId) {
+      loadConversationMessages(activeSession.id, conversationId);
+    }
+  }, [activeSession?.id, activeSession?.backendConversationId, loadConversationMessages]);
 
   useEffect(() => {
     const syncUser = () => {
@@ -673,31 +674,8 @@ export default function Luna() {
   }, []);
 
   useEffect(() => {
-    setStorageReadyKey("");
-
-    const persistedForUser = loadPersistedState(userStorageKey);
-
-    const nextProjects =
-      Array.isArray(persistedForUser?.projects) && persistedForUser.projects.length > 0
-        ? persistedForUser.projects
-        : getDefaultProjects();
-
-    const nextSessions =
-      Array.isArray(persistedForUser?.sessions) && persistedForUser.sessions.length > 0
-        ? persistedForUser.sessions
-        : [createSession(nextProjects[0]?.id || "")];
-
-    setProjects(nextProjects);
-    setSessions(nextSessions);
-    setActiveSessionId(text(persistedForUser?.activeSessionId) || nextSessions[0]?.id || "");
-    setSelectedModel(text(persistedForUser?.selectedModel) || "luna-2.5");
-    setInputValue("");
-    setAttachments([]);
-    setIsTyping(false);
-    setSearchQuery("");
-    setExpandedProjectId("");
-    setStorageReadyKey(userStorageKey);
-  }, [userStorageKey]);
+    historyLoadedRef.current = false;
+  }, [user?.email]);
 
   useEffect(() => {
     let canceled = false;
@@ -887,6 +865,124 @@ export default function Luna() {
     setToast({ id: createId("toast"), message: text(message) || "Something went wrong." });
   }, []);
 
+  const loadConversationMessages = useCallback(
+    async (sessionId, conversationId) => {
+      const session = sessions.find((item) => item.id === sessionId);
+      const targetId = text(conversationId || session?.backendConversationId || session?.id);
+      if (!targetId) return;
+
+      if (loadedConversationIdsRef.current.has(targetId) && session?.messages?.length) {
+        return;
+      }
+
+      const result = await fetchApi(
+        `/api/history/${targetId}`,
+        {},
+        { includeAuth: true, includeGuest: false },
+      );
+
+      if (!result.ok) {
+        showErrorToast(result.message || "Unable to load this chat.");
+        return;
+      }
+
+      const conversation = result.data?.conversation;
+      if (!conversation) return;
+
+      const messages = mapConversationMessages(conversation);
+      loadedConversationIdsRef.current.add(targetId);
+
+      updateSession(sessionId, (current) => ({
+        ...current,
+        title: text(conversation?.title) || current.title,
+        messages,
+        updatedAt: text(conversation?.updatedAt) || current.updatedAt,
+        backendConversationId: text(conversation?.id) || current.backendConversationId,
+      }));
+    },
+    [sessions, showErrorToast, updateSession],
+  );
+
+  useEffect(() => {
+    let canceled = false;
+
+    const loadServerHistory = async () => {
+      if (!isSignedIn) {
+        historyLoadedRef.current = false;
+        return;
+      }
+      if (historyLoadedRef.current) return;
+
+      historyLoadedRef.current = true;
+      setHistoryLoading(true);
+      loadedConversationIdsRef.current = new Set();
+
+      const result = await fetchApi(
+        "/api/history",
+        {},
+        { includeAuth: true, includeGuest: false },
+      );
+
+      if (canceled) return;
+
+      if (!result.ok) {
+        setHistoryLoading(false);
+        showErrorToast(result.message || "Unable to load chat history.");
+        return;
+      }
+
+      const conversations = Array.isArray(result.data?.conversations)
+        ? result.data.conversations
+        : [];
+      const baseProjectId = projects[0]?.id || defaultProjects[0]?.id || "";
+
+      if (conversations.length === 0) {
+        const next = createSession(baseProjectId);
+        setSessions([next]);
+        setActiveSessionId(next.id);
+        setHistoryLoading(false);
+        return;
+      }
+
+      const preferredId = conversations[0]?.id;
+
+      let preferredConversation = null;
+      if (preferredId) {
+        const detail = await fetchApi(
+          `/api/history/${preferredId}`,
+          {},
+          { includeAuth: true, includeGuest: false },
+        );
+        if (detail.ok) {
+          preferredConversation = detail.data?.conversation || null;
+          if (preferredConversation?.id) {
+            loadedConversationIdsRef.current.add(preferredConversation.id);
+          }
+        }
+      }
+
+      const nextSessions = conversations.map((summary) => {
+        const session = mapConversationSummaryToSession(summary, baseProjectId);
+        if (summary.id === preferredConversation?.id) {
+          return {
+            ...session,
+            messages: mapConversationMessages(preferredConversation),
+          };
+        }
+        return session;
+      });
+
+      setSessions(nextSessions);
+      setActiveSessionId(preferredId || nextSessions[0]?.id || "");
+      setHistoryLoading(false);
+    };
+
+    loadServerHistory();
+    return () => {
+      canceled = true;
+    };
+  }, [defaultProjects, isSignedIn, projects, showErrorToast, user?.email]);
+
   const createFreshSession = useCallback(
     (projectId = "") => {
       const next = createSession(projectId || expandedProjectId || projects[0]?.id || "");
@@ -895,13 +991,53 @@ export default function Luna() {
       setInputValue("");
       setAttachments([]);
       setIsTyping(false);
+      if (isSignedIn) {
+        fetchApi(
+          "/api/history",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title: "New chat" }),
+          },
+          { includeAuth: true, includeGuest: false },
+        ).then((result) => {
+          if (result.ok && result.data?.conversation?.id) {
+            const conversationId = text(result.data.conversation.id);
+            loadedConversationIdsRef.current.add(conversationId);
+            setSessions((prev) =>
+              prev.map((session) =>
+                session.id === next.id
+                  ? {
+                      ...session,
+                      id: conversationId,
+                      backendConversationId: conversationId,
+                      title: text(result.data.conversation.title) || session.title,
+                      createdAt: text(result.data.conversation.createdAt) || session.createdAt,
+                      updatedAt: text(result.data.conversation.updatedAt) || session.updatedAt,
+                    }
+                  : session,
+              ),
+            );
+            setActiveSessionId(conversationId);
+          }
+        });
+      }
       return next;
     },
-    [expandedProjectId, projects],
+    [expandedProjectId, isSignedIn, projects],
   );
 
   const handleDeleteSession = useCallback(
     (sessionId) => {
+      const target = sessions.find((item) => item.id === sessionId);
+      const conversationId = text(target?.backendConversationId || target?.id);
+      if (conversationId && isSignedIn) {
+        fetchApi(`/api/history/${conversationId}`, { method: "DELETE" }, { includeAuth: true, includeGuest: false }).catch(() => null);
+      }
+      if (conversationId) {
+        loadedConversationIdsRef.current.delete(conversationId);
+      }
+
       setSessions((prev) => prev.filter((item) => item.id !== sessionId));
 
       if (activeSessionId === sessionId) {
@@ -915,7 +1051,7 @@ export default function Luna() {
         }
       }
     },
-    [activeSessionId, projects, sessions],
+    [activeSessionId, isSignedIn, projects, sessions],
   );
 
   const buildPromptPayload = useCallback(
@@ -938,13 +1074,44 @@ export default function Luna() {
   );
   const requestLuna = useCallback(
     async (session, prompt, options = { applyToggles: true }) => {
+      let conversationId = text(session?.backendConversationId || session?.id);
+      if (!conversationId && isSignedIn) {
+        const created = await fetchApi(
+          "/api/history",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title: "New chat" }),
+          },
+          { includeAuth: true, includeGuest: false },
+        );
+        if (created.ok && created.data?.conversation?.id) {
+          conversationId = text(created.data.conversation.id);
+          setSessions((prev) =>
+            prev.map((item) =>
+              item.id === session.id
+                ? {
+                    ...item,
+                    id: conversationId,
+                    backendConversationId: conversationId,
+                    title: text(created.data.conversation.title) || item.title,
+                    createdAt: text(created.data.conversation.createdAt) || item.createdAt,
+                    updatedAt: text(created.data.conversation.updatedAt) || item.updatedAt,
+                  }
+                : item,
+            ),
+          );
+          setActiveSessionId(conversationId);
+        }
+      }
+
       const payloadPrompt = buildPromptPayload(prompt, options);
       const result = await fetchApi("/api/luna", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: payloadPrompt,
-          conversationId: text(session?.backendConversationId),
+          conversationId,
           llm: selectedModel,
         }),
       });
@@ -964,6 +1131,37 @@ export default function Luna() {
 
   const requestLunaStream = useCallback(
     async (session, prompt, handlers = {}, options = { applyToggles: true }) => {
+      let conversationId = text(session?.backendConversationId || session?.id);
+      if (!conversationId && isSignedIn) {
+        const created = await fetchApi(
+          "/api/history",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title: "New chat" }),
+          },
+          { includeAuth: true, includeGuest: false },
+        );
+        if (created.ok && created.data?.conversation?.id) {
+          conversationId = text(created.data.conversation.id);
+          setSessions((prev) =>
+            prev.map((item) =>
+              item.id === session.id
+                ? {
+                    ...item,
+                    id: conversationId,
+                    backendConversationId: conversationId,
+                    title: text(created.data.conversation.title) || item.title,
+                    createdAt: text(created.data.conversation.createdAt) || item.createdAt,
+                    updatedAt: text(created.data.conversation.updatedAt) || item.updatedAt,
+                  }
+                : item,
+            ),
+          );
+          setActiveSessionId(conversationId);
+        }
+      }
+
       const payloadPrompt = buildPromptPayload(prompt, options);
       return streamApi(
         "/api/luna/stream",
@@ -972,7 +1170,7 @@ export default function Luna() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             message: payloadPrompt,
-            conversationId: text(session?.backendConversationId),
+            conversationId,
             llm: selectedModel,
           }),
           signal: handlers.signal,
@@ -1087,6 +1285,16 @@ export default function Luna() {
             backendConversationId: response.conversationId || session.backendConversationId,
             updatedAt: nowIso(),
           }));
+          if (response.conversationId && target.id !== response.conversationId) {
+            setSessions((prev) =>
+              prev.map((session) =>
+                session.id === target.id
+                  ? { ...session, id: response.conversationId, backendConversationId: response.conversationId }
+                  : session,
+              ),
+            );
+            setActiveSessionId(response.conversationId);
+          }
           return;
         }
 
@@ -1111,29 +1319,41 @@ export default function Luna() {
           throw new Error(streamResult.message || streamResult.data?.error || "Streaming failed.");
         }
 
-        const payload = streamResult.data || {};
-        const finalReply = text(payload.reply) || streamedText || "I could not generate a reply. Please retry.";
-        const llm = text(payload.llm);
+      const payload = streamResult.data || {};
+      const finalReply = text(payload.reply) || streamedText || "I could not generate a reply. Please retry.";
+      const llm = text(payload.llm);
+      const payloadConversationId = text(payload.conversationId);
 
-        if (!assistantAdded) {
-          ensureAssistant(finalReply);
-        } else if (finalReply && finalReply !== streamedText) {
-          updateSession(target.id, (session) => ({
-            ...session,
-            messages: session.messages.map((msg) =>
-              msg.id === assistantId ? { ...msg, content: finalReply, llm } : msg,
-            ),
-            backendConversationId: payload.conversationId || session.backendConversationId,
-            updatedAt: nowIso(),
-          }));
-        }
-
+      if (!assistantAdded) {
+        ensureAssistant(finalReply);
+      } else if (finalReply && finalReply !== streamedText) {
         updateSession(target.id, (session) => ({
           ...session,
-          messages: session.messages.map((msg) => (msg.id === assistantId ? { ...msg, llm } : msg)),
-          backendConversationId: payload.conversationId || session.backendConversationId,
+          messages: session.messages.map((msg) =>
+            msg.id === assistantId ? { ...msg, content: finalReply, llm } : msg,
+          ),
+          backendConversationId: payloadConversationId || session.backendConversationId,
           updatedAt: nowIso(),
         }));
+      }
+
+      updateSession(target.id, (session) => ({
+        ...session,
+        messages: session.messages.map((msg) => (msg.id === assistantId ? { ...msg, llm } : msg)),
+        backendConversationId: payloadConversationId || session.backendConversationId,
+        updatedAt: nowIso(),
+      }));
+
+      if (payloadConversationId && target.id !== payloadConversationId) {
+        setSessions((prev) =>
+          prev.map((session) =>
+            session.id === target.id
+              ? { ...session, id: payloadConversationId, backendConversationId: payloadConversationId }
+              : session,
+          ),
+        );
+        setActiveSessionId(payloadConversationId);
+      }
       } catch (error) {
         if (!streamedText) {
           try {
@@ -1146,14 +1366,24 @@ export default function Luna() {
               llm: response.llm,
             };
 
-            updateSession(target.id, (session) => ({
-              ...session,
-              messages: [...session.messages, assistantMessage],
-              backendConversationId: response.conversationId || session.backendConversationId,
-              updatedAt: nowIso(),
-            }));
-            return;
-          } catch (fallbackError) {
+          updateSession(target.id, (session) => ({
+            ...session,
+            messages: [...session.messages, assistantMessage],
+            backendConversationId: response.conversationId || session.backendConversationId,
+            updatedAt: nowIso(),
+          }));
+          if (response.conversationId && target.id !== response.conversationId) {
+            setSessions((prev) =>
+              prev.map((session) =>
+                session.id === target.id
+                  ? { ...session, id: response.conversationId, backendConversationId: response.conversationId }
+                  : session,
+              ),
+            );
+            setActiveSessionId(response.conversationId);
+          }
+          return;
+        } catch (fallbackError) {
             showErrorToast(fallbackError.message || "Luna request failed.", {
               type: options.regenerate ? "regenerate" : "send",
               prompt: basePrompt,
@@ -1400,12 +1630,20 @@ export default function Luna() {
     setNewProjectOpen(false);
   }, [newProjectName]);
 
-  const handleSelectSession = useCallback((sessionId) => {
-    setActiveSessionId(sessionId);
-    setMobileSidebarOpen(false);
-  }, []);
+  const handleSelectSession = useCallback(
+    (sessionId) => {
+      setActiveSessionId(sessionId);
+      setMobileSidebarOpen(false);
+      const target = sessions.find((item) => item.id === sessionId);
+      const conversationId = text(target?.backendConversationId || target?.id);
+      if (conversationId) {
+        loadConversationMessages(sessionId, conversationId);
+      }
+    },
+    [loadConversationMessages, sessions],
+  );
 
-  const visibleMain = activeMessages.length > 0;
+  const visibleMain = activeMessages.length > 0 || historyLoading;
 
   if (!isSignedIn) {
     return (
@@ -1915,6 +2153,12 @@ export default function Luna() {
                   className="luna-scrollbar h-full overflow-y-auto"
                 >
                   <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 pb-6 pt-3">
+                    {historyLoading ? (
+                      <div className="flex items-center gap-3 rounded-2xl border border-[#2a2d45] bg-[#141a2d]/80 px-4 py-3 text-sm text-[#cfd4ff]">
+                        <Loader2 className="h-4 w-4 animate-spin text-[#8f9af5]" />
+                        Loading your chats...
+                      </div>
+                    ) : null}
                     {activeMessages.map((message) => (
                       <MessageBubble
                         key={message.id}
