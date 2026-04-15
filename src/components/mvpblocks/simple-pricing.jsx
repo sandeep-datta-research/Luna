@@ -48,7 +48,10 @@ export default function SimplePricing() {
   };
 
   useEffect(() => {
-    loadProfile();
+    const timer = window.setTimeout(() => {
+      void loadProfile();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
 
@@ -62,18 +65,24 @@ export default function SimplePricing() {
 
   useEffect(() => {
     if (currentPlan === "pro") {
-      setShowPaymentPanel(false);
-      setReferralInfo(null);
-      setReferralCode("");
-      setReferralNote("");
+      const timer = window.setTimeout(() => {
+        setShowPaymentPanel(false);
+        setReferralInfo(null);
+        setReferralCode("");
+        setReferralNote("");
+      }, 0);
+      return () => window.clearTimeout(timer);
     }
   }, [currentPlan]);
 
   useEffect(() => {
     if (!showPaymentPanel) {
-      setReferralInfo(null);
-      setReferralCode("");
-      setReferralNote("");
+      const timer = window.setTimeout(() => {
+        setReferralInfo(null);
+        setReferralCode("");
+        setReferralNote("");
+      }, 0);
+      return () => window.clearTimeout(timer);
     }
   }, [showPaymentPanel]);
 
@@ -357,7 +366,6 @@ export default function SimplePricing() {
     </section>
   );
 }
-
 
 
 

@@ -36,7 +36,8 @@ async function initializeDb() {
 
   if (!config.useMongo) {
     if (isProduction) {
-      throw new Error("MONGODB_URI is required in production. Refusing to use file storage.");
+      initWarning = "MongoDB is not configured. Falling back to file storage.";
+      console.warn(`[db] ${initWarning}`);
     }
     activeEngine = "file";
     activeStore = null;
@@ -54,7 +55,7 @@ async function initializeDb() {
     activeStore = mongoStore;
     activeEngine = "mongo";
   } catch (error) {
-    if (config.mode === "mongo" || isProduction) {
+    if (config.mode === "mongo") {
       throw error;
     }
 

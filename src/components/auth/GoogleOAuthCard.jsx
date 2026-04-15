@@ -199,7 +199,7 @@ export default function GoogleOAuthCard({ onSignedIn } = {}) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [onSignedIn]);
 
   const handleSignOut = async () => {
     const currentToken = token || getAuthToken();
@@ -250,5 +250,3 @@ export default function GoogleOAuthCard({ onSignedIn } = {}) {
     </div>
   );
 }
-
-

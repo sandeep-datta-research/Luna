@@ -11,7 +11,6 @@ import {
   Twitter,
   Moon,
   Sun,
-  ArrowDownLeft,
   MessageCircle,
 } from "lucide-react";
 const data = () => ({
@@ -55,8 +54,10 @@ const data = () => ({
 export default function FooterStandard() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const footerData = data();
   useEffect(() => {
-    setMounted(true);
+    const timer = window.setTimeout(() => setMounted(true), 0);
+    return () => window.clearTimeout(timer);
   }, []);
   const currentYear = new Date().getFullYear();
   if (!mounted) return null;
@@ -84,18 +85,21 @@ export default function FooterStandard() {
             </p>
             <div className="flex items-center gap-2">
               <div className="flex gap-2">
-                {data().socialLinks.map(({ icon: Icon, label, href }) => (
-                  <Button
-                    key={label}
-                    size="icon"
-                    variant="outline"
-                    asChild
-                    className="hover:bg-primary dark:hover:bg-primary !border-primary/30 !hover:border-primary cursor-pointer shadow-none transition-all duration-500 hover:scale-110 hover:-rotate-12 hover:text-white hover:shadow-md">
-                    <Link href={href}>
-                      <Icon className="h-4 w-4" />
-                    </Link>
-                  </Button>
-                ))}
+                {footerData.socialLinks.map(({ icon, label, href }) => {
+                  const SocialIcon = icon;
+                  return (
+                    <Button
+                      key={label}
+                      size="icon"
+                      variant="outline"
+                      asChild
+                      className="hover:bg-primary dark:hover:bg-primary !border-primary/30 !hover:border-primary cursor-pointer shadow-none transition-all duration-500 hover:scale-110 hover:-rotate-12 hover:text-white hover:shadow-md">
+                      <Link href={href}>
+                        <SocialIcon className="h-4 w-4" />
+                      </Link>
+                    </Button>
+                  );
+                })}
               </div>
               <Button
                 variant="outline"

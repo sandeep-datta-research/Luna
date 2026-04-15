@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { CheckCircle2, Crown, Megaphone, RefreshCw, Save, Shield, ShieldAlert, SlidersHorizontal, Users, WandSparkles, XCircle } from "lucide-react";
 import { fetchApi, getAuthToken, getStoredUser, hydrateUser } from "@/lib/api-client";
@@ -133,7 +133,7 @@ export default function AdminDashboard() {
     if (!expiresAt) return false;
     const date = new Date(expiresAt);
     if (Number.isNaN(date.getTime())) return true;
-    return date.getTime() < Date.now();
+    return date.getTime() < new Date().getTime();
   };
 
   const applySettings = (rawSettings) => {
@@ -176,7 +176,7 @@ export default function AdminDashboard() {
     setAnnouncementCtaHref(item?.ctaHref || "");
   };
 
-  const loadAdminData = async () => {
+  const loadAdminData = useCallback(async () => {
     setLoadingData(true);
     setError("");
 
@@ -206,7 +206,7 @@ export default function AdminDashboard() {
     }
 
     setLoadingData(false);
-  };
+  }, []);
 
   useEffect(() => {
     const boot = async () => {
@@ -242,7 +242,7 @@ export default function AdminDashboard() {
     };
 
     boot();
-  }, []);
+  }, [loadAdminData]);
 
   const reviewRequest = async (id, status) => {
     setActionBusy(true);
@@ -1069,8 +1069,6 @@ export default function AdminDashboard() {
     </div>
   );
 }
-
-
 
 
 

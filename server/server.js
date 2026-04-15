@@ -57,12 +57,14 @@ const GROQ_MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
 const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || "nvidia/nemotron-3-nano-30b-a3b:free";
 const OPENROUTER_GLM45_AIR_MODEL = process.env.OPENROUTER_GLM45_AIR_MODEL || "z-ai/glm-4.5-air:free";
 const NVIDIA_GLM_MODEL = process.env.NVIDIA_GLM_MODEL || "z-ai/glm4.7";
+const NVIDIA_QWEN_MODEL = process.env.NVIDIA_QWEN_MODEL || "qwen/qwen3-235b-a22b";
+const ZAI_GLM_MODEL = process.env.ZAI_GLM_MODEL || "z-ai/glm-4.5";
+const ZAI_API_URL = process.env.ZAI_API_URL || "https://api.z.ai/api/paas/v4/chat/completions";
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash";
 const HUGGINGFACE_MODEL = process.env.HUGGINGFACE_MODEL || "HuggingFaceH4/zephyr-7b-beta";
 const GOOGLE_CLIENT_ID = (process.env.GOOGLE_CLIENT_ID || "").trim();
 
 const MAX_HISTORY_MESSAGES = 20;
-const MAX_REPLY_WORDS = 220;
 const FREE_DAILY_LIMIT = Number(process.env.LUNA_FREE_DAILY_LIMIT || 100);
 const DEFAULT_PRO_MONTHLY_PRICE_INR = Number(process.env.LUNA_PRO_PRICE_INR || 90);
 const DEFAULT_UPI_ID = (process.env.LUNA_PRO_UPI_ID || "9366183700@fam").trim();
@@ -668,10 +670,14 @@ async function requestOpenRouter(messages, detailedMode, model = OPENROUTER_MODE
 }
 
 async function requestNvidiaGlm(messages, detailedMode) {
+  return requestNvidiaModel(messages, detailedMode, NVIDIA_GLM_MODEL);
+}
+
+async function requestNvidiaModel(messages, detailedMode, model) {
   const response = await axios.post(
     "https://integrate.api.nvidia.com/v1/chat/completions",
     {
-      model: NVIDIA_GLM_MODEL,
+      model,
       messages,
       temperature: detailedMode ? 0.75 : 0.45,
       top_p: 1,
@@ -736,6 +742,11 @@ async function requestGemini(messages, detailedMode) {
 
 
 async function requestZai(messages, detailedMode, model = ZAI_GLM_MODEL) {
+  const apiKey = (process.env.ZAI_API_KEY || "").trim();
+  if (!apiKey) {
+    throw Object.assign(new Error("Z.AI API key is not configured"), { status: 503 });
+  }
+
   const response = await axios.post(
     ZAI_API_URL,
     {
@@ -747,7 +758,7 @@ async function requestZai(messages, detailedMode, model = ZAI_GLM_MODEL) {
     },
     {
       headers: {
-        Authorization: `Bearer undefined`,
+        Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
       timeout: LUNA_PROVIDER_TIMEOUT_MS,
@@ -772,11 +783,6 @@ function splitTextForStream(text, maxChunk = 18) {
     } else {
       current += part;
     }
-  }
-
-  const toolPrompt = buildToolSystemPrompt(toolSummary);
-  if (toolPrompt) {
-    systemMessages.push({ role: "system", content: toolPrompt });
   }
 
   if (current) chunks.push(current);
@@ -883,25 +889,6 @@ async function streamOpenAICompatible({ url, headers, body, onToken, signal }) {
 
     response.data.on("end", () => finish());
     response.data.on("error", (error) => fail(error));
-  });
-}
-
-async function streamNvidiaModel(messages, detailedMode, model, onToken, signal) {
-  return streamOpenAICompatible({
-    url: "https://integrate.api.nvidia.com/v1/chat/completions",
-    headers: {
-      Authorization: `Bearer undefined`,
-      "Content-Type": "application/json",
-    },
-    body: {
-      model,
-      messages,
-      temperature: detailedMode ? 0.75 : 0.45,
-      top_p: 1,
-      max_tokens: detailedMode ? 1800 : 1024,
-    },
-    onToken,
-    signal,
   });
 }
 
@@ -1172,35 +1159,6 @@ function resolveRequestedModel(requestedModel, providerRunners) {
   }
 
   return "";
-}
-
-async function requestBestReply(messages, detailedMode) {
-  const providers = buildProviders(messages, detailedMode);
-  const attempts = [];
-
-  for (const provider of providers) {
-    if (!provider.enabled) {
-      attempts.push({ llm: provider.llm, error: "Not configured or manually disabled" });
-      continue;
-    }
-
-    try {
-      const rawReply = await provider.run();
-      if (rawReply && rawReply.trim()) {
-        return { llm: provider.llm, rawReply: rawReply.trim(), attempts };
-      }
-
-      attempts.push({ llm: provider.llm, error: "Empty response" });
-    } catch (error) {
-      const normalized = extractProviderError(error);
-      attempts.push({ llm: provider.llm, status: normalized.status, error: normalized.providerMessage });
-    }
-  }
-
-  throw Object.assign(new Error("No cloud provider reply available"), {
-    status: 503,
-    responseData: { attempts },
-  });
 }
 
 app.post("/api/auth/local", async (req, res) => {
@@ -2423,8 +2381,6 @@ async function startServer() {
 }
 
 startServer();
-
-
 
 
 

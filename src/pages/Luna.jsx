@@ -66,14 +66,6 @@ function text(value) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function safeParse(raw, fallback) {
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return fallback;
-  }
-}
-
 function shortTitle(input, fallback = "New chat") {
   const normalized = text(input).replace(/\s+/g, " ");
   if (!normalized) return fallback;
@@ -113,35 +105,6 @@ function sanitizeMessage(raw) {
     content,
     createdAt: text(raw?.createdAt) || nowIso(),
     llm: text(raw?.llm),
-  };
-}
-
-function sanitizeSession(raw) {
-  const messages = Array.isArray(raw?.messages)
-    ? raw.messages.map(sanitizeMessage).filter(Boolean)
-    : [];
-
-  const firstUser = messages.find((item) => item.role === "user");
-
-  return {
-    id: text(raw?.id) || createId("session"),
-    title: text(raw?.title) || shortTitle(firstUser?.content, "New chat"),
-    messages,
-    createdAt: text(raw?.createdAt) || nowIso(),
-    updatedAt: text(raw?.updatedAt) || text(raw?.createdAt) || nowIso(),
-    projectId: text(raw?.projectId),
-    backendConversationId: text(raw?.backendConversationId),
-  };
-}
-
-function sanitizeProject(raw) {
-  const name = text(raw?.name);
-  if (!name) return null;
-
-  return {
-    id: text(raw?.id) || createId("project"),
-    name,
-    createdAt: text(raw?.createdAt) || nowIso(),
   };
 }
 
@@ -216,7 +179,8 @@ function toBase64DataUrl(blob) {
     reader.readAsDataURL(blob);
   });
 }
-function SidebarButton({ icon: Icon, label, onClick, collapsed = false, danger = false }) {
+function SidebarButton({ icon, label, onClick, collapsed = false, danger = false }) {
+  const IconComponent = icon;
   return (
     <motion.button
       whileTap={{ scale: 0.97 }}
@@ -229,7 +193,7 @@ function SidebarButton({ icon: Icon, label, onClick, collapsed = false, danger =
           : "border-[#2a2d45] bg-[#1a1d2e]/70 text-[#cfd4ff] hover:border-[#5b6af5]/55 hover:bg-[#20253b]"
       } ${collapsed ? "justify-center" : ""}`}
     >
-      <Icon className="h-4 w-4 shrink-0" />
+      <IconComponent className="h-4 w-4 shrink-0" />
       {!collapsed ? <span className="truncate">{label}</span> : null}
     </motion.button>
   );
@@ -611,7 +575,10 @@ export default function Luna() {
     return direct || sortedSessions[0] || null;
   }, [activeSessionId, sessions, sortedSessions]);
 
-  const activeMessages = Array.isArray(activeSession?.messages) ? activeSession.messages : [];
+  const activeMessages = useMemo(
+    () => (Array.isArray(activeSession?.messages) ? activeSession.messages : []),
+    [activeSession?.messages],
+  );
 
   const latestAssistantId = useMemo(() => {
     for (let i = activeMessages.length - 1; i >= 0; i -= 1) {
@@ -1400,9 +1367,6 @@ export default function Luna() {
       } finally {
         if (streamTimeout) {
           clearTimeout(streamTimeout);
-        }
-        if (flushTimer) {
-          clearInterval(flushTimer);
         }
         streamAbortRef.current = null;
         setIsTyping(false);
