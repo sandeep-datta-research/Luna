@@ -14,7 +14,9 @@ import {
   getUserById,
   getUserSignupStats,
   getModelUsageStats,
+  getUserMemory as getDbUserMemory,
   getDbInfo,
+  hasUserMemory as hasDbUserMemory,
   initDb,
   listConversationSummaries,
   listUsers,
@@ -24,6 +26,7 @@ import {
   setFeedbackFeatured,
   submitFeedback,
   toHistoryPayload,
+  upsertUserMemory as upsertDbUserMemory,
   upsertGoogleUser,
   upsertLocalUser,
   updateUserProfile,
@@ -284,72 +287,85 @@ function buildMemorySystemPrompt(memory) {
 
 async function fetchUserMemory(userId, email = "") {
   const supabase = getSupabaseAdmin();
-  if (!supabase) return { ...DEFAULT_MEMORY };
   if (String(userId || "").startsWith("guest:")) return { ...DEFAULT_MEMORY };
 
+  if (!supabase) {
+    return getDbUserMemory(userId);
+  }
+
   const normalizedId = normalizeSupabaseUserId(userId, email);
-  if (!normalizedId) return { ...DEFAULT_MEMORY };
+  if (!normalizedId) return getDbUserMemory(userId);
 
-  const { data, error } = await supabase
-    .from("users_memory")
-    .select("goals,subjects,response_style,favorite_topics,learning_level")
-    .eq("user_id", normalizedId)
-    .maybeSingle();
+  try {
+    const { data, error } = await supabase
+      .from("users_memory")
+      .select("goals,subjects,response_style,favorite_topics,learning_level")
+      .eq("user_id", normalizedId)
+      .maybeSingle();
 
-  if (error || !data) return { ...DEFAULT_MEMORY };
-  return {
-    goals: normalizeStringArray(data.goals),
-    subjects: normalizeStringArray(data.subjects),
-    response_style: normalizeResponseStyle(data.response_style),
-    favorite_topics: normalizeStringArray(data.favorite_topics),
-    learning_level: normalizeLearningLevel(data.learning_level),
-  };
+    if (error || !data) return getDbUserMemory(userId);
+    return {
+      goals: normalizeStringArray(data.goals),
+      subjects: normalizeStringArray(data.subjects),
+      response_style: normalizeResponseStyle(data.response_style),
+      favorite_topics: normalizeStringArray(data.favorite_topics),
+      learning_level: normalizeLearningLevel(data.learning_level),
+    };
+  } catch {
+    return getDbUserMemory(userId);
+  }
 }
 
 async function upsertUserMemory(userId, payload, email = "") {
   const supabase = getSupabaseAdmin();
-  if (!supabase) {
-    throw Object.assign(new Error("Supabase is not configured."), { status: 400 });
-  }
   const normalizedId = normalizeSupabaseUserId(userId, email);
-  if (!normalizedId) {
-    throw Object.assign(new Error("user_id is required."), { status: 400 });
-  }
+  if (!normalizedId) throw Object.assign(new Error("user_id is required."), { status: 400 });
 
   const normalizedPayload = normalizeMemoryPayload(payload);
+  const fallbackSave = () => upsertDbUserMemory(userId, normalizedPayload);
+  if (!supabase) return fallbackSave();
+
   const record = {
     user_id: normalizedId,
     ...normalizedPayload,
     updated_at: new Date().toISOString(),
   };
 
-  const { data, error } = await supabase
-    .from("users_memory")
-    .upsert(record, { onConflict: "user_id" })
-    .select("user_id, goals, subjects, response_style, favorite_topics, learning_level, updated_at")
-    .single();
+  try {
+    const { data, error } = await supabase
+      .from("users_memory")
+      .upsert(record, { onConflict: "user_id" })
+      .select("user_id, goals, subjects, response_style, favorite_topics, learning_level, updated_at")
+      .single();
 
-  if (error) {
-    throw Object.assign(new Error(error.message || "Failed to save onboarding"), { status: 500 });
+    if (error) {
+      return fallbackSave();
+    }
+
+    return data;
+  } catch {
+    return fallbackSave();
   }
-
-  return data;
 }
 
 async function hasUserMemory(userId, email = "") {
   const supabase = getSupabaseAdmin();
-  if (!supabase) return false;
   const normalizedId = normalizeSupabaseUserId(userId, email);
   if (!normalizedId) return false;
+  if (!supabase) return hasDbUserMemory(userId);
 
-  const { data, error } = await supabase
-    .from("users_memory")
-    .select("id")
-    .eq("user_id", normalizedId)
-    .maybeSingle();
+  try {
+    const { data, error } = await supabase
+      .from("users_memory")
+      .select("id")
+      .eq("user_id", normalizedId)
+      .maybeSingle();
 
-  if (error) return false;
-  return Boolean(data?.id);
+    if (error) return hasDbUserMemory(userId);
+    return Boolean(data?.id);
+  } catch {
+    return hasDbUserMemory(userId);
+  }
 }
 
 function sanitizePromptText(value) {
@@ -2539,7 +2555,6 @@ async function startServer() {
 }
 
 startServer();
-
 
 
 

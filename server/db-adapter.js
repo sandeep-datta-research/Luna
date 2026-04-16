@@ -209,6 +209,27 @@ export async function listUsers() {
   );
 }
 
+export async function getUserMemory(userId) {
+  return runWithStore(
+    () => fileUsers.getUserMemory(userId),
+    (store) => store.getUserMemory(userId),
+  );
+}
+
+export async function upsertUserMemory(userId, payload) {
+  return runWithStore(
+    () => fileUsers.upsertUserMemory(userId, payload),
+    (store) => store.upsertUserMemory(userId, payload),
+  );
+}
+
+export async function hasUserMemory(userId) {
+  return runWithStore(
+    () => fileUsers.hasUserMemory(userId),
+    (store) => store.hasUserMemory(userId),
+  );
+}
+
 export async function getUserSignupStats(days = 14) {
   return runWithStore(
     () => fileUsers.getUserSignupStats(days),

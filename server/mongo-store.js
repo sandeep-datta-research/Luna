@@ -3,6 +3,13 @@ import { MongoClient } from "mongodb";
 
 const DEFAULT_SESSION_TTL_DAYS = 30;
 const MAX_MESSAGES_PER_CONVERSATION = 300;
+const DEFAULT_MEMORY = {
+  goals: [],
+  subjects: [],
+  response_style: "Detailed",
+  favorite_topics: [],
+  learning_level: "Beginner",
+};
 
 function nowIso() {
   return new Date().toISOString();
@@ -89,9 +96,27 @@ function sanitizeUserRecord(raw) {
     email: normalizeText(raw?.email),
     name: normalizeText(raw?.name),
     picture: normalizeText(raw?.picture),
+    memory: sanitizeUserMemory(raw?.memory),
     createdAt,
     updatedAt,
     lastLoginAt: toIso(raw?.lastLoginAt || updatedAt),
+  };
+}
+
+function sanitizeStringArray(value) {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => normalizeText(item)).filter(Boolean);
+}
+
+function sanitizeUserMemory(raw) {
+  const value = raw && typeof raw === "object" ? raw : {};
+  return {
+    goals: sanitizeStringArray(value.goals),
+    subjects: sanitizeStringArray(value.subjects),
+    response_style: normalizeText(value.response_style) || DEFAULT_MEMORY.response_style,
+    favorite_topics: sanitizeStringArray(value.favorite_topics),
+    learning_level: normalizeText(value.learning_level) || DEFAULT_MEMORY.learning_level,
+    updated_at: normalizeText(value.updated_at),
   };
 }
 
@@ -397,6 +422,51 @@ export function createMongoStore() {
 
     const docs = await users().find({}).sort({ lastLoginAt: -1, updatedAt: -1 }).limit(10000).toArray();
     return docs.map((doc) => sanitizeUserRecord(doc));
+  }
+
+  async function getUserMemory(userId) {
+    await init();
+    const safeUserId = normalizeText(userId);
+    if (!safeUserId) return { ...DEFAULT_MEMORY };
+
+    const user = await users().findOne({ id: safeUserId }, { projection: { memory: 1 } });
+    return {
+      ...DEFAULT_MEMORY,
+      ...sanitizeUserMemory(user?.memory),
+    };
+  }
+
+  async function upsertUserMemory(userId, payload = {}) {
+    await init();
+    const safeUserId = normalizeText(userId);
+    if (!safeUserId) throw new Error("userId is required");
+
+    const existing = await users().findOne({ id: safeUserId });
+    if (!existing) throw new Error("User not found");
+
+    const memory = {
+      ...DEFAULT_MEMORY,
+      ...sanitizeUserMemory(payload),
+      updated_at: nowIso(),
+    };
+
+    await users().updateOne(
+      { id: safeUserId },
+      { $set: { memory, updatedAt: nowIso() } },
+    );
+
+    return clone(memory);
+  }
+
+  async function hasUserMemory(userId) {
+    const memory = await getUserMemory(userId);
+    return Boolean(
+      memory.goals.length ||
+      memory.subjects.length ||
+      memory.favorite_topics.length ||
+      normalizeText(memory.response_style) !== DEFAULT_MEMORY.response_style ||
+      normalizeText(memory.learning_level) !== DEFAULT_MEMORY.learning_level,
+    );
   }
 
   async function getUserSignupStats(days = 14) {
@@ -731,6 +801,9 @@ export function createMongoStore() {
     getUserById,
     updateUserProfile,
     listUsers,
+    getUserMemory,
+    upsertUserMemory,
+    hasUserMemory,
     getUserSignupStats,
     getModelUsageStats,
     submitFeedback,

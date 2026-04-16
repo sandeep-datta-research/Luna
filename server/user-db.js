@@ -16,6 +16,14 @@ const EMPTY_DB = {
   sessions: [],
 };
 
+const DEFAULT_MEMORY = {
+  goals: [],
+  subjects: [],
+  response_style: "Detailed",
+  favorite_topics: [],
+  learning_level: "Beginner",
+};
+
 let dbWriteQueue = Promise.resolve();
 
 function nowIso() {
@@ -43,6 +51,7 @@ function getSessionTtlMs() {
 function sanitizeUser(raw) {
   const createdAt = normalizeText(raw?.createdAt) || nowIso();
   const updatedAt = normalizeText(raw?.updatedAt) || createdAt;
+  const memory = sanitizeUserMemory(raw?.memory);
 
   return {
     id: normalizeText(raw?.id) || createId("usr"),
@@ -50,9 +59,29 @@ function sanitizeUser(raw) {
     email: normalizeText(raw?.email),
     name: normalizeText(raw?.name),
     picture: normalizeText(raw?.picture),
+    memory,
     createdAt,
     updatedAt,
     lastLoginAt: normalizeText(raw?.lastLoginAt) || updatedAt,
+  };
+}
+
+function sanitizeStringArray(value) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => normalizeText(item))
+    .filter(Boolean);
+}
+
+function sanitizeUserMemory(raw) {
+  const value = raw && typeof raw === "object" ? raw : {};
+  return {
+    goals: sanitizeStringArray(value.goals),
+    subjects: sanitizeStringArray(value.subjects),
+    response_style: normalizeText(value.response_style) || DEFAULT_MEMORY.response_style,
+    favorite_topics: sanitizeStringArray(value.favorite_topics),
+    learning_level: normalizeText(value.learning_level) || DEFAULT_MEMORY.learning_level,
+    updated_at: normalizeText(value.updated_at) || "",
   };
 }
 
@@ -320,6 +349,62 @@ export async function listUsers() {
   const db = await readDb();
   cleanupExpiredSessions(db);
   return clone(db.users).sort((a, b) => new Date(b.lastLoginAt).getTime() - new Date(a.lastLoginAt).getTime());
+}
+
+export async function getUserMemory(userId) {
+  const safeUserId = normalizeText(userId);
+  if (!safeUserId) return { ...DEFAULT_MEMORY };
+
+  const db = await readDb();
+  cleanupExpiredSessions(db);
+  const user = db.users.find((item) => item.id === safeUserId);
+  if (!user) return { ...DEFAULT_MEMORY };
+  return {
+    ...DEFAULT_MEMORY,
+    ...sanitizeUserMemory(user.memory),
+  };
+}
+
+export async function upsertUserMemory(userId, payload = {}) {
+  const safeUserId = normalizeText(userId);
+  if (!safeUserId) {
+    throw new Error("userId is required");
+  }
+
+  return runDbMutation((db) => {
+    cleanupExpiredSessions(db);
+
+    const user = db.users.find((item) => item.id === safeUserId);
+    if (!user) throw new Error("User not found");
+
+    user.memory = {
+      ...DEFAULT_MEMORY,
+      ...sanitizeUserMemory(payload),
+      updated_at: nowIso(),
+    };
+    user.updatedAt = nowIso();
+
+    return clone(user.memory);
+  });
+}
+
+export async function hasUserMemory(userId) {
+  const safeUserId = normalizeText(userId);
+  if (!safeUserId) return false;
+
+  const db = await readDb();
+  cleanupExpiredSessions(db);
+  const user = db.users.find((item) => item.id === safeUserId);
+  if (!user?.memory) return false;
+
+  const memory = sanitizeUserMemory(user.memory);
+  return Boolean(
+    memory.goals.length ||
+    memory.subjects.length ||
+    memory.favorite_topics.length ||
+    normalizeText(memory.response_style) !== DEFAULT_MEMORY.response_style ||
+    normalizeText(memory.learning_level) !== DEFAULT_MEMORY.learning_level,
+  );
 }
 
 export async function getUserSignupStats(days = 14) {
