@@ -1,4 +1,4 @@
-const GITHUB_PAGES_API_FALLBACK = "https://luna-backend-production-c7ab.up.railway.app";
+const GITHUB_PAGES_API_FALLBACK = "https://luna-backend-yc4e.onrender.com";
 
 const IS_GITHUB_PAGES =
   typeof window !== "undefined" && window.location.hostname.endsWith("github.io");

@@ -19,7 +19,7 @@
 
 1. GitHub repo -> Settings -> Secrets and variables -> Actions -> New repository secret.
 2. Add:
-   - `VITE_API_URL` = `https://<your-render-service>.onrender.com`
+   - `VITE_API_URL` = `https://luna-backend-yc4e.onrender.com`
    - `VITE_GOOGLE_CLIENT_ID` = your Google OAuth Web Client ID
 3. Re-run workflow: Actions -> `Deploy Luna to GitHub Pages` -> Run workflow.
 
