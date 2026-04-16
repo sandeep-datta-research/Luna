@@ -48,9 +48,8 @@ async function initializeDb() {
     throw new Error("MONGODB_URI is required when LUNA_DB_MODE=mongo");
   }
 
-  const mongoStore = createMongoStore();
-
   try {
+    const mongoStore = createMongoStore();
     await mongoStore.init();
     activeStore = mongoStore;
     activeEngine = "mongo";
