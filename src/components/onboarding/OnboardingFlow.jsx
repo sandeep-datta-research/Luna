@@ -54,7 +54,7 @@ const STEP_DEFINITIONS = [
     id: "subjects",
     title: "What subjects interest you?",
     type: "multi",
-    options: ["AI & ML", "Programming", "Design", "Business", "Science", "Math", "Languages"],
+    options: ["AI & ML", "Programming", "TypeScript", "Design", "Business", "Science", "Math", "Languages"],
   },
   {
     id: "response_style",
