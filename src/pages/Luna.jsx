@@ -607,106 +607,6 @@ export default function Luna() {
     return map;
   }, [sortedSessions]);
 
-  useEffect(() => {
-    if (!activeSession && sessions.length > 0) {
-      setActiveSessionId(sessions[0].id);
-    }
-  }, [activeSession, sessions]);
-
-  useEffect(() => {
-    if (!activeSession?.id) return;
-    const conversationId = text(activeSession.backendConversationId || activeSession.id);
-    if (conversationId) {
-      loadConversationMessages(activeSession.id, conversationId);
-    }
-  }, [activeSession?.id, activeSession?.backendConversationId, loadConversationMessages]);
-
-  useEffect(() => {
-    const syncUser = () => {
-      hydrateUser()
-        .then(() => setUser(loadUser()))
-        .catch(() => setUser(loadUser()));
-    };
-
-    syncUser();
-    window.addEventListener("storage", syncUser);
-    window.addEventListener("luna-auth-changed", syncUser);
-    window.addEventListener("focus", syncUser);
-
-    return () => {
-      window.removeEventListener("storage", syncUser);
-      window.removeEventListener("luna-auth-changed", syncUser);
-      window.removeEventListener("focus", syncUser);
-    };
-  }, []);
-
-  useEffect(() => {
-    historyLoadedRef.current = false;
-  }, [user?.email]);
-
-  useEffect(() => {
-    let canceled = false;
-
-    const loadOnboardingStatus = async () => {
-      if (typeof window === "undefined") return;
-        const token = getAuthToken();
-        const isGuest = !user?.email || user.email === "guest@luna.ai";
-      if (!token || isGuest) {
-        if (!canceled) setOnboardingState({ loading: false, answered: true });
-        return;
-      }
-
-      setOnboardingState((prev) => ({ ...prev, loading: true }));
-      const result = await fetchApi("/api/onboarding/status");
-      if (canceled) return;
-      if (result.ok) {
-        setOnboardingState({ loading: false, answered: Boolean(result.data?.answered) });
-      } else {
-        setOnboardingState({ loading: false, answered: false });
-      }
-    };
-
-    loadOnboardingStatus();
-    return () => {
-      canceled = true;
-    };
-  }, [user?.email]);
-
-  useEffect(() => {
-    if (listEndRef.current) {
-      listEndRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
-    }
-  }, [activeMessages, isTyping]);
-
-  useEffect(() => {
-    let timer;
-    if (toast) {
-      timer = setTimeout(() => setToast(null), 6000);
-    }
-
-    return () => {
-      if (timer) clearTimeout(timer);
-    };
-  }, [toast]);
-
-  useEffect(() => {
-    if (!isTyping) return undefined;
-    const timer = window.setTimeout(() => setIsTyping(false), 20000);
-    return () => clearTimeout(timer);
-  }, [isTyping]);
-
-  useEffect(() => {
-    if (typeof document === "undefined") return;
-
-    if (!document.getElementById("luna-fonts-link")) {
-      const link = document.createElement("link");
-      link.id = "luna-fonts-link";
-      link.rel = "stylesheet";
-      link.href = "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Syne:wght@500;700&display=swap";
-      document.head.appendChild(link);
-    }
-  }, []);
-
   const clearVoiceSilenceMonitor = useCallback(() => {
     if (silenceIntervalRef.current) {
       window.clearInterval(silenceIntervalRef.current);
@@ -869,6 +769,106 @@ export default function Luna() {
     },
     [sessions, showErrorToast, updateSession],
   );
+
+  useEffect(() => {
+    if (!activeSession && sessions.length > 0) {
+      setActiveSessionId(sessions[0].id);
+    }
+  }, [activeSession, sessions]);
+
+  useEffect(() => {
+    if (!activeSession?.id) return;
+    const conversationId = text(activeSession.backendConversationId || activeSession.id);
+    if (conversationId) {
+      loadConversationMessages(activeSession.id, conversationId);
+    }
+  }, [activeSession?.id, activeSession?.backendConversationId, loadConversationMessages]);
+
+  useEffect(() => {
+    const syncUser = () => {
+      hydrateUser()
+        .then(() => setUser(loadUser()))
+        .catch(() => setUser(loadUser()));
+    };
+
+    syncUser();
+    window.addEventListener("storage", syncUser);
+    window.addEventListener("luna-auth-changed", syncUser);
+    window.addEventListener("focus", syncUser);
+
+    return () => {
+      window.removeEventListener("storage", syncUser);
+      window.removeEventListener("luna-auth-changed", syncUser);
+      window.removeEventListener("focus", syncUser);
+    };
+  }, []);
+
+  useEffect(() => {
+    historyLoadedRef.current = false;
+  }, [user?.email]);
+
+  useEffect(() => {
+    let canceled = false;
+
+    const loadOnboardingStatus = async () => {
+      if (typeof window === "undefined") return;
+      const token = getAuthToken();
+      const isGuest = !user?.email || user.email === "guest@luna.ai";
+      if (!token || isGuest) {
+        if (!canceled) setOnboardingState({ loading: false, answered: true });
+        return;
+      }
+
+      setOnboardingState((prev) => ({ ...prev, loading: true }));
+      const result = await fetchApi("/api/onboarding/status");
+      if (canceled) return;
+      if (result.ok) {
+        setOnboardingState({ loading: false, answered: Boolean(result.data?.answered) });
+      } else {
+        setOnboardingState({ loading: false, answered: false });
+      }
+    };
+
+    loadOnboardingStatus();
+    return () => {
+      canceled = true;
+    };
+  }, [user?.email]);
+
+  useEffect(() => {
+    if (listEndRef.current) {
+      listEndRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
+    }
+  }, [activeMessages, isTyping]);
+
+  useEffect(() => {
+    let timer;
+    if (toast) {
+      timer = setTimeout(() => setToast(null), 6000);
+    }
+
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [toast]);
+
+  useEffect(() => {
+    if (!isTyping) return undefined;
+    const timer = window.setTimeout(() => setIsTyping(false), 20000);
+    return () => clearTimeout(timer);
+  }, [isTyping]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+
+    if (!document.getElementById("luna-fonts-link")) {
+      const link = document.createElement("link");
+      link.id = "luna-fonts-link";
+      link.rel = "stylesheet";
+      link.href = "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Syne:wght@500;700&display=swap";
+      document.head.appendChild(link);
+    }
+  }, []);
 
   useEffect(() => {
     let canceled = false;
