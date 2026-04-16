@@ -64,6 +64,18 @@ const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash";
 const HUGGINGFACE_MODEL = process.env.HUGGINGFACE_MODEL || "HuggingFaceH4/zephyr-7b-beta";
 const GOOGLE_CLIENT_ID = (process.env.GOOGLE_CLIENT_ID || "").trim();
 
+function readProviderSecret(name) {
+  const raw = typeof process.env[name] === "string" ? process.env[name] : "";
+  return raw.replace(/\s+/g, "");
+}
+
+const GEMINI_API_KEY = readProviderSecret("GEMINI_API_KEY");
+const GROQ_API_KEY = readProviderSecret("GROQ_API_KEY");
+const NVIDIA_API_KEY = readProviderSecret("NVIDIA_API_KEY");
+const OPENROUTER_API_KEY = readProviderSecret("OPENROUTER_API_KEY");
+const ZAI_API_KEY = readProviderSecret("ZAI_API_KEY");
+const HUGGINGFACE_API_KEY = readProviderSecret("HUGGINGFACE_API_KEY");
+
 const MAX_HISTORY_MESSAGES = 20;
 const FREE_DAILY_LIMIT = Number(process.env.LUNA_FREE_DAILY_LIMIT || 100);
 const DEFAULT_PRO_MONTHLY_PRICE_INR = Number(process.env.LUNA_PRO_PRICE_INR || 90);
@@ -637,7 +649,7 @@ async function requestGroq(messages, detailedMode) {
     },
     {
       headers: {
-        Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+        Authorization: `Bearer ${GROQ_API_KEY}`,
         "Content-Type": "application/json",
       },
       timeout: LUNA_PROVIDER_TIMEOUT_MS,
@@ -659,7 +671,7 @@ async function requestOpenRouter(messages, detailedMode, model = OPENROUTER_MODE
     },
     {
       headers: {
-        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        Authorization: `Bearer ${OPENROUTER_API_KEY}`,
         "Content-Type": "application/json",
       },
       timeout: LUNA_PROVIDER_TIMEOUT_MS,
@@ -686,7 +698,7 @@ async function requestNvidiaModel(messages, detailedMode, model) {
     },
     {
       headers: {
-        Authorization: `Bearer ${process.env.NVIDIA_API_KEY}`,
+        Authorization: `Bearer ${NVIDIA_API_KEY}`,
         "Content-Type": "application/json",
       },
       timeout: LUNA_PROVIDER_TIMEOUT_MS,
@@ -728,7 +740,7 @@ async function requestGemini(messages, detailedMode) {
     "https://generativelanguage.googleapis.com/v1beta/models/" +
     encodeURIComponent(GEMINI_MODEL) +
     ":generateContent?key=" +
-    process.env.GEMINI_API_KEY;
+    GEMINI_API_KEY;
 
   const response = await axios.post(url, body, {
     headers: { "Content-Type": "application/json" },
@@ -742,7 +754,7 @@ async function requestGemini(messages, detailedMode) {
 
 
 async function requestZai(messages, detailedMode, model = ZAI_GLM_MODEL) {
-  const apiKey = (process.env.ZAI_API_KEY || "").trim();
+  const apiKey = ZAI_API_KEY;
   if (!apiKey) {
     throw Object.assign(new Error("Z.AI API key is not configured"), { status: 503 });
   }
@@ -896,7 +908,7 @@ async function streamGroq(messages, detailedMode, onToken, signal) {
   return streamOpenAICompatible({
     url: "https://api.groq.com/openai/v1/chat/completions",
     headers: {
-      Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+      Authorization: `Bearer ${GROQ_API_KEY}`,
       "Content-Type": "application/json",
     },
     body: {
@@ -915,7 +927,7 @@ async function streamOpenRouter(messages, detailedMode, model, onToken, signal) 
   return streamOpenAICompatible({
     url: "https://openrouter.ai/api/v1/chat/completions",
     headers: {
-      Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+      Authorization: `Bearer ${OPENROUTER_API_KEY}`,
       "Content-Type": "application/json",
     },
     body: {
@@ -953,7 +965,7 @@ async function streamGemini(messages, detailedMode, onToken, signal) {
     "https://generativelanguage.googleapis.com/v1beta/models/" +
     encodeURIComponent(GEMINI_MODEL) +
     ":streamGenerateContent?key=" +
-    process.env.GEMINI_API_KEY;
+    GEMINI_API_KEY;
 
   const response = await axios.post(url, body, {
     headers: { "Content-Type": "application/json" },
@@ -1030,7 +1042,7 @@ async function streamGemini(messages, detailedMode, onToken, signal) {
 }
 
 async function requestHuggingFace(messages, detailedMode) {
-  const apiKey = (process.env.HUGGINGFACE_API_KEY || "").trim();
+  const apiKey = HUGGINGFACE_API_KEY;
   if (!apiKey) {
     throw Object.assign(new Error("HuggingFace API key is not configured"), { status: 503 });
   }
@@ -1083,49 +1095,49 @@ function buildProviders(messages, detailedMode, streamSignal) {
   return [
     {
       llm: "gemini",
-      enabled: Boolean(process.env.GEMINI_API_KEY) && !manuallyDisabledProviders.has("gemini"),
+      enabled: Boolean(GEMINI_API_KEY) && !manuallyDisabledProviders.has("gemini"),
       run: () => requestGemini(messages, detailedMode),
       stream: (onToken) => streamGemini(messages, detailedMode, onToken, streamSignal),
     },
     {
       llm: "gpt",
-      enabled: Boolean(process.env.GROQ_API_KEY) && !manuallyDisabledProviders.has("gpt"),
+      enabled: Boolean(GROQ_API_KEY) && !manuallyDisabledProviders.has("gpt"),
       run: () => requestGroq(messages, detailedMode),
       stream: (onToken) => streamGroq(messages, detailedMode, onToken, streamSignal),
     },
     {
       llm: "glm43",
-      enabled: Boolean(process.env.NVIDIA_API_KEY) && !manuallyDisabledProviders.has("glm43"),
+      enabled: Boolean(NVIDIA_API_KEY) && !manuallyDisabledProviders.has("glm43"),
       run: () => requestNvidiaGlm(messages, detailedMode),
       stream: (onToken) => streamViaFallback(() => requestNvidiaGlm(messages, detailedMode), onToken),
     },
     {
       llm: "nvidia-qwen",
-      enabled: Boolean(process.env.NVIDIA_API_KEY) && !manuallyDisabledProviders.has("nvidia-qwen"),
+      enabled: Boolean(NVIDIA_API_KEY) && !manuallyDisabledProviders.has("nvidia-qwen"),
       run: () => requestNvidiaModel(messages, detailedMode, NVIDIA_QWEN_MODEL),
       stream: (onToken) => streamViaFallback(() => requestNvidiaModel(messages, detailedMode, NVIDIA_QWEN_MODEL), onToken),
     },
     {
       llm: "zai-glm47",
-      enabled: Boolean(process.env.ZAI_API_KEY) && !manuallyDisabledProviders.has("zai-glm47"),
+      enabled: Boolean(ZAI_API_KEY) && !manuallyDisabledProviders.has("zai-glm47"),
       run: () => requestZai(messages, detailedMode, ZAI_GLM_MODEL),
       stream: (onToken) => streamViaFallback(() => requestZai(messages, detailedMode, ZAI_GLM_MODEL), onToken),
     },
     {
       llm: "glm45air",
-      enabled: Boolean(process.env.OPENROUTER_API_KEY) && !manuallyDisabledProviders.has("glm45air"),
+      enabled: Boolean(OPENROUTER_API_KEY) && !manuallyDisabledProviders.has("glm45air"),
       run: () => requestOpenRouter(messages, detailedMode, OPENROUTER_GLM45_AIR_MODEL),
       stream: (onToken) => streamOpenRouter(messages, detailedMode, OPENROUTER_GLM45_AIR_MODEL, onToken, streamSignal),
     },
     {
       llm: "nvidia",
-      enabled: Boolean(process.env.OPENROUTER_API_KEY) && !manuallyDisabledProviders.has("nvidia"),
+      enabled: Boolean(OPENROUTER_API_KEY) && !manuallyDisabledProviders.has("nvidia"),
       run: () => requestOpenRouter(messages, detailedMode, OPENROUTER_MODEL),
       stream: (onToken) => streamOpenRouter(messages, detailedMode, OPENROUTER_MODEL, onToken, streamSignal),
     },
     {
       llm: "hf",
-      enabled: Boolean(process.env.HUGGINGFACE_API_KEY) && !manuallyDisabledProviders.has("hf"),
+      enabled: Boolean(HUGGINGFACE_API_KEY) && !manuallyDisabledProviders.has("hf"),
       run: () => requestHuggingFace(messages, detailedMode),
       stream: (onToken) => streamHuggingFace(messages, detailedMode, onToken),
     },
@@ -2381,7 +2393,6 @@ async function startServer() {
 }
 
 startServer();
-
 
 
 
