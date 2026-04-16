@@ -87,6 +87,9 @@ function isAllowedOrigin(origin) {
 
   try {
     const parsed = new URL(origin);
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+      return true;
+    }
     const hostname = parsed.hostname.toLowerCase();
     if (hostname === "localhost" || hostname === "127.0.0.1") return true;
     if (hostname.endsWith(".github.io")) return true;
@@ -2536,7 +2539,6 @@ async function startServer() {
 }
 
 startServer();
-
 
 
 
