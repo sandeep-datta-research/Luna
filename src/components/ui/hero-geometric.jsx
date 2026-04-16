@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import Orb from "@/components/ui/orb";
 import { cn } from "@/lib/utils";
-import { getAuthToken, getStoredUser, hydrateUser } from "@/lib/api-client";
+import { getStoredUser, hydrateUser } from "@/lib/api-client";
 
 const Motion = motion;
 
@@ -82,9 +82,8 @@ export default function HeroGeometric() {
   useEffect(() => {
     const syncAuth = () => {
       if (typeof window === "undefined") return;
-      const token = getAuthToken();
       const user = getStoredUser();
-      setIsSignedIn(Boolean(token && (user?.email || user?.name)));
+      setIsSignedIn(Boolean(user?.email || user?.name));
     };
 
     syncAuth();
@@ -255,4 +254,3 @@ export default function HeroGeometric() {
     </section>
   );
 }
-

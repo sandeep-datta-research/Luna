@@ -44,25 +44,22 @@ export const AUTH_USER_STORAGE_KEY = "luna_google_user";
 export const GUEST_ID_STORAGE_KEY = "luna_guest_id";
 
 let cachedUser = null;
-let cachedGuestId = "";
 
 function isHtml(rawText) {
   const text = (rawText || "").trim();
   return text.startsWith("<!DOCTYPE") || text.startsWith("<html");
 }
 
-function createGuestId() {
-  const random =
-    typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
-      ? crypto.randomUUID().replace(/-/g, "")
-      : `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
-
-  return `guest_${random.slice(0, 18)}`;
+function readCookie(name) {
+  if (typeof document === "undefined") return "";
+  const source = `; ${document.cookie || ""}`;
+  const parts = source.split(`; ${name}=`);
+  if (parts.length < 2) return "";
+  return decodeURIComponent(parts.pop()?.split(";").shift() || "");
 }
 
 export function getAuthToken() {
-  if (typeof window === "undefined") return "";
-  return (localStorage.getItem(AUTH_TOKEN_STORAGE_KEY) || "").trim();
+  return readCookie(AUTH_TOKEN_STORAGE_KEY).trim();
 }
 
 export function getStoredUser() {
@@ -72,7 +69,6 @@ export function getStoredUser() {
 export function setStoredUser(user) {
   cachedUser = user ? { ...user } : null;
   if (typeof window !== "undefined") {
-    localStorage.removeItem(AUTH_USER_STORAGE_KEY);
     window.dispatchEvent(new Event("luna-auth-changed"));
   }
 }
@@ -80,15 +76,8 @@ export function setStoredUser(user) {
 export function clearStoredUser() {
   cachedUser = null;
   if (typeof window !== "undefined") {
-    localStorage.removeItem(AUTH_USER_STORAGE_KEY);
     window.dispatchEvent(new Event("luna-auth-changed"));
   }
-}
-
-export function getGuestId() {
-  if (cachedGuestId) return cachedGuestId;
-  cachedGuestId = createGuestId();
-  return cachedGuestId;
 }
 
 export function buildRequestHeaders(headers = {}, { includeAuth = true, includeGuest = true } = {}) {
@@ -101,12 +90,8 @@ export function buildRequestHeaders(headers = {}, { includeAuth = true, includeG
     }
   }
 
-  if (includeGuest && !IS_IOS) {
-    const guestId = getGuestId();
-    if (guestId && !nextHeaders.has("x-luna-guest-id")) {
-      nextHeaders.set("x-luna-guest-id", guestId);
-    }
-  }
+  void includeGuest;
+  void IS_IOS;
 
   return Object.fromEntries(nextHeaders.entries());
 }
@@ -115,6 +100,7 @@ async function fetchJsonSafe(url, options = {}, headerMode = { includeAuth: true
   try {
     const response = await fetch(url, {
       ...options,
+      credentials: options.credentials || "include",
       headers: buildRequestHeaders(options.headers || {}, headerMode),
     });
 
@@ -182,16 +168,12 @@ export async function fetchApi(path, options = {}, headerMode = { includeAuth: t
 
 export async function hydrateUser() {
   const token = getAuthToken();
-  if (!token) {
-    clearStoredUser();
-    return null;
-  }
-
   if (cachedUser?.id) {
     return cachedUser;
   }
 
-  const result = await fetchApi("/api/auth/me", { headers: { Authorization: `Bearer ${token}` } }, { includeAuth: false, includeGuest: false });
+  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+  const result = await fetchApi("/api/auth/me", { headers }, { includeAuth: false, includeGuest: false });
   if (result.ok && result.data?.user) {
     setStoredUser(result.data.user);
     return result.data.user;
@@ -227,6 +209,7 @@ function parseSseEvent(rawEvent) {
 async function streamSse(url, options = {}, handlers = {}, headerMode = { includeAuth: true, includeGuest: true }) {
   const response = await fetch(url, {
     ...options,
+    credentials: options.credentials || "include",
     headers: buildRequestHeaders(options.headers || {}, headerMode),
   });
 

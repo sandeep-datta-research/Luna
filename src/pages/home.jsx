@@ -4,7 +4,7 @@ import { Shield } from "lucide-react";
 import HeroGeometric from "@/components/ui/hero-geometric";
 import AboutUs1 from "@/components/mvpblocks/about-us-1";
 import TestimonialsCarousel from "@/components/mvpblocks/testimonials-carousel";
-import { fetchApi, getAuthToken, getStoredUser, hydrateUser } from "@/lib/api-client";
+import { fetchApi, getStoredUser, hydrateUser } from "@/lib/api-client";
 import CardNav from "@/component/CardNav";
 import logo from "@/assets/luna.png";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
@@ -90,15 +90,14 @@ function getSignedInSnapshot() {
     return { email: "", name: "", isSignedIn: false };
   }
 
-  const token = getAuthToken();
   const user = getStoredUser();
-  if (!user || !token) {
+  if (!user) {
     return { email: "", name: "", isSignedIn: false };
   }
 
   const email = normalizeEmail(user?.email);
   const name = typeof user?.name === "string" ? user.name.trim() : "";
-  return { email, name, isSignedIn: Boolean(email && token) };
+  return { email, name, isSignedIn: Boolean(email) };
 }
 
 export default function Home() {

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Mail, Lock, Eye, EyeOff, Loader2, Palette, Users, Cloud, ShieldCheck } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import GoogleOAuthCard from "@/components/auth/GoogleOAuthCard";
-import { AUTH_TOKEN_STORAGE_KEY, fetchApi, setStoredUser } from "@/lib/api-client";
+import { fetchApi, setStoredUser } from "@/lib/api-client";
 
 const featureItems = [
   {
@@ -59,7 +59,6 @@ export default function SignInPage() {
       }
 
       if (typeof window !== "undefined") {
-        localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, result.data.token);
         setStoredUser(result.data.user);
       }
 
@@ -208,4 +207,3 @@ export default function SignInPage() {
     </div>
   );
 }
-

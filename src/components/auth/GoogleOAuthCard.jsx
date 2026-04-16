@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  AUTH_TOKEN_STORAGE_KEY,
   fetchApi,
-  getAuthToken,
   getStoredUser,
   setStoredUser,
   clearStoredUser,
@@ -17,16 +15,13 @@ function notifyAuthChange() {
   window.dispatchEvent(new Event("luna-auth-changed"));
 }
 
-function setStoredAuth({ user, token }) {
-  if (typeof window === "undefined") return;
-  if (token) localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
+function setStoredAuth({ user }) {
   if (user) setStoredUser(user);
   notifyAuthChange();
 }
 
 function clearStoredAuth() {
   if (typeof window === "undefined") return;
-  localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
   clearStoredUser();
   notifyAuthChange();
 }
@@ -102,7 +97,6 @@ export default function GoogleOAuthCard({ onSignedIn } = {}) {
   const buttonRef = useRef(null);
   const [isReady, setIsReady] = useState(false);
   const [runtimeError, setRuntimeError] = useState("");
-  const [token, setToken] = useState(getAuthToken);
   const [user, setUser] = useState(getStoredUser);
 
   const error = !GOOGLE_CLIENT_ID
@@ -110,24 +104,17 @@ export default function GoogleOAuthCard({ onSignedIn } = {}) {
     : runtimeError;
 
   useEffect(() => {
-    const existingToken = getAuthToken();
-    if (!existingToken) return;
-
     const verifySession = async () => {
-      const result = await fetchAuthApi("/api/auth/me", {
-        headers: { Authorization: `Bearer ${existingToken}` },
-      });
+      const result = await fetchAuthApi("/api/auth/me");
 
       if (!result.ok || !result.data?.user) {
         clearStoredAuth();
-        setToken("");
         setUser(null);
         return;
       }
 
-      setToken(existingToken);
       setUser(result.data.user);
-      setStoredAuth({ user: result.data.user, token: existingToken });
+      setStoredAuth({ user: result.data.user });
     };
 
     verifySession();
@@ -168,9 +155,8 @@ export default function GoogleOAuthCard({ onSignedIn } = {}) {
             }
 
             setRuntimeError("");
-            setToken(result.data.token);
             setUser(result.data.user);
-            setStoredAuth({ user: result.data.user, token: result.data.token });
+            setStoredAuth({ user: result.data.user });
             if (typeof onSignedIn === "function") {
               onSignedIn(result.data.user);
             }
@@ -202,20 +188,13 @@ export default function GoogleOAuthCard({ onSignedIn } = {}) {
   }, [onSignedIn]);
 
   const handleSignOut = async () => {
-    const currentToken = token || getAuthToken();
-
-    if (currentToken) {
-      await fetchAuthApi("/api/auth/logout", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${currentToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ token: currentToken }),
-      });
-    }
-
-    setToken("");
+    await fetchAuthApi("/api/auth/logout", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({}),
+    });
     setUser(null);
     clearStoredAuth();
   };

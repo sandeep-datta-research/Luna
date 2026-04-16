@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { CheckCircle2, Crown, Megaphone, RefreshCw, Save, Shield, ShieldAlert, SlidersHorizontal, Users, WandSparkles, XCircle } from "lucide-react";
-import { fetchApi, getAuthToken, getStoredUser, hydrateUser } from "@/lib/api-client";
+import { fetchApi, getStoredUser, hydrateUser } from "@/lib/api-client";
 import CardNav from "@/component/CardNav";
 import logo from "@/assets/luna.png";
 
@@ -27,7 +27,7 @@ const ADMIN_NAV_ITEMS = [
     label: "Pricing",
     bgColor: "#1E1630",
     textColor: "#fff",
-    links: [{ label: "Pricing", href: "/#pricing", ariaLabel: "View pricing" }],
+    links: [{ label: "Pricing", href: "/pricing", ariaLabel: "View pricing" }],
   },
   {
     label: "Profile",
@@ -222,12 +222,6 @@ export default function AdminDashboard() {
 
       if (!ALLOWED_ADMIN_EMAILS.has(email)) {
         setAuthState("denied");
-        return;
-      }
-
-      const token = getAuthToken();
-      if (!token) {
-        setAuthState("signin");
         return;
       }
 
@@ -1069,9 +1063,6 @@ export default function AdminDashboard() {
     </div>
   );
 }
-
-
-
 
 
 

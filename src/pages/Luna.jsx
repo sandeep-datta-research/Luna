@@ -25,7 +25,7 @@ import {
   X,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { fetchApi, streamApi, getAuthToken, getStoredUser, hydrateUser } from "@/lib/api-client";
+import { fetchApi, streamApi, getStoredUser, hydrateUser } from "@/lib/api-client";
 import lunaLogo from "@/assets/luna.png";
 import MarkdownMessage from "@/components/ui/chat/MarkdownMessage";
 import OnboardingFlow from "@/components/onboarding/OnboardingFlow";
@@ -264,7 +264,7 @@ function MessageBubble({ message, showLunaHeader, isLatestAssistant, onCopy, onR
       transition={{ type: "spring", stiffness: 300, damping: 24 }}
       className={`group flex ${isUser ? "justify-end" : "justify-start"}`}
     >
-      <div className={`max-w-[88%] ${isUser ? "items-end" : "items-start"} flex flex-col gap-1`}>
+      <div className={`flex max-w-full flex-col gap-1 ${isUser ? "items-end md:max-w-[78%]" : "items-start md:max-w-[82%]"}`}>
         {!isUser && showLunaHeader ? (
           <div className="mb-1 flex items-center gap-2 text-xs text-[#9aa2c7]">
             <span className="inline-flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border border-white/20 bg-white/5">
@@ -284,7 +284,7 @@ function MessageBubble({ message, showLunaHeader, isLatestAssistant, onCopy, onR
           {isUser ? message.content : <MarkdownMessage content={message.content} />}
 
           {!isUser ? (
-            <div className="pointer-events-none absolute top-2 right-2 flex items-center gap-1 opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100">
+            <div className="absolute right-2 top-2 flex items-center gap-1 opacity-100 transition-opacity duration-150 md:pointer-events-none md:opacity-0 md:group-hover:pointer-events-auto md:group-hover:opacity-100">
               <button
                 type="button"
                 onClick={() => onCopy(message.content)}
@@ -379,9 +379,9 @@ function Composer({
           {attachments.map((file, index) => (
             <div
               key={`${file}-${index}`}
-              className="inline-flex items-center gap-2 rounded-full border border-[#38406a] bg-[#222846] px-3 py-1 text-xs text-[#d4dbff]"
+              className="inline-flex max-w-full items-center gap-2 rounded-full border border-[#38406a] bg-[#222846] px-3 py-1 text-xs text-[#d4dbff]"
             >
-              <span className="truncate max-w-[140px]">{file}</span>
+              <span className="max-w-[160px] truncate sm:max-w-[220px]">{file}</span>
               <button type="button" onClick={() => onRemoveAttachment(index)}>
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -404,10 +404,10 @@ function Composer({
         }}
         placeholder="Message Luna..."
         disabled={disabled}
-        className="luna-scrollbar w-full resize-none overflow-y-auto bg-transparent px-2 py-1 text-sm text-[#eef1ff] outline-none placeholder:text-[#7a7f9a]"
+        className="luna-scrollbar w-full resize-none overflow-y-auto bg-transparent px-2 py-1 text-[15px] text-[#eef1ff] outline-none placeholder:text-[#7a7f9a] sm:text-sm"
       />
-      <div className="mt-2 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
+      <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-2">
           <input
             ref={fileInputRef}
             type="file"
@@ -459,13 +459,13 @@ function Composer({
           </motion.button>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-end gap-2">
           <motion.button
             whileTap={{ scale: 0.97 }}
             type="button"
             onClick={onToggleVoice}
             disabled={transcribing}
-            className={`relative inline-flex h-9 min-w-9 items-center justify-center rounded-full border px-2 transition ${
+            className={`relative inline-flex h-10 min-w-10 items-center justify-center rounded-full border px-2 transition ${
               voiceActive
                 ? "border-emerald-400/70 bg-emerald-500/15 text-emerald-200"
                 : "border-[#2f3558] bg-[#202642] text-[#cfd5ff] hover:border-[#5b6af5]/70"
@@ -490,7 +490,7 @@ function Composer({
             type="button"
             onClick={onSend}
             disabled={sendDisabled || !value.trim()}
-            className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition ${
+            className={`inline-flex h-10 w-10 items-center justify-center rounded-full transition ${
               value.trim() && !sendDisabled
                 ? "bg-[#5b6af5] text-white shadow-[0_0_0_8px_rgba(91,106,245,0.14)]"
                 : "bg-[#343858] text-[#8b93bf]"
@@ -510,9 +510,7 @@ export default function Luna() {
   const initialUser = useMemo(() => loadUser(), []);
   const [user, setUser] = useState(initialUser);
   const isSignedIn = useMemo(() => {
-    if (typeof window === "undefined") return false;
-    const token = getAuthToken();
-    return Boolean(token && user?.email && user.email !== "guest@luna.ai");
+    return Boolean(user?.email && user.email !== "guest@luna.ai");
   }, [user?.email]);
 
   const defaultProjects = useMemo(() => getDefaultProjects(), []);
@@ -812,9 +810,8 @@ export default function Luna() {
 
     const loadOnboardingStatus = async () => {
       if (typeof window === "undefined") return;
-      const token = getAuthToken();
       const isGuest = !user?.email || user.email === "guest@luna.ai";
-      if (!token || isGuest) {
+      if (isGuest) {
         if (!canceled) setOnboardingState({ loading: false, answered: true });
         return;
       }
@@ -869,6 +866,20 @@ export default function Luna() {
       document.head.appendChild(link);
     }
   }, []);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return undefined;
+
+    const shouldLock = mobileSidebarOpen || newProjectOpen;
+    const previousOverflow = document.body.style.overflow;
+    if (shouldLock) {
+      document.body.style.overflow = "hidden";
+    }
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mobileSidebarOpen, newProjectOpen]);
 
   useEffect(() => {
     let canceled = false;
@@ -1093,7 +1104,7 @@ export default function Luna() {
         conversationId: text(result.data?.conversationId),
       };
     },
-    [buildPromptPayload, selectedModel],
+    [buildPromptPayload, isSignedIn, selectedModel],
   );
 
   const requestLunaStream = useCallback(
@@ -1145,7 +1156,7 @@ export default function Luna() {
         handlers,
       );
     },
-    [buildPromptPayload, selectedModel],
+    [buildPromptPayload, isSignedIn, selectedModel],
   );
   const sendMessage = useCallback(
     async (manualPrompt, options = { regenerate: false, applyToggles: true, sessionId: "" }) => {
@@ -1642,7 +1653,7 @@ export default function Luna() {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.35, ease: "easeOut" }}
-      className="relative h-screen overflow-hidden bg-[#0d0f17] text-[#f0f0ff]"
+      className="relative min-h-[100dvh] overflow-hidden bg-[#0d0f17] text-[#f0f0ff]"
       style={{ fontFamily: "'DM Sans', sans-serif" }}
     >
       <style>{`
@@ -1682,7 +1693,7 @@ export default function Luna() {
         }}
       />
 
-      <div className="relative z-10 flex h-full">
+      <div className="relative z-10 flex min-h-[100dvh]">
         <aside
           className={`hidden h-full flex-col overflow-hidden border-r border-[#1e2235] bg-[#13151f] shadow-[inset_-1px_0_0_rgba(30,34,53,0.8)] transition-[width] duration-300 md:flex ${
             isSidebarOpen ? "w-[260px]" : "w-[82px]"
@@ -1896,9 +1907,7 @@ export default function Luna() {
                     <p className="mt-2 text-xs text-[#bdc3e2]">Upgrade to Luna Pro to unlock faster response lanes.</p>
                     <button
                       type="button"
-                      onClick={() => {
-                        window.location.assign("/#pricing");
-                      }}
+                      onClick={() => navigate("/pricing")}
                       className="mt-2 inline-flex rounded-lg border border-[#5b6af5]/65 bg-[#5b6af5]/20 px-3 py-1.5 text-xs font-medium text-[#e8ebff] transition hover:bg-[#5b6af5]/30"
                     >
                       View Plan
@@ -1934,32 +1943,6 @@ export default function Luna() {
           </div>
         </aside>
 
-        <aside className="z-20 flex h-full w-12 flex-col border-r border-[#1e2235] bg-[#13151f] md:hidden">
-          <button
-            type="button"
-            onClick={() => setMobileSidebarOpen(true)}
-            className="mx-auto mt-3 rounded-lg border border-[#2f3558] bg-[#1d2238] p-2 text-[#d2d8ff]"
-          >
-            <Menu className="h-4 w-4" />
-          </button>
-
-          <button
-            type="button"
-            onClick={() => navigate("/")}
-            className="mx-auto mt-3 rounded-lg border border-[#2f3558] bg-[#1d2238] p-2 text-[#d2d8ff]"
-          >
-            <Home className="h-4 w-4" />
-          </button>
-
-          <button
-            type="button"
-            onClick={() => createFreshSession()}
-            className="mx-auto mt-3 rounded-lg border border-[#2f3558] bg-[#1d2238] p-2 text-[#d2d8ff]"
-          >
-            <Plus className="h-4 w-4" />
-          </button>
-        </aside>
-
         <AnimatePresence>
           {mobileSidebarOpen ? (
             <motion.div
@@ -1967,12 +1950,14 @@ export default function Luna() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="fixed inset-0 z-50 bg-black/55 backdrop-blur-sm md:hidden"
+              onClick={() => setMobileSidebarOpen(false)}
             >
               <motion.div
                 initial={{ x: -22, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 exit={{ x: -22, opacity: 0 }}
-                className="h-full w-[88vw] max-w-[300px] border-r border-[#1e2235] bg-[#13151f]"
+                className="h-full w-[90vw] max-w-[340px] border-r border-[#1e2235] bg-[#13151f]"
+                onClick={(event) => event.stopPropagation()}
               >
                 <div className="flex h-14 items-center justify-between border-b border-[#232841] px-3">
                   <div className="flex items-center gap-2">
@@ -2032,10 +2017,40 @@ export default function Luna() {
           ) : null}
         </AnimatePresence>
         <section className="relative flex min-w-0 flex-1 flex-col">
+          <div className="flex items-center justify-between gap-3 border-b border-[#1d2233] px-3 py-3 md:hidden">
+            <div className="flex min-w-0 items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setMobileSidebarOpen(true)}
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#2f3558] bg-[#1d2238] text-[#d2d8ff]"
+                aria-label="Open navigation"
+              >
+                <Menu className="h-4 w-4" />
+              </button>
+              <div className="min-w-0">
+                <p className="text-[11px] uppercase tracking-[0.16em] text-[#7f87b0]">Luna Chat</p>
+                <h1 className="truncate text-base font-semibold text-[#f4f6ff]" style={{ fontFamily: "'Syne', sans-serif" }}>
+                  {activeSession?.title || "New chat"}
+                </h1>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => createFreshSession()}
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#2f3558] bg-[#1d2238] text-[#d2d8ff]"
+                aria-label="Start a new chat"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+              <ModelSelector selectedModel={selectedModel} onSelect={setSelectedModel} />
+            </div>
+          </div>
+
           <div className="px-3 pt-3 md:px-6 md:pt-4">
             <AnnouncementBanner className="mb-3" />
           </div>
-          <div className="flex items-center justify-end px-3 md:px-6">
+          <div className="hidden items-center justify-end px-3 md:flex md:px-6">
             <ModelSelector selectedModel={selectedModel} onSelect={setSelectedModel} />
           </div>
 
@@ -2053,17 +2068,21 @@ export default function Luna() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -12 }}
                   transition={{ duration: 0.35 }}
-                  className="flex h-full flex-col items-center justify-center"
+                  className="flex h-full flex-col items-center justify-center py-6 md:py-10"
                 >
                   <motion.h2
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ type: "spring", duration: 0.7 }}
-                    className="mb-6 text-center text-[2.2rem] font-semibold text-[#f5f7ff] md:text-[2.4rem]"
+                    className="mb-4 max-w-[12ch] text-center text-[1.95rem] font-semibold leading-tight text-[#f5f7ff] sm:text-[2.2rem] md:mb-6 md:max-w-none md:text-[2.4rem]"
                     style={{ fontFamily: "'Syne', sans-serif" }}
                   >
                     What&apos;s on your mind today?
                   </motion.h2>
+
+                  <p className="mb-6 max-w-xl text-center text-sm leading-6 text-[#9da6d4]">
+                    Search the web, draft images, or continue your last thread with a layout tuned for phone and laptop.
+                  </p>
 
                   <Composer
                     compact
@@ -2091,7 +2110,7 @@ export default function Luna() {
                       hidden: {},
                       show: { transition: { staggerChildren: 0.05 } },
                     }}
-                    className="luna-scrollbar mt-5 flex w-full max-w-4xl gap-2 overflow-x-auto pb-1"
+                    className="luna-scrollbar mt-5 flex w-full max-w-4xl flex-wrap justify-center gap-2 pb-1"
                   >
                     {QUICK_CHIPS.map((chip) => (
                       <motion.button
@@ -2099,7 +2118,7 @@ export default function Luna() {
                         whileTap={{ scale: 0.97 }}
                         variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}
                         onClick={() => setInputValue(chip.prompt)}
-                        className="whitespace-nowrap rounded-full border border-[#2d3353] bg-[#1a1f35] px-3 py-1.5 text-xs text-[#d7ddff] transition duration-150 hover:-translate-y-0.5 hover:border-[#5b6af5] hover:shadow-[0_8px_24px_rgba(91,106,245,0.2)]"
+                        className="rounded-full border border-[#2d3353] bg-[#1a1f35] px-3 py-1.5 text-xs text-[#d7ddff] transition duration-150 hover:-translate-y-0.5 hover:border-[#5b6af5] hover:shadow-[0_8px_24px_rgba(91,106,245,0.2)]"
                       >
                         <span className="mr-1.5">{chip.icon}</span>
                         {chip.label}
@@ -2114,9 +2133,9 @@ export default function Luna() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 14 }}
                   transition={{ duration: 0.25 }}
-                  className="luna-scrollbar h-full overflow-y-auto"
+                  className="luna-scrollbar h-full overflow-y-auto pr-1"
                 >
-                  <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 pb-6 pt-3">
+                  <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 pb-6 pt-3 md:pb-8">
                     {historyLoading ? (
                       <div className="flex items-center gap-3 rounded-2xl border border-[#2a2d45] bg-[#141a2d]/80 px-4 py-3 text-sm text-[#cfd4ff]">
                         <Loader2 className="h-4 w-4 animate-spin text-[#8f9af5]" />
@@ -2143,7 +2162,7 @@ export default function Luna() {
           </div>
 
           {visibleMain ? (
-            <div className="border-t border-[#232841] px-3 py-3 md:px-6">
+            <div className="border-t border-[#232841] bg-[#0d0f17]/92 px-3 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:px-6">
               <div className="mx-auto max-w-4xl">
                 <Composer
                   value={inputValue}

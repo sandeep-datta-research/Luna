@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence, easeInOut } from "framer-motion";
 import { Menu, X, ArrowRight, Zap, Search } from "lucide-react";
 import { Link } from "react-router-dom";
-import { getAuthToken, getStoredUser, hydrateUser } from "@/lib/api-client";
+import { getStoredUser, hydrateUser } from "@/lib/api-client";
 const navItems = [
   { name: "Home", href: "/" },
   { name: "Features", href: "/features" },
@@ -27,9 +27,8 @@ export default function Header2() {
   useEffect(() => {
     const syncAuthState = () => {
       if (typeof window === "undefined") return;
-      const token = getAuthToken();
       const user = getStoredUser();
-      setIsSignedIn(Boolean(token && (user?.email || user?.name)));
+      setIsSignedIn(Boolean(user?.email || user?.name));
     };
 
     syncAuthState();
@@ -251,4 +250,3 @@ export default function Header2() {
     </>
   );
 }
-

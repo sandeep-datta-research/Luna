@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import { GoArrowUpRight } from 'react-icons/go';
 import { Link } from 'react-router-dom';
-import { getAuthToken, getStoredUser, hydrateUser } from '@/lib/api-client';
+import { getStoredUser, hydrateUser } from '@/lib/api-client';
 
 const CardNav = ({
   logo,
@@ -117,9 +117,8 @@ const CardNav = ({
   useEffect(() => {
     const syncAuthState = () => {
       if (typeof window === 'undefined') return;
-      const token = getAuthToken();
       const user = getStoredUser();
-      setIsSignedIn(Boolean(token && (user?.email || user?.name)));
+      setIsSignedIn(Boolean(user?.email || user?.name));
     };
 
     syncAuthState();

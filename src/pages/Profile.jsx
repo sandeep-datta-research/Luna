@@ -135,7 +135,7 @@ export default function Profile() {
           <h1 className="text-2xl font-semibold text-white sm:text-3xl">User Dashboard</h1>
           <div className="flex items-center gap-2">
             <Link to="/chat" className="rounded-lg border border-zinc-700 bg-zinc-900/70 px-3 py-2 text-sm hover:bg-zinc-800">Open Luna</Link>
-            <Link to="/#pricing" className="rounded-lg border border-violet-400/40 bg-violet-500/20 px-3 py-2 text-sm text-violet-100 hover:bg-violet-500/30">Upgrade</Link>
+            <Link to="/pricing" className="rounded-lg border border-violet-400/40 bg-violet-500/20 px-3 py-2 text-sm text-violet-100 hover:bg-violet-500/30">Upgrade</Link>
           </div>
         </div>
 
@@ -254,7 +254,7 @@ export default function Profile() {
                 <div className="flex items-center gap-2 text-violet-200"><Crown className="h-4 w-4" />Luna Pro</div>
                 <p className="mt-2 text-sm text-zinc-300">Pay at <span className="font-semibold text-zinc-100">{profile?.billing?.upiId || "9366183700@fam"}</span></p>
                 <p className="mt-1 text-xs text-zinc-400">Submit transaction id from pricing page. Admin activates manually.</p>
-                <Link to="/#pricing" className="mt-3 inline-flex rounded-lg border border-violet-400/40 bg-violet-500/20 px-3 py-1.5 text-xs text-violet-100 hover:bg-violet-500/30">
+                <Link to="/pricing" className="mt-3 inline-flex rounded-lg border border-violet-400/40 bg-violet-500/20 px-3 py-1.5 text-xs text-violet-100 hover:bg-violet-500/30">
                   Go to Pricing
                 </Link>
               </div>

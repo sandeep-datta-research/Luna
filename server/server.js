@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import axios from "axios";
 import dotenv from "dotenv";
+import { randomUUID } from "crypto";
 import {
   countUserMessagesForDate,
   createConversation,
@@ -63,6 +64,120 @@ const ZAI_API_URL = process.env.ZAI_API_URL || "https://api.z.ai/api/paas/v4/cha
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash";
 const HUGGINGFACE_MODEL = process.env.HUGGINGFACE_MODEL || "HuggingFaceH4/zephyr-7b-beta";
 const GOOGLE_CLIENT_ID = (process.env.GOOGLE_CLIENT_ID || "").trim();
+const COOKIE_AUTH_TOKEN = "luna_auth_token";
+const COOKIE_GUEST_ID = "luna_guest_id";
+
+function parseAllowedOrigins() {
+  return [
+    process.env.CORS_ALLOWED_ORIGINS,
+    process.env.FRONTEND_URL,
+    process.env.APP_URL,
+    process.env.SITE_URL,
+  ]
+    .flatMap((value) => `${value || ""}`.split(","))
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
+
+const EXPLICIT_ALLOWED_ORIGINS = new Set(parseAllowedOrigins());
+
+function isAllowedOrigin(origin) {
+  if (!origin) return true;
+  if (EXPLICIT_ALLOWED_ORIGINS.has(origin)) return true;
+
+  try {
+    const parsed = new URL(origin);
+    const hostname = parsed.hostname.toLowerCase();
+    if (hostname === "localhost" || hostname === "127.0.0.1") return true;
+    if (hostname.endsWith(".github.io")) return true;
+    if (hostname.endsWith(".onrender.com")) return true;
+  } catch {
+    return false;
+  }
+
+  return false;
+}
+
+function buildCookieOptions(req, overrides = {}) {
+  const requestOrigin = `${req.get("origin") || ""}`.trim();
+  const forwardedProto = `${req.get("x-forwarded-proto") || ""}`.trim().toLowerCase();
+  const inferredSecure =
+    forwardedProto === "https" ||
+    requestOrigin.startsWith("https://") ||
+    (process.env.NODE_ENV || "").toLowerCase() === "production";
+  const secure =
+    overrides.secure ?? inferredSecure;
+  const sameSite = secure ? "None" : "Lax";
+  const parts = [
+    `Path=${overrides.path || "/"}`,
+    `SameSite=${overrides.sameSite || sameSite}`,
+  ];
+
+  if (secure) parts.push("Secure");
+  if (overrides.httpOnly !== false) parts.push("HttpOnly");
+  if (overrides.maxAge !== undefined) parts.push(`Max-Age=${Math.max(0, Math.floor(overrides.maxAge))}`);
+  return parts.join("; ");
+}
+
+function appendCookie(res, name, value, options) {
+  const nextValue = `${name}=${encodeURIComponent(value)}; ${options}`;
+  const existing = res.getHeader("Set-Cookie");
+  if (!existing) {
+    res.setHeader("Set-Cookie", nextValue);
+    return;
+  }
+
+  if (Array.isArray(existing)) {
+    res.setHeader("Set-Cookie", [...existing, nextValue]);
+    return;
+  }
+
+  res.setHeader("Set-Cookie", [existing, nextValue]);
+}
+
+function readCookie(req, name) {
+  const raw = `${req.get("cookie") || ""}`;
+  if (!raw) return "";
+
+  const parts = raw.split(";");
+  for (const item of parts) {
+    const [key, ...rest] = item.split("=");
+    if ((key || "").trim() !== name) continue;
+    return decodeURIComponent(rest.join("=").trim());
+  }
+  return "";
+}
+
+function setAuthCookie(req, res, token = "", expiresAt = "") {
+  if (!token) return;
+  const expiresMs = new Date(expiresAt).getTime();
+  const maxAge = Number.isFinite(expiresMs) ? Math.max(0, Math.floor((expiresMs - Date.now()) / 1000)) : 30 * 24 * 60 * 60;
+  appendCookie(
+    res,
+    COOKIE_AUTH_TOKEN,
+    token,
+    buildCookieOptions(req, { maxAge }),
+  );
+}
+
+function clearAuthCookie(req, res) {
+  appendCookie(
+    res,
+    COOKIE_AUTH_TOKEN,
+    "",
+    buildCookieOptions(req, { maxAge: 0 }),
+  );
+}
+
+function setGuestCookie(req, res, guestId = "") {
+  if (!guestId) return;
+  appendCookie(
+    res,
+    COOKIE_GUEST_ID,
+    guestId,
+    buildCookieOptions(req, { maxAge: 365 * 24 * 60 * 60, httpOnly: false }),
+  );
+}
 
 function readProviderSecret(name) {
   const raw = typeof process.env[name] === "string" ? process.env[name] : "";
@@ -272,7 +387,16 @@ const manuallyDisabledProviders = new Set(
     .filter(Boolean),
 );
 
-app.use(cors());
+app.use(cors({
+  origin(origin, callback) {
+    if (isAllowedOrigin(origin)) {
+      callback(null, origin || true);
+      return;
+    }
+    callback(new Error("Origin not allowed by CORS"));
+  },
+  credentials: true,
+}));
 app.use(express.json());
 
 app.get("/", (_req, res) => {
@@ -316,11 +440,27 @@ function normalizeGuestId(rawValue) {
 }
 
 function readGuestId(req) {
-  return normalizeGuestId(req.get("x-luna-guest-id") || "");
+  return normalizeGuestId(
+    readCookie(req, COOKIE_GUEST_ID) ||
+    req.get("x-luna-guest-id") ||
+    "",
+  );
 }
 
-async function resolveRequestUser(req) {
-  const token = readBearerToken(req);
+function ensureGuestId(req, res) {
+  const existing = readGuestId(req);
+  if (existing && existing !== "local") {
+    setGuestCookie(req, res, existing);
+    return existing;
+  }
+
+  const nextGuestId = normalizeGuestId(`guest_${randomUUID().replace(/-/g, "")}`);
+  setGuestCookie(req, res, nextGuestId);
+  return nextGuestId;
+}
+
+async function resolveRequestUser(req, res) {
+  const token = readBearerToken(req) || readCookie(req, COOKIE_AUTH_TOKEN);
   if (token) {
     const auth = await validateSessionToken(token);
     if (auth?.user?.id) {
@@ -328,7 +468,7 @@ async function resolveRequestUser(req) {
     }
   }
 
-  const guestId = readGuestId(req);
+  const guestId = ensureGuestId(req, res);
   return { userId: `guest:${guestId}`, user: null, token: "" };
 }
 
@@ -437,7 +577,7 @@ function sanitizeRequestStatus(raw) {
 }
 
 async function requireAuthenticatedUser(req, res) {
-  const token = readBearerToken(req);
+  const token = readBearerToken(req) || readCookie(req, COOKIE_AUTH_TOKEN);
   if (!token) {
     res.status(401).json({ error: "Unauthorized" });
     return null;
@@ -1185,6 +1325,7 @@ app.post("/api/auth/local", async (req, res) => {
     await ensureMembershipUser({ userId: user.id, email: user.email, name: user.name });
     const membership = await getMembershipByUserId(user.id);
     const session = await createSession(user.id);
+    setAuthCookie(req, res, session.token, session.expiresAt);
 
     return res.json({
       token: session.token,
@@ -1212,6 +1353,7 @@ app.post("/api/auth/google", async (req, res) => {
     await ensureMembershipUser({ userId: user.id, email: user.email, name: user.name });
     const membership = await getMembershipByUserId(user.id);
     const session = await createSession(user.id);
+    setAuthCookie(req, res, session.token, session.expiresAt);
 
     return res.json({
       token: session.token,
@@ -1258,7 +1400,8 @@ app.get("/api/auth/me", async (req, res) => {
 app.post("/api/auth/logout", async (req, res) => {
   try {
     const tokenFromBody = typeof req.body?.token === "string" ? req.body.token : "";
-    const token = readBearerToken(req) || tokenFromBody;
+    const token = readBearerToken(req) || readCookie(req, COOKIE_AUTH_TOKEN) || tokenFromBody;
+    clearAuthCookie(req, res);
     if (!token) return res.json({ ok: true });
 
     await revokeSessionToken(token);
@@ -1290,7 +1433,7 @@ app.post("/api/onboarding", async (req, res) => {
 
 app.get("/api/onboarding/status", async (req, res) => {
   try {
-    const userContext = await resolveRequestUser(req);
+    const userContext = await resolveRequestUser(req, res);
     if (!isAuthenticatedUserContext(userContext)) {
       return res.json({ answered: false, guest: true });
     }
@@ -1306,7 +1449,7 @@ app.get("/api/onboarding/status", async (req, res) => {
 app.get("/api/profile", async (req, res) => {
   try {
     const lunaSettings = await getLunaSettings();
-    const userContext = await resolveRequestUser(req);
+    const userContext = await resolveRequestUser(req, res);
     const membershipContext = await resolveMembershipContext(userContext, lunaSettings);
     const usage = await getUsageSummary(userContext, membershipContext);
 
@@ -1479,7 +1622,7 @@ app.get("/api/payments/my-requests", async (req, res) => {
 
 app.post("/api/feedback", async (req, res) => {
   try {
-    const userContext = await resolveRequestUser(req);
+    const userContext = await resolveRequestUser(req, res);
     const message = typeof req.body?.message === "string" ? req.body.message.trim() : "";
     const rating = Number(req.body?.rating || 5);
 
@@ -1603,7 +1746,7 @@ app.get("/api/metrics/users", async (req, res) => {
 
 app.get("/api/history", async (req, res) => {
   try {
-    const { userId } = await resolveRequestUser(req);
+    const { userId } = await resolveRequestUser(req, res);
     const conversations = await listConversationSummaries(userId);
     return res.json({ conversations });
   } catch (error) {
@@ -1614,7 +1757,7 @@ app.get("/api/history", async (req, res) => {
 
 app.get("/api/history/:conversationId", async (req, res) => {
   try {
-    const { userId } = await resolveRequestUser(req);
+    const { userId } = await resolveRequestUser(req, res);
     const conversation = await getConversationById(req.params.conversationId, userId);
     if (!conversation) return res.status(404).json({ error: "Conversation not found" });
     return res.json({ conversation });
@@ -1626,7 +1769,7 @@ app.get("/api/history/:conversationId", async (req, res) => {
 
 app.post("/api/history", async (req, res) => {
   try {
-    const { userId } = await resolveRequestUser(req);
+    const { userId } = await resolveRequestUser(req, res);
     const title = typeof req.body?.title === "string" ? req.body.title : "New chat";
     const conversation = await createConversation(title, userId);
     return res.status(201).json({ conversation });
@@ -1638,7 +1781,7 @@ app.post("/api/history", async (req, res) => {
 
 app.delete("/api/history/:conversationId", async (req, res) => {
   try {
-    const { userId } = await resolveRequestUser(req);
+    const { userId } = await resolveRequestUser(req, res);
     const deleted = await deleteConversation(req.params.conversationId, userId);
     if (!deleted) return res.status(404).json({ error: "Conversation not found" });
     return res.json({ ok: true });
@@ -2393,11 +2536,6 @@ async function startServer() {
 }
 
 startServer();
-
-
-
-
-
 
 
 
