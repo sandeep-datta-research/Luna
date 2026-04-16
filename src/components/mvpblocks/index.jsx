@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { CheckCircle2, Crown, Megaphone, RefreshCw, Save, Shield, ShieldAlert, SlidersHorizontal, Users, WandSparkles, XCircle } from "lucide-react";
+import { CheckCircle2, Crown, Megaphone, RefreshCw, Save, Shield, ShieldAlert, SlidersHorizontal, Sparkles, Users, WandSparkles, XCircle } from "lucide-react";
 import { fetchApi, getStoredUser, hydrateUser } from "@/lib/api-client";
 import CardNav from "@/component/CardNav";
 import logo from "@/assets/luna.png";
@@ -67,6 +67,43 @@ function statusBadge(status) {
   return "border-amber-400/35 bg-amber-500/15 text-amber-200";
 }
 
+function AdminShellSection({ title, icon: Icon, description, actions = null, children, className = "" }) {
+  return (
+    <section className={`mb-6 overflow-hidden rounded-[28px] border border-white/8 bg-[linear-gradient(180deg,rgba(18,21,35,0.96),rgba(12,14,24,0.94))] shadow-[0_28px_80px_rgba(0,0,0,0.35)] ${className}`}>
+      <div className="border-b border-white/6 px-5 py-4 sm:px-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 text-white">
+              {Icon ? <Icon className="h-5 w-5 text-violet-300" /> : null}
+              <h2 className="text-lg font-semibold">{title}</h2>
+            </div>
+            {description ? <p className="mt-1 text-sm text-zinc-400">{description}</p> : null}
+          </div>
+          {actions}
+        </div>
+      </div>
+      <div className="px-5 py-5 sm:px-6">{children}</div>
+    </section>
+  );
+}
+
+function AdminMetricCard({ label, value, tone = "default", hint }) {
+  const toneClass = {
+    default: "text-white",
+    violet: "text-violet-200",
+    emerald: "text-emerald-200",
+    amber: "text-amber-200",
+  }[tone] || "text-white";
+
+  return (
+    <div className="rounded-2xl border border-white/6 bg-white/[0.03] p-4 backdrop-blur">
+      <p className="text-[11px] uppercase tracking-[0.18em] text-zinc-500">{label}</p>
+      <p className={`mt-3 text-3xl font-semibold tracking-tight ${toneClass}`}>{value}</p>
+      {hint ? <p className="mt-2 text-xs text-zinc-500">{hint}</p> : null}
+    </div>
+  );
+}
+
 function AccessCard({ title, description, email }) {
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#07070d] px-4 text-zinc-200">
@@ -128,6 +165,10 @@ export default function AdminDashboard() {
     const counts = overview?.modelUsage?.counts || {};
     return Object.entries(counts).sort((a, b) => Number(b[1] || 0) - Number(a[1] || 0));
   }, [overview]);
+  const featuredFeedbackCount = useMemo(
+    () => feedbackItems.filter((item) => item.featured).length,
+    [feedbackItems],
+  );
 
   const isReferralExpired = (expiresAt) => {
     if (!expiresAt) return false;
@@ -532,6 +573,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="dark min-h-screen bg-[#07070d] text-zinc-100">
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_top_left,rgba(91,61,245,0.14),transparent_26%),radial-gradient(circle_at_top_right,rgba(34,211,238,0.08),transparent_24%),linear-gradient(180deg,rgba(255,255,255,0.02),transparent_18%)]" />
       <nav className="sticky top-0 z-50 border-b border-zinc-800/80 bg-[#07070d]/85 px-4 py-3 backdrop-blur-xl sm:px-6 lg:px-8">
         <div className="mx-auto w-full max-w-6xl">
           <CardNav
@@ -548,34 +590,55 @@ export default function AdminDashboard() {
         </div>
       </nav>
 
-      <main className="px-4 pb-6 pt-20 sm:px-6">
+      <main className="relative px-4 pb-8 pt-20 sm:px-6">
         <div className="mx-auto max-w-7xl">
-          <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h1 className="text-2xl font-semibold text-white sm:text-3xl">Luna Admin Dashboard</h1>
-              <p className="mt-1 text-sm text-zinc-400">Live data from users, chats, and payment requests.</p>
+          <div className="mb-6 overflow-hidden rounded-[32px] border border-white/8 bg-[linear-gradient(135deg,rgba(28,19,51,0.95),rgba(14,17,30,0.94)_50%,rgba(8,28,40,0.94))] px-5 py-6 shadow-[0_30px_90px_rgba(0,0,0,0.35)] sm:px-7">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="max-w-3xl">
+                <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-violet-300/20 bg-violet-400/10 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-violet-100">
+                  <Shield className="h-3.5 w-3.5" />
+                  Admin Control Center
+                </div>
+                <h1 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">Luna Admin Dashboard</h1>
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-300 sm:text-base">
+                  Track revenue, moderate requests, update messaging, and tune the Pro experience from one operational workspace.
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-right">
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-zinc-500">Signed in</p>
+                  <p className="mt-1 text-sm font-medium text-zinc-100">{userEmail}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={loadAdminData}
+                  disabled={loadingData || actionBusy}
+                  className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/7 px-4 py-3 text-sm text-zinc-100 transition hover:bg-white/10 disabled:opacity-60"
+                >
+                  <RefreshCw className={`h-4 w-4 ${loadingData ? "animate-spin" : ""}`} />
+                  Refresh
+                </button>
+              </div>
             </div>
-            <button
-              type="button"
-              onClick={loadAdminData}
-              disabled={loadingData || actionBusy}
-              className="inline-flex items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-800 disabled:opacity-60"
-            >
-              <RefreshCw className={`h-4 w-4 ${loadingData ? "animate-spin" : ""}`} />
-              Refresh
-            </button>
+
+            <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+              <AdminMetricCard label="Users" value={overview?.users ?? 0} hint="Total accounts tracked" />
+              <AdminMetricCard label="Pro Users" value={overview?.proUsers ?? 0} tone="violet" hint="Active premium members" />
+              <AdminMetricCard label="Revenue" value={`Rs ${overview?.revenueInr ?? 0}`} tone="emerald" hint="Captured upgrade revenue" />
+              <AdminMetricCard label="Pending" value={overview?.pendingUpgradeRequests ?? 0} tone="amber" hint="Requests needing review" />
+              <AdminMetricCard label="Featured Feedback" value={featuredFeedbackCount} hint="Visible testimonials" />
+            </div>
           </div>
 
           {error ? <div className="mb-4 rounded-xl border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">{error}</div> : null}
 
-          <section className="mb-6 rounded-2xl border border-zinc-800 bg-zinc-900/65 p-4">
-            <div className="mb-4 flex items-center gap-2 text-lg font-semibold text-white">
-              <SlidersHorizontal className="h-5 w-5 text-violet-300" />
-              Pro Controls
-            </div>
-
+          <AdminShellSection
+            title="Pro Controls"
+            icon={SlidersHorizontal}
+            description="Adjust pricing and response behavior for premium users."
+          >
             <div className="grid gap-4 lg:grid-cols-2">
-              <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-4">
+              <div className="rounded-2xl border border-white/6 bg-white/[0.03] p-4">
                 <p className="text-sm font-medium text-zinc-200">Pro plan monthly price (INR)</p>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <input
@@ -597,7 +660,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-4">
+              <div className="rounded-2xl border border-white/6 bg-white/[0.03] p-4">
                 <p className="text-sm font-medium text-zinc-200">Custom Luna prompt for Pro users</p>
                 <p className="mt-1 text-xs text-zinc-500">Only active for Pro plan chats.</p>
                 <textarea
@@ -624,14 +687,14 @@ export default function AdminDashboard() {
               <span>{settings.updatedAt ? `Updated: ${formatDate(settings.updatedAt)}` : "Not updated yet"}</span>
             </div>
             {settingsNote ? <p className="mt-2 text-xs text-cyan-200">{settingsNote}</p> : null}
-          </section>          <section className="mb-6 rounded-2xl border border-zinc-800 bg-zinc-900/65 p-4">
-            <div className="mb-4 flex items-center gap-2 text-lg font-semibold text-white">
-              <Shield className="h-5 w-5 text-violet-200" />
-              Referral Codes
-            </div>
-
+          </AdminShellSection>
+          <AdminShellSection
+            title="Referral Codes"
+            icon={Shield}
+            description="Launch discount campaigns and track referral usage."
+          >
             <div className="grid gap-4 lg:grid-cols-[1fr_1.2fr]">
-              <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-4">
+              <div className="rounded-2xl border border-white/6 bg-white/[0.03] p-4">
                 <p className="text-sm font-medium text-zinc-200">Create referral code</p>
                 <div className="mt-3 grid gap-3">
                   <input
@@ -682,7 +745,7 @@ export default function AdminDashboard() {
                 {referralNote ? <p className="mt-2 text-xs text-cyan-200">{referralNote}</p> : null}
               </div>
 
-              <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-4">
+              <div className="rounded-2xl border border-white/6 bg-white/[0.03] p-4">
                 <p className="text-sm font-medium text-zinc-200">Active referral codes</p>
                 {referralCodes.length === 0 ? (
                   <p className="mt-3 text-xs text-zinc-500">No referral codes yet.</p>
@@ -698,7 +761,7 @@ export default function AdminDashboard() {
                           : "border-amber-400/35 bg-amber-500/15 text-amber-200";
 
                       return (
-                        <div key={ref.id || ref.code} className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">
+                        <div key={ref.id || ref.code} className="rounded-xl border border-white/6 bg-black/20 p-3">
                           <div className="flex flex-wrap items-center justify-between gap-2">
                             <div>
                               <p className="text-sm text-zinc-100">{ref.code}</p>
@@ -737,16 +800,15 @@ export default function AdminDashboard() {
                 )}
               </div>
             </div>
-          </section>
+          </AdminShellSection>
 
-          <section className="mb-6 rounded-2xl border border-zinc-800 bg-zinc-900/65 p-4">
-            <div className="mb-4 flex items-center gap-2 text-lg font-semibold text-white">
-              <Megaphone className="h-5 w-5 text-violet-200" />
-              Announcements & Alerts
-            </div>
-
+          <AdminShellSection
+            title="Announcements & Alerts"
+            icon={Megaphone}
+            description="Control banners, promos, and time-bound notices shown inside Luna."
+          >
             <div className="grid gap-4 lg:grid-cols-[1.1fr_1fr]">
-              <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-4">
+              <div className="rounded-2xl border border-white/6 bg-white/[0.03] p-4">
                 <p className="text-sm font-medium text-zinc-200">Create announcement</p>
                 <div className="mt-3 grid gap-3">
                   <input
@@ -833,7 +895,7 @@ export default function AdminDashboard() {
                 {announcementNote ? <p className="mt-2 text-xs text-cyan-200">{announcementNote}</p> : null}
               </div>
 
-              <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-4">
+              <div className="rounded-2xl border border-white/6 bg-white/[0.03] p-4">
                 <p className="text-sm font-medium text-zinc-200">Live announcements</p>
                 {announcements.length === 0 ? (
                   <p className="mt-3 text-xs text-zinc-500">No announcements scheduled.</p>
@@ -885,7 +947,7 @@ export default function AdminDashboard() {
                 )}
               </div>
             </div>
-          </section>
+          </AdminShellSection>
 
           <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-4">
@@ -1063,6 +1125,4 @@ export default function AdminDashboard() {
     </div>
   );
 }
-
-
 
