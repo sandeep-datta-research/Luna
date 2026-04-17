@@ -74,10 +74,10 @@ export default function SignInPage() {
     <div className="relative min-h-screen overflow-hidden bg-[#07070d] p-4 text-zinc-100">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_15%,rgba(91,61,245,0.2),transparent_45%),radial-gradient(circle_at_82%_18%,rgba(236,72,153,0.15),transparent_42%),radial-gradient(circle_at_50%_100%,rgba(14,165,233,0.09),transparent_55%)]" />
 
-      <div className="relative z-10 mx-auto w-full max-w-6xl py-6">
+      <div className="relative z-10 mx-auto w-full max-w-6xl py-4 sm:py-6">
         <div className="overflow-hidden rounded-[32px] border border-zinc-800/80 bg-zinc-950/70 shadow-[0_24px_90px_rgba(0,0,0,0.45)] backdrop-blur-xl">
-          <div className="grid min-h-[720px] lg:grid-cols-2">
-            <section className="relative m-4 rounded-3xl border border-violet-300/20 bg-gradient-to-br from-[#1d1135] via-[#120f24] to-[#09090f] p-10 text-zinc-100">
+          <div className="grid min-h-[unset] lg:min-h-[720px] lg:grid-cols-2">
+            <section className="relative m-3 rounded-3xl border border-violet-300/20 bg-gradient-to-br from-[#1d1135] via-[#120f24] to-[#09090f] p-6 text-zinc-100 sm:m-4 sm:p-8 lg:p-10">
               <div className="flex items-center justify-between">
                 <h1 className="text-lg font-semibold tracking-[0.2em] text-violet-100">LUNA</h1>
                 <Link to="/" className="text-sm text-zinc-300 hover:text-white">
@@ -85,15 +85,15 @@ export default function SignInPage() {
                 </Link>
               </div>
 
-              <div className="mt-12">
-                <h2 className="text-4xl font-semibold leading-tight sm:text-5xl">Chat and Learn</h2>
+              <div className="mt-8 sm:mt-10 lg:mt-12">
+                <h2 className="text-3xl font-semibold leading-tight sm:text-4xl lg:text-5xl">Chat and Learn</h2>
                 <p className="mt-4 max-w-md text-sm text-zinc-300 sm:text-base">
                   Sign in to continue building your Luna workspace with polished UI, model routing,
                   and synced history.
                 </p>
               </div>
 
-              <div className="mt-10 space-y-5">
+              <div className="mt-8 grid gap-3 sm:mt-10 sm:gap-4 lg:space-y-5">
                 {featureItems.map((feature) => {
                   const FeatureIcon = feature.icon;
                   return (
@@ -111,10 +111,10 @@ export default function SignInPage() {
               </div>
             </section>
 
-            <section className="flex items-center px-6 py-10 sm:px-10">
+            <section className="flex items-center px-5 py-8 sm:px-8 sm:py-10 lg:px-10">
               <div className="mx-auto w-full max-w-md">
-                <div className="mb-8 text-center">
-                  <h3 className="text-3xl font-semibold text-white">Welcome Back</h3>
+                <div className="mb-7 text-center sm:mb-8">
+                  <h3 className="text-[1.75rem] font-semibold text-white sm:text-3xl">Welcome Back</h3>
                   <p className="mt-2 text-sm text-zinc-400">Sign in to continue your Luna journey</p>
                 </div>
 

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Menu, Mic, Send, Shield } from "lucide-react";
+import { Menu, Mic, Send, Shield, X } from "lucide-react";
 import HeroGeometric from "@/components/ui/hero-geometric";
 import AboutUs1 from "@/components/mvpblocks/about-us-1";
 import TestimonialsCarousel from "@/components/mvpblocks/testimonials-carousel";
@@ -102,11 +102,12 @@ function getSignedInSnapshot() {
   return { email, name, isSignedIn: Boolean(email) };
 }
 
-function MobileNavbar({ ctaHref }) {
+function MobileNavbar({ ctaHref, onOpenMenu }) {
   return (
     <header className="relative z-20 flex h-14 items-center justify-between px-4">
       <button
         type="button"
+        onClick={onOpenMenu}
         className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-white backdrop-blur-md"
         aria-label="Open menu"
       >
@@ -149,14 +150,74 @@ function MobileInputPreview({ ctaHref }) {
   );
 }
 
-function MobileLanding({ ctaHref }) {
+function MobileLanding({ ctaHref, menuOpen, onOpenMenu, onCloseMenu }) {
+  const menuLinks = [
+    { label: "Home", href: "/" },
+    { label: "Features", href: "/features" },
+    { label: "Pricing", href: "/pricing" },
+    { label: "Open Chat", href: "/chat" },
+    { label: "Profile", href: "/profile" },
+  ];
+
   return (
     <div className="md:hidden min-h-screen overflow-hidden bg-[#07070d] text-white">
       <div className="relative mx-auto flex min-h-screen w-full max-w-[420px] flex-col">
-        <MobileNavbar ctaHref={ctaHref} />
+        <MobileNavbar ctaHref={ctaHref} onOpenMenu={onOpenMenu} />
         <HeroGeometric mobileLanding />
         <MobileInputPreview ctaHref={ctaHref} />
       </div>
+
+      <AnimatePresence>
+        {menuOpen ? (
+          <>
+            <motion.button
+              type="button"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={onCloseMenu}
+              className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm"
+              aria-label="Close menu overlay"
+            />
+            <motion.div
+              initial={{ opacity: 0, y: -18 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -18 }}
+              className="fixed inset-x-4 top-4 z-40 rounded-[28px] border border-white/10 bg-[#0b1020]/95 p-4 shadow-[0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-xl"
+            >
+              <div className="mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5">
+                  <span className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-white/10">
+                    <img src={lunaLogo} alt="Luna" className="h-full w-full object-cover" />
+                  </span>
+                  <span className="text-sm font-semibold text-white">Luna</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={onCloseMenu}
+                  className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-white"
+                  aria-label="Close menu"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <nav className="space-y-2">
+                {menuLinks.map((item) => (
+                  <Link
+                    key={item.label}
+                    to={item.href}
+                    onClick={onCloseMenu}
+                    className="flex h-12 items-center rounded-2xl border border-white/8 bg-white/[0.04] px-4 text-sm font-medium text-zinc-100"
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </nav>
+            </motion.div>
+          </>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }
@@ -340,6 +401,7 @@ function DesktopHome({
 export default function Home() {
   const [showAdmin, setShowAdmin] = useState(false);
   const [isSignedIn, setIsSignedIn] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [feedbackForm, setFeedbackForm] = useState({ name: "", email: "", message: "", rating: 5 });
   const [feedbackBusy, setFeedbackBusy] = useState(false);
   const [feedbackNote, setFeedbackNote] = useState("");
@@ -500,7 +562,12 @@ export default function Home() {
 
   return (
     <>
-      <MobileLanding ctaHref={ctaHref} />
+      <MobileLanding
+        ctaHref={ctaHref}
+        menuOpen={mobileMenuOpen}
+        onOpenMenu={() => setMobileMenuOpen(true)}
+        onCloseMenu={() => setMobileMenuOpen(false)}
+      />
       <DesktopHome
         cardNavItems={cardNavItems}
         userMetrics={userMetrics}
