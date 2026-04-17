@@ -23,21 +23,21 @@ function writeDismissed(nextSet) {
 function variantStyles(variant) {
   if (variant === "discount") {
     return {
-      badge: "border-emerald-400/40 bg-emerald-500/15 text-emerald-200",
-      ring: "ring-emerald-400/40",
+      badge: "border-emerald-400/30 bg-emerald-500/12 text-emerald-200",
+      ring: "ring-emerald-400/20",
       icon: Tag,
     };
   }
   if (variant === "event") {
     return {
-      badge: "border-amber-400/40 bg-amber-500/15 text-amber-200",
-      ring: "ring-amber-400/40",
+      badge: "border-amber-400/30 bg-amber-500/12 text-amber-200",
+      ring: "ring-amber-400/20",
       icon: Megaphone,
     };
   }
   return {
-    badge: "border-violet-400/40 bg-violet-500/15 text-violet-200",
-    ring: "ring-violet-400/40",
+    badge: "border-[#5e8b83]/35 bg-[#133138] text-[#d2ece6]",
+    ring: "ring-[#4f7c75]/25",
     icon: Megaphone,
   };
 }
@@ -82,7 +82,7 @@ export default function AnnouncementBanner({ className = "" }) {
         return (
           <div
             key={item.id}
-            className={`flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/5 bg-[#101322]/80 px-4 py-3 text-sm text-zinc-200 shadow-[0_0_0_1px_rgba(124,58,237,0.08)] ring-1 ${style.ring}`}
+            className={`flex flex-wrap items-center justify-between gap-3 rounded-[24px] border border-[#1f3135] bg-[linear-gradient(180deg,rgba(9,16,19,0.9),rgba(8,14,17,0.96))] px-4 py-3 text-sm text-[#e3efec] shadow-[0_18px_38px_rgba(0,0,0,0.18)] ring-1 ${style.ring}`}
           >
             <div className="flex min-w-0 items-start gap-3">
               <span className={`mt-0.5 inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs ${style.badge}`}>
@@ -91,9 +91,9 @@ export default function AnnouncementBanner({ className = "" }) {
               </span>
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-white">{item.title}</p>
-                <p className="mt-1 text-xs text-zinc-400">{item.message}</p>
+                <p className="mt-1 text-xs text-[#84a09b]">{item.message}</p>
                 {item.ctaLabel && item.ctaHref ? (
-                  <a href={item.ctaHref} className="mt-2 inline-flex text-xs font-medium text-violet-200 hover:text-violet-100">
+                  <a href={item.ctaHref} className="mt-2 inline-flex text-xs font-medium text-[#f0d79b] hover:text-[#f7e8bf]">
                     {item.ctaLabel}
                   </a>
                 ) : null}

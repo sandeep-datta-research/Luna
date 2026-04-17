@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Pacifico&family=Sora:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Pacifico&family=Sora:wght@400;500;600;700&display=swap");
 @import "highlight.js/styles/github-dark.css";
 @import "katex/dist/katex.min.css";
 
@@ -94,8 +94,12 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: "Sora", "Segoe UI", sans-serif;
+    font-family: "Manrope", "Sora", "Segoe UI", sans-serif;
     overflow-x: hidden;
+    background:
+      radial-gradient(circle at top left, rgba(50, 103, 94, 0.22), transparent 26%),
+      radial-gradient(circle at top right, rgba(214, 171, 84, 0.12), transparent 18%),
+      linear-gradient(180deg, #071013 0%, #091518 100%);
   }
 
   img,
@@ -237,6 +241,14 @@
   color: inherit;
 }
 
+.luna-markdown > :first-child {
+  margin-top: 0;
+}
+
+.luna-markdown > :last-child {
+  margin-bottom: 0;
+}
+
 .luna-markdown h1 {
   font-size: 1.35rem;
   font-weight: 600;
@@ -259,6 +271,11 @@
   margin: 0.25rem 0;
 }
 
+.luna-markdown strong {
+  color: #f4f8f7;
+  font-weight: 700;
+}
+
 .luna-markdown ul {
   list-style: disc;
   padding-left: 1.4rem;
@@ -276,7 +293,7 @@
 }
 
 .luna-markdown a {
-  color: #8fa3ff;
+  color: #8dd0c4;
   text-decoration: underline;
 }
 
@@ -284,8 +301,8 @@
   margin: 0.5rem 0;
   padding: 0.75rem 0.9rem;
   border-radius: 0.85rem;
-  background: #101423;
-  border: 1px solid #2a2d45;
+  background: #0a1417;
+  border: 1px solid #21353a;
   overflow-x: auto;
 }
 
@@ -299,12 +316,12 @@
   font-size: 0.82rem;
   padding: 0.1rem 0.35rem;
   border-radius: 0.4rem;
-  background: #1c2236;
-  border: 1px solid #30375d;
+  background: #102126;
+  border: 1px solid #274149;
 }
 
 .luna-markdown .katex {
-  color: #e7e9ff;
+  color: #e7f0ee;
 }
 
 .luna-markdown .katex-display {

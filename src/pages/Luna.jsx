@@ -2,27 +2,36 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  Bot,
+  BrainCircuit,
   ChevronDown,
   ChevronRight,
+  Clock3,
+  Command,
   Copy,
   Folder,
   FolderPlus,
   Globe,
   Home,
   ImageIcon,
+  Layers3,
   Loader2,
   Menu,
   Mic,
   Paperclip,
   PenSquare,
   Plus,
+  ShieldCheck,
   RotateCcw,
   Search,
   Send,
   Settings,
+  Sparkles,
+  Star,
   Trash2,
   UserCircle2,
   X,
+  Zap,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { fetchApi, streamApi, getStoredUser, hydrateUser } from "@/lib/api-client";
@@ -43,15 +52,32 @@ const MODEL_OPTIONS = [
 ];
 
 const QUICK_CHIPS = [
-  { icon: "AI", label: "AI Script Writer", prompt: "Write an engaging short script for a 60-second video about building better habits." },
-  { icon: "Code", label: "Coding Assistant", prompt: "Help me debug this bug step-by-step and suggest a clean fix." },
-  { icon: "Essay", label: "Essay Writer", prompt: "Create a structured essay outline with intro, arguments, and conclusion." },
-  { icon: "Biz", label: "Business", prompt: "Give me a practical business growth plan for the next 90 days." },
-  { icon: "Tr", label: "Translate", prompt: "Translate the following text with natural tone and context retention:" },
-  { icon: "YT", label: "YouTube Summaries", prompt: "Summarize this YouTube video into key takeaways and action points:" },
-  { icon: "Mail", label: "AI Email Writing", prompt: "Draft a professional email with a friendly tone for this scenario:" },
-  { icon: "PDF", label: "AI PDF Chat", prompt: "Analyze this document and extract important points, decisions, and risks." },
-  { icon: "R&D", label: "Research Assistant", prompt: "Research this topic and give a concise structured brief with sources-style sections." },
+  { icon: "Ops", label: "Strategy Memo", prompt: "Write a concise strategy memo with priorities, tradeoffs, risks, and next actions for this situation:" },
+  { icon: "Code", label: "Technical Debug", prompt: "Help me debug this issue step-by-step, explain the root cause, and propose the cleanest fix." },
+  { icon: "Doc", label: "Client Proposal", prompt: "Draft a polished client proposal with scope, timeline, deliverables, pricing logic, and assumptions." },
+  { icon: "Res", label: "Research Brief", prompt: "Create an executive research brief with a short summary, key findings, open questions, and recommendations." },
+  { icon: "Mail", label: "Executive Email", prompt: "Draft a professional email with a clear ask, concise context, and a confident tone for this scenario:" },
+  { icon: "Plan", label: "90-Day Plan", prompt: "Build a practical 90-day execution plan with milestones, owners, and measurable outcomes for this goal:" },
+  { icon: "UX", label: "Product Critique", prompt: "Review this product experience and give a candid UX critique with prioritized fixes and rationale." },
+  { icon: "Sum", label: "Meeting Summary", prompt: "Turn these meeting notes into decisions, action items, owners, deadlines, and unresolved questions." },
+];
+
+const WORKSPACE_FEATURES = [
+  {
+    icon: BrainCircuit,
+    title: "Reasoning Workspace",
+    description: "Draft, analyze, and iterate in one thread with clearer context and cleaner message hierarchy.",
+  },
+  {
+    icon: Layers3,
+    title: "Project Context",
+    description: "Group active conversations into projects so follow-up work stays organized instead of disappearing into history.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Professional Output",
+    description: "Use quick modes for research, writing, and image generation without breaking the main flow.",
+  },
 ];
 
 function nowIso() {
@@ -159,6 +185,14 @@ function mapConversationSummaryToSession(summary, projectId = "") {
   };
 }
 
+function formatDateLabel(value = new Date()) {
+  return new Intl.DateTimeFormat(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  }).format(value);
+}
+
 function mapConversationMessages(conversation) {
   const rawMessages = Array.isArray(conversation?.messages) ? conversation.messages : [];
   return rawMessages
@@ -187,10 +221,10 @@ function SidebarButton({ icon, label, onClick, collapsed = false, danger = false
       type="button"
       onClick={onClick}
       title={label}
-      className={`group flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-sm transition-all duration-150 ${
+      className={`group flex w-full items-center gap-3 rounded-2xl border px-3 py-2.5 text-sm transition-all duration-150 ${
         danger
-          ? "border-rose-500/25 bg-rose-500/10 text-rose-200 hover:border-rose-400/35 hover:bg-rose-500/15"
-          : "border-[#2a2d45] bg-[#1a1d2e]/70 text-[#cfd4ff] hover:border-[#5b6af5]/55 hover:bg-[#20253b]"
+          ? "border-rose-500/25 bg-rose-500/10 text-rose-100 hover:border-rose-400/35 hover:bg-rose-500/15"
+          : "border-white/8 bg-white/[0.03] text-[#d7e0eb] hover:border-[#4f7c75]/50 hover:bg-[#101f22]/70 hover:text-white"
       } ${collapsed ? "justify-center" : ""}`}
     >
       <IconComponent className="h-4 w-4 shrink-0" />
@@ -209,10 +243,10 @@ function ModelSelector({ selectedModel, onSelect }) {
         whileTap={{ scale: 0.97 }}
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="inline-flex items-center gap-2 rounded-full border border-[#2a2d45] bg-[#1a1d2e]/90 px-3 py-1.5 text-sm text-[#e5e8ff] transition-all duration-150 hover:border-[#5b6af5]/60"
+        className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-[#0f1b1d]/90 px-3 py-1.5 text-sm text-[#f2f6f7] transition-all duration-150 hover:border-[#4f7c75]/70"
       >
         <span>{selected.label}</span>
-        <ChevronDown className="h-4 w-4 text-[#99a1cb]" />
+        <ChevronDown className="h-4 w-4 text-[#8fa6a2]" />
       </motion.button>
 
       <AnimatePresence>
@@ -221,7 +255,7 @@ function ModelSelector({ selectedModel, onSelect }) {
             initial={{ opacity: 0, y: -8, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.98 }}
-            className="absolute right-0 z-40 mt-2 w-56 overflow-hidden rounded-2xl border border-[#2a2d45] bg-[#161a2a] p-1 shadow-[0_18px_44px_rgba(0,0,0,0.45)]"
+            className="absolute right-0 z-40 mt-2 w-56 overflow-hidden rounded-2xl border border-white/10 bg-[#091316] p-1 shadow-[0_18px_44px_rgba(0,0,0,0.45)]"
           >
             {MODEL_OPTIONS.map((model) => (
               <button
@@ -235,8 +269,8 @@ function ModelSelector({ selectedModel, onSelect }) {
                 }}
                 className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition-colors ${
                   model.available
-                    ? "text-[#dce2ff] hover:bg-[#202741]"
-                    : "cursor-not-allowed text-[#7780a8]"
+                    ? "text-[#e6eff0] hover:bg-[#102126]"
+                    : "cursor-not-allowed text-[#6f8380]"
                 }`}
               >
                 <span>{model.label}</span>
@@ -277,8 +311,8 @@ function MessageBubble({ message, showLunaHeader, isLatestAssistant, onCopy, onR
         <div
           className={`relative rounded-[18px] px-4 py-3 text-sm leading-6 ${
             isUser
-              ? "rounded-br-[4px] bg-[#5b6af5] text-white"
-              : "rounded-bl-[4px] border border-[#2a2d45] bg-[#1a1d2e]/95 text-[#f0f2ff]"
+              ? "rounded-br-[4px] bg-[linear-gradient(135deg,#205c57,#0f3f3f)] text-white shadow-[0_16px_40px_rgba(15,63,63,0.28)]"
+              : "rounded-bl-[4px] border border-[#21353a] bg-[linear-gradient(180deg,rgba(14,22,25,0.96),rgba(8,14,17,0.98))] text-[#eef6f3] shadow-[0_18px_44px_rgba(0,0,0,0.18)]"
           }`}
         >
           {isUser ? message.content : <MarkdownMessage content={message.content} />}
@@ -288,7 +322,7 @@ function MessageBubble({ message, showLunaHeader, isLatestAssistant, onCopy, onR
               <button
                 type="button"
                 onClick={() => onCopy(message.content)}
-                className="rounded-md border border-[#39406b] bg-[#202741]/90 p-1 text-[#c9d0ff] transition hover:border-[#5b6af5]"
+                className="rounded-md border border-[#274149] bg-[#0f1f24]/95 p-1 text-[#cfe4e0] transition hover:border-[#4f7c75]"
                 title="Copy"
               >
                 <Copy className="h-3.5 w-3.5" />
@@ -298,7 +332,7 @@ function MessageBubble({ message, showLunaHeader, isLatestAssistant, onCopy, onR
                 <button
                   type="button"
                   onClick={onRegenerate}
-                  className="rounded-md border border-[#39406b] bg-[#202741]/90 p-1 text-[#c9d0ff] transition hover:border-[#5b6af5]"
+                  className="rounded-md border border-[#274149] bg-[#0f1f24]/95 p-1 text-[#cfe4e0] transition hover:border-[#4f7c75]"
                   title="Regenerate"
                 >
                   <RotateCcw className="h-3.5 w-3.5" />
@@ -308,7 +342,7 @@ function MessageBubble({ message, showLunaHeader, isLatestAssistant, onCopy, onR
           ) : null}
         </div>
 
-        <span className="text-[11px] text-[#7981a7]">{formatTime(message.createdAt)}</span>
+        <span className="text-[11px] text-[#7f9893]">{formatTime(message.createdAt)}</span>
       </div>
     </motion.div>
   );
@@ -321,8 +355,8 @@ function TypingIndicator() {
       animate={{ opacity: 1, y: 0 }}
       className="flex justify-start"
     >
-      <div className="rounded-[18px] rounded-bl-[4px] border border-[#2a2d45] bg-[#1a1d2e]/95 px-4 py-3 text-[#cfd5ff]">
-        <div className="mb-2 flex items-center gap-2 text-xs text-[#9aa2c7]">
+      <div className="rounded-[18px] rounded-bl-[4px] border border-[#21353a] bg-[linear-gradient(180deg,rgba(14,22,25,0.96),rgba(8,14,17,0.98))] px-4 py-3 text-[#d7e9e5]">
+        <div className="mb-2 flex items-center gap-2 text-xs text-[#86a49d]">
           <span className="inline-flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border border-white/20 bg-white/5">
             <img src={lunaLogo} alt="Luna" className="h-full w-full object-cover rounded-[inherit]" />
           </span>
@@ -330,9 +364,9 @@ function TypingIndicator() {
         </div>
 
         <div className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-[#8f9af5] luna-dot" />
-          <span className="h-2 w-2 rounded-full bg-[#8f9af5] luna-dot [animation-delay:0.15s]" />
-          <span className="h-2 w-2 rounded-full bg-[#8f9af5] luna-dot [animation-delay:0.3s]" />
+          <span className="h-2 w-2 rounded-full bg-[#7fc7ba] luna-dot" />
+          <span className="h-2 w-2 rounded-full bg-[#7fc7ba] luna-dot [animation-delay:0.15s]" />
+          <span className="h-2 w-2 rounded-full bg-[#7fc7ba] luna-dot [animation-delay:0.3s]" />
         </div>
       </div>
     </motion.div>
@@ -370,8 +404,8 @@ function Composer({
 
   return (
     <div
-      className={`rounded-2xl border bg-[#1a1d2e]/92 px-3 py-3 backdrop-blur ${
-        focused ? "border-[#5b6af5]/80 shadow-[0_0_0_2px_rgba(91,106,245,0.16)]" : "border-[#2a2d45]"
+      className={`rounded-[28px] border bg-[linear-gradient(180deg,rgba(10,16,18,0.96),rgba(7,12,14,0.98))] px-3 py-3 backdrop-blur ${
+        focused ? "border-[#4f7c75]/80 shadow-[0_0_0_2px_rgba(79,124,117,0.16)]" : "border-[#1f3135]"
       } ${compact ? "mx-auto w-full max-w-3xl" : "w-full"}`}
     >
       {attachments.length > 0 ? (
@@ -379,7 +413,7 @@ function Composer({
           {attachments.map((file, index) => (
             <div
               key={`${file}-${index}`}
-              className="inline-flex max-w-full items-center gap-2 rounded-full border border-[#38406a] bg-[#222846] px-3 py-1 text-xs text-[#d4dbff]"
+              className="inline-flex max-w-full items-center gap-2 rounded-full border border-[#274149] bg-[#102126] px-3 py-1 text-xs text-[#dceae7]"
             >
               <span className="max-w-[160px] truncate sm:max-w-[220px]">{file}</span>
               <button type="button" onClick={() => onRemoveAttachment(index)}>
@@ -402,9 +436,9 @@ function Composer({
             onSend();
           }
         }}
-        placeholder="Message Luna..."
+        placeholder="Ask Luna for strategy, research, writing, or execution support..."
         disabled={disabled}
-        className="luna-scrollbar w-full resize-none overflow-y-auto bg-transparent px-2 py-1 text-[15px] text-[#eef1ff] outline-none placeholder:text-[#7a7f9a] sm:text-sm"
+        className="luna-scrollbar w-full resize-none overflow-y-auto bg-transparent px-2 py-1 text-[15px] text-[#eef6f3] outline-none placeholder:text-[#6b817d] sm:text-sm"
       />
       <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-2">
@@ -424,7 +458,7 @@ function Composer({
             whileTap={{ scale: 0.97 }}
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="rounded-lg border border-[#2f3558] bg-[#202642] p-2 text-[#cfd5ff] transition hover:border-[#5b6af5]"
+            className="rounded-xl border border-[#274149] bg-[#0f1f24] p-2 text-[#cde3df] transition hover:border-[#4f7c75]"
             title="Attach file"
           >
             <Paperclip className="h-4 w-4" />
@@ -436,8 +470,8 @@ function Composer({
             onClick={onToggleWebSearch}
             className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition ${
               webSearch
-                ? "border-[#5b6af5] bg-[#2a2f50] text-[#e2e7ff]"
-                : "border-[#2f3558] bg-[#202642] text-[#cfd5ff] hover:border-[#5b6af5]/70"
+                ? "border-[#4f7c75] bg-[#102126] text-[#eef6f3]"
+                : "border-[#274149] bg-[#0f1f24] text-[#cde3df] hover:border-[#4f7c75]/70"
             }`}
           >
             <Globe className="h-3.5 w-3.5" />
@@ -450,8 +484,8 @@ function Composer({
             onClick={onToggleImageMode}
             className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition ${
               imageMode
-                ? "border-[#5b6af5] bg-[#2a2f50] text-[#e2e7ff]"
-                : "border-[#2f3558] bg-[#202642] text-[#cfd5ff] hover:border-[#5b6af5]/70"
+                ? "border-[#4f7c75] bg-[#102126] text-[#eef6f3]"
+                : "border-[#274149] bg-[#0f1f24] text-[#cde3df] hover:border-[#4f7c75]/70"
             }`}
           >
             <ImageIcon className="h-3.5 w-3.5" />
@@ -468,7 +502,7 @@ function Composer({
             className={`relative inline-flex h-10 min-w-10 items-center justify-center rounded-full border px-2 transition ${
               voiceActive
                 ? "border-emerald-400/70 bg-emerald-500/15 text-emerald-200"
-                : "border-[#2f3558] bg-[#202642] text-[#cfd5ff] hover:border-[#5b6af5]/70"
+                : "border-[#274149] bg-[#0f1f24] text-[#cde3df] hover:border-[#4f7c75]/70"
             } ${transcribing ? "opacity-70" : ""}`}
             title={voiceActive ? "Stop recording" : "Voice input"}
           >
@@ -492,14 +526,21 @@ function Composer({
             disabled={sendDisabled || !value.trim()}
             className={`inline-flex h-10 w-10 items-center justify-center rounded-full transition ${
               value.trim() && !sendDisabled
-                ? "bg-[#5b6af5] text-white shadow-[0_0_0_8px_rgba(91,106,245,0.14)]"
-                : "bg-[#343858] text-[#8b93bf]"
+                ? "bg-[linear-gradient(135deg,#e1ba6d,#9e7b33)] text-[#102126] shadow-[0_0_0_8px_rgba(225,186,109,0.14)]"
+                : "bg-[#21353a] text-[#77928d]"
             }`}
             title="Send"
           >
             <Send className="h-4 w-4" />
           </motion.button>
         </div>
+      </div>
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-2 px-2 text-[11px] text-[#6f8682]">
+        <span className="inline-flex items-center gap-1">
+          <Command className="h-3.5 w-3.5" />
+          Enter to send, Shift+Enter for a new line
+        </span>
+        <span>{attachments.length ? `${attachments.length} attachment${attachments.length > 1 ? "s" : ""}` : "No attachments"}</span>
       </div>
     </div>
   );
@@ -1619,24 +1660,43 @@ export default function Luna() {
   );
 
   const visibleMain = activeMessages.length > 0 || historyLoading;
+  const totalMessages = useMemo(
+    () => sessions.reduce((count, session) => count + (Array.isArray(session.messages) ? session.messages.length : 0), 0),
+    [sessions],
+  );
+  const workspaceStats = useMemo(
+    () => [
+      { label: "Chats", value: sortedSessions.length.toString().padStart(2, "0"), icon: Layers3 },
+      { label: "Messages", value: totalMessages.toString().padStart(2, "0"), icon: Bot },
+      { label: "Projects", value: projects.length.toString().padStart(2, "0"), icon: Folder },
+    ],
+    [projects.length, sortedSessions.length, totalMessages],
+  );
+  const modePills = useMemo(() => {
+    const pills = [];
+    pills.push(webSearchMode ? "Live research" : "Knowledge mode");
+    pills.push(imageMode ? "Image drafting" : "Text drafting");
+    if (attachments.length) pills.push(`${attachments.length} file${attachments.length > 1 ? "s" : ""} attached`);
+    return pills;
+  }, [attachments.length, imageMode, webSearchMode]);
 
   if (!isSignedIn) {
     return (
-      <div className="min-h-screen bg-[#07070d] text-zinc-100">
+      <div className="min-h-screen bg-[#071013] text-zinc-100">
         <div className="mx-auto flex min-h-screen w-full max-w-4xl items-center justify-center px-6 py-12">
-          <div className="w-full rounded-3xl border border-zinc-800/80 bg-zinc-950/70 p-8 text-center shadow-[0_25px_90px_rgba(0,0,0,0.55)]">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-violet-300/30 bg-violet-500/15">
+          <div className="w-full rounded-[32px] border border-[#1f3135] bg-[linear-gradient(180deg,rgba(9,16,19,0.96),rgba(7,12,14,0.98))] p-8 text-center shadow-[0_25px_90px_rgba(0,0,0,0.55)]">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-[#5c857d]/30 bg-[#143038]">
               <img src={lunaLogo} alt="Luna Logo" className="h-10 w-10 object-contain" />
             </div>
-            <h1 className="mt-4 text-2xl font-semibold text-white">Sign in to chat with Luna</h1>
-            <p className="mt-2 text-sm text-zinc-400">
-              Luna chat is available for signed-in users so we can save your history and onboarding preferences.
+            <h1 className="mt-4 text-2xl font-semibold text-white">Sign in to access the Luna workspace</h1>
+            <p className="mt-2 text-sm text-[#8ca19d]">
+              Luna now uses a persistent workspace layout with saved history, project grouping, and onboarding preferences.
             </p>
             <div className="mt-6 flex justify-center">
               <button
                 type="button"
                 onClick={() => navigate("/signin")}
-                className="rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500 px-6 py-2 text-sm font-semibold text-white hover:from-violet-400 hover:to-fuchsia-400"
+                className="rounded-full bg-[linear-gradient(135deg,#e1ba6d,#a77f36)] px-6 py-2 text-sm font-semibold text-[#102126] hover:brightness-105"
               >
                 Go to Sign In
               </button>
@@ -1653,13 +1713,13 @@ export default function Luna() {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.35, ease: "easeOut" }}
-      className="relative min-h-[100dvh] overflow-hidden bg-[#0d0f17] text-[#f0f0ff]"
+      className="relative min-h-[100dvh] overflow-hidden bg-[#071013] text-[#eef6f3]"
       style={{ fontFamily: "'DM Sans', sans-serif" }}
     >
       <style>{`
         .luna-scrollbar {
           scrollbar-width: thin;
-          scrollbar-color: #2a2d45 transparent;
+          scrollbar-color: #21353a transparent;
         }
         .luna-scrollbar::-webkit-scrollbar {
           width: 4px;
@@ -1669,7 +1729,7 @@ export default function Luna() {
           background: transparent;
         }
         .luna-scrollbar::-webkit-scrollbar-thumb {
-          background: #2a2d45;
+          background: #21353a;
           border-radius: 999px;
         }
         @keyframes lunaDot {
@@ -1684,23 +1744,23 @@ export default function Luna() {
         .luna-wave { animation: lunaWave 0.8s ease-in-out infinite; transform-origin: bottom; }
       `}</style>
 
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(91,106,245,0.18),transparent_52%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_18%,rgba(71,120,112,0.25),transparent_28%),radial-gradient(circle_at_85%_15%,rgba(225,186,109,0.12),transparent_24%),radial-gradient(circle_at_50%_45%,rgba(18,47,51,0.65),transparent_58%)]" />
       <div
-        className="pointer-events-none absolute inset-0 opacity-25"
+        className="pointer-events-none absolute inset-0 opacity-20"
         style={{
-          backgroundImage: "radial-gradient(rgba(122,127,154,0.32) 1px, transparent 1px)",
-          backgroundSize: "24px 24px",
+          backgroundImage: "radial-gradient(rgba(135,160,155,0.24) 1px, transparent 1px)",
+          backgroundSize: "26px 26px",
         }}
       />
 
       <div className="relative z-10 flex min-h-[100dvh]">
         <aside
-          className={`hidden h-full flex-col overflow-hidden border-r border-[#1e2235] bg-[#13151f] shadow-[inset_-1px_0_0_rgba(30,34,53,0.8)] transition-[width] duration-300 md:flex ${
+          className={`hidden h-full flex-col overflow-hidden border-r border-white/6 bg-[linear-gradient(180deg,rgba(7,14,16,0.98),rgba(10,20,23,0.96))] shadow-[inset_-1px_0_0_rgba(255,255,255,0.04)] transition-[width] duration-300 md:flex ${
             isSidebarOpen ? "w-[260px]" : "w-[82px]"
           }`}
         >
           <div className="flex h-full flex-col">
-            <div className="border-b border-[#232841] p-3">
+            <div className="border-b border-white/6 p-3">
               <div className="mb-3 flex items-center justify-between gap-2">
                 <div className={`flex items-center gap-2 ${isSidebarOpen ? "" : "justify-center w-full"}`}>
                   <motion.div
@@ -1712,7 +1772,7 @@ export default function Luna() {
                       ],
                     }}
                     transition={{ repeat: Infinity, duration: 2.4, ease: "easeInOut" }}
-                    className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl border border-white/20 bg-white/5"
+                    className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-[#0f2124]"
                   >
                     <img src={lunaLogo} alt="Luna logo" className="h-full w-full object-cover rounded-[inherit] drop-shadow-[0_0_8px_rgba(255,255,255,0.45)]" />
                   </motion.div>
@@ -1727,7 +1787,7 @@ export default function Luna() {
                   <button
                     type="button"
                     onClick={() => setIsSidebarOpen(false)}
-                    className="rounded-lg border border-[#30375d] bg-[#1d2238] p-1.5 text-[#c8ceff]"
+                    className="rounded-xl border border-[#274149] bg-[#0f1f24] p-1.5 text-[#cbe0dc]"
                     title="Collapse"
                   >
                     <ChevronRight className="h-4 w-4" />
@@ -1736,7 +1796,7 @@ export default function Luna() {
                   <button
                     type="button"
                     onClick={() => setIsSidebarOpen(true)}
-                    className="mx-auto rounded-lg border border-[#30375d] bg-[#1d2238] p-1.5 text-[#c8ceff]"
+                    className="mx-auto rounded-xl border border-[#274149] bg-[#0f1f24] p-1.5 text-[#cbe0dc]"
                     title="Expand"
                   >
                     <ChevronDown className="h-4 w-4" />
@@ -1746,12 +1806,12 @@ export default function Luna() {
 
               {isSidebarOpen ? (
                 <div className="relative">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7a7f9a]" />
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6f8682]" />
                   <input
                     value={searchQuery}
                     onChange={(event) => setSearchQuery(event.target.value)}
                     placeholder="Search chats..."
-                    className="w-full rounded-xl border border-[#2a2d45] bg-[#1a1d2e] py-2 pl-9 pr-3 text-sm text-[#e7e9ff] outline-none transition focus:border-[#5b6af5] focus:shadow-[0_0_0_2px_rgba(91,106,245,0.2)]"
+                    className="w-full rounded-2xl border border-[#1f3135] bg-[#0c1719] py-2 pl-9 pr-3 text-sm text-[#e7f0ee] outline-none transition focus:border-[#4f7c75] focus:shadow-[0_0_0_2px_rgba(79,124,117,0.2)]"
                   />
                 </div>
               ) : null}
@@ -1788,10 +1848,10 @@ export default function Luna() {
 
               {isSidebarOpen ? (
                 <>
-<div className="mt-5 mb-2 px-1 text-[11px] uppercase tracking-[0.14em] text-[#7a7f9a]">Chat History</div>
+<div className="mb-2 mt-5 px-1 text-[11px] uppercase tracking-[0.14em] text-[#6f8682]">Recent Chats</div>
                   <div className="luna-scrollbar max-h-[220px] space-y-1 overflow-y-auto pr-1">
                     {historyList.length === 0 ? (
-                      <p className="px-2 py-2 text-xs text-[#7f87b0]">No chats found.</p>
+                      <p className="px-2 py-2 text-xs text-[#7a938e]">No chats found.</p>
                     ) : null}
 
                     {historyList.map((session) => {
@@ -1802,14 +1862,14 @@ export default function Luna() {
                           key={session.id}
                           className={`group relative rounded-xl border px-2.5 py-2 transition ${
                             active
-                              ? "border-[#4250a8] bg-[#23294a]"
-                              : "border-transparent bg-[#181c2e] hover:border-[#38406a]"
+                              ? "border-[#4f7c75] bg-[#102126]"
+                              : "border-transparent bg-[#0c1719] hover:border-[#274149]"
                           }`}
                         >
                           {active ? (
                             <motion.span
                               layoutId="luna-active-session"
-                              className="absolute left-0 top-1/2 h-[70%] w-[3px] -translate-y-1/2 rounded-r-full bg-[#5b6af5]"
+                              className="absolute left-0 top-1/2 h-[70%] w-[3px] -translate-y-1/2 rounded-r-full bg-[#e1ba6d]"
                             />
                           ) : null}
 
@@ -1818,14 +1878,14 @@ export default function Luna() {
                             onClick={() => handleSelectSession(session.id)}
                             className="w-full text-left"
                           >
-                            <p className="truncate pr-6 text-sm text-[#e5e9ff]">{session.title}</p>
-                            <p className="text-[11px] text-[#8188b0]">{formatHistoryTime(session.updatedAt)}</p>
+                            <p className="truncate pr-6 text-sm text-[#ecf5f3]">{session.title}</p>
+                            <p className="text-[11px] text-[#7a938e]">{formatHistoryTime(session.updatedAt)}</p>
                           </button>
 
                           <button
                             type="button"
                             onClick={() => handleDeleteSession(session.id)}
-                            className="absolute right-1.5 top-1.5 rounded-md p-1 text-[#96a0cf] opacity-0 transition group-hover:opacity-100 hover:bg-[#2a3050]"
+                            className="absolute right-1.5 top-1.5 rounded-md p-1 text-[#9ab7b1] opacity-0 transition group-hover:opacity-100 hover:bg-[#102126]"
                             title="Delete"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
@@ -1834,24 +1894,24 @@ export default function Luna() {
                       );
                     })}
                   </div>
-                  <div className="mt-5 mb-2 px-1 text-[11px] uppercase tracking-[0.14em] text-[#7a7f9a]">Projects</div>
+                  <div className="mb-2 mt-5 px-1 text-[11px] uppercase tracking-[0.14em] text-[#6f8682]">Projects</div>
                   <div className="space-y-1">
                     {projects.map((project) => {
                       const open = expandedProjectId === project.id;
                       const projectSessions = sessionsByProject.get(project.id) || [];
 
                       return (
-                        <div key={project.id} className="rounded-xl border border-[#2a2d45] bg-[#171b2d]">
+                        <div key={project.id} className="rounded-2xl border border-[#1f3135] bg-[#0c1719]">
                           <button
                             type="button"
                             onClick={() => setExpandedProjectId((prev) => (prev === project.id ? "" : project.id))}
-                            className="flex w-full items-center justify-between px-2.5 py-2 text-left text-sm text-[#d5dbff]"
+                            className="flex w-full items-center justify-between px-2.5 py-2.5 text-left text-sm text-[#d8e7e4]"
                           >
                             <span className="inline-flex items-center gap-2 truncate">
-                              <Folder className="h-4 w-4 text-[#9fa8d7]" />
+                              <Folder className="h-4 w-4 text-[#8eb0a9]" />
                               <span className="truncate">{project.name}</span>
                             </span>
-                            {open ? <ChevronDown className="h-4 w-4 text-[#8f97bf]" /> : <ChevronRight className="h-4 w-4 text-[#8f97bf]" />}
+                            {open ? <ChevronDown className="h-4 w-4 text-[#7f9994]" /> : <ChevronRight className="h-4 w-4 text-[#7f9994]" />}
                           </button>
 
                           <AnimatePresence>
@@ -1864,7 +1924,7 @@ export default function Luna() {
                               >
                                 <div className="space-y-1 px-2 pb-2">
                                   {projectSessions.length === 0 ? (
-                                    <p className="px-2 py-1 text-xs text-[#7f87b0]">No chats in this project.</p>
+                                    <p className="px-2 py-1 text-xs text-[#7a938e]">No chats in this project.</p>
                                   ) : null}
 
                                   {projectSessions.slice(0, 6).map((session) => (
@@ -1874,8 +1934,8 @@ export default function Luna() {
                                       onClick={() => handleSelectSession(session.id)}
                                       className={`block w-full truncate rounded-lg px-2 py-1.5 text-left text-xs transition ${
                                         session.id === activeSession?.id
-                                          ? "bg-[#2a3153] text-[#e4e9ff]"
-                                          : "text-[#a7b0da] hover:bg-[#222844]"
+                                          ? "bg-[#102126] text-[#ecf5f3]"
+                                          : "text-[#9ab7b1] hover:bg-[#102126]"
                                       }`}
                                     >
                                       {session.title}
@@ -1893,38 +1953,38 @@ export default function Luna() {
               ) : null}
             </div>
 
-            <div className="border-t border-[#232841] p-3">
+            <div className="border-t border-white/6 p-3">
               {isSidebarOpen ? (
                 <>
-                  <div className="mb-3 rounded-xl border border-amber-400/35 bg-amber-500/10 p-3">
+                  <div className="mb-3 rounded-2xl border border-[#a88446]/35 bg-[#2b2416] p-3">
                     <motion.span
                       animate={{ opacity: [0.7, 1, 0.7] }}
                       transition={{ repeat: Infinity, duration: 2 }}
-                      className="inline-flex rounded-full border border-amber-300/60 bg-amber-400/15 px-2 py-0.5 text-[11px] font-semibold text-amber-200"
+                      className="inline-flex rounded-full border border-[#e1ba6d]/60 bg-[#a88446]/20 px-2 py-0.5 text-[11px] font-semibold text-[#f0d79b]"
                     >
-                      20 days left
+                      Pro workspace
                     </motion.span>
-                    <p className="mt-2 text-xs text-[#bdc3e2]">Upgrade to Luna Pro to unlock faster response lanes.</p>
+                    <p className="mt-2 text-xs text-[#d7c69f]">Upgrade for faster models, longer context, and premium research workflows.</p>
                     <button
                       type="button"
                       onClick={() => navigate("/pricing")}
-                      className="mt-2 inline-flex rounded-lg border border-[#5b6af5]/65 bg-[#5b6af5]/20 px-3 py-1.5 text-xs font-medium text-[#e8ebff] transition hover:bg-[#5b6af5]/30"
+                      className="mt-2 inline-flex rounded-xl border border-[#e1ba6d]/45 bg-[#e1ba6d]/15 px-3 py-1.5 text-xs font-medium text-[#f7e6b9] transition hover:bg-[#e1ba6d]/25"
                     >
                       View Plan
                     </button>
                   </div>
 
-                  <div className="flex items-center gap-2 rounded-xl border border-[#2a2d45] bg-[#1a1d2e]/80 px-2 py-2">
+                  <div className="flex items-center gap-2 rounded-2xl border border-[#1f3135] bg-[#0c1719]/95 px-2 py-2">
                     {user.picture ? (
                       <img src={user.picture} alt={user.name} className="h-9 w-9 rounded-full object-cover" />
                     ) : (
-                      <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#252c4b] text-[#d5dcff]">
+                      <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#102126] text-[#d5ebe6]">
                         <UserCircle2 className="h-5 w-5" />
                       </span>
                     )}
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm text-[#f0f2ff]">{user.name}</p>
-                      <p className="truncate text-xs text-[#8c95bd]">{user.email}</p>
+                      <p className="truncate text-sm text-[#f0f6f5]">{user.name}</p>
+                      <p className="truncate text-xs text-[#7a938e]">{user.email}</p>
                     </div>
                   </div>
                 </>
@@ -1933,7 +1993,7 @@ export default function Luna() {
                   {user.picture ? (
                     <img src={user.picture} alt={user.name} className="h-9 w-9 rounded-full object-cover" />
                   ) : (
-                    <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#252c4b] text-[#d5dcff]">
+                    <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#102126] text-[#d5ebe6]">
                       <UserCircle2 className="h-5 w-5" />
                     </span>
                   )}
@@ -1949,19 +2009,19 @@ export default function Luna() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 bg-black/55 backdrop-blur-sm md:hidden"
+              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm md:hidden"
               onClick={() => setMobileSidebarOpen(false)}
             >
               <motion.div
                 initial={{ x: -22, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 exit={{ x: -22, opacity: 0 }}
-                className="h-full w-[90vw] max-w-[340px] border-r border-[#1e2235] bg-[#13151f]"
+                className="h-full w-[90vw] max-w-[340px] border-r border-white/6 bg-[linear-gradient(180deg,rgba(7,14,16,0.98),rgba(10,20,23,0.96))]"
                 onClick={(event) => event.stopPropagation()}
               >
-                <div className="flex h-14 items-center justify-between border-b border-[#232841] px-3">
+                <div className="flex h-14 items-center justify-between border-b border-white/6 px-3">
                   <div className="flex items-center gap-2">
-                    <span className="inline-flex h-7 w-7 items-center justify-center overflow-hidden rounded-lg border border-white/20 bg-white/5">
+                    <span className="inline-flex h-7 w-7 items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-[#0f2124]">
                       <img src={lunaLogo} alt="Luna logo" className="h-full w-full object-cover rounded-[inherit]" />
                     </span>
                     <h2 style={{ fontFamily: "'Syne', sans-serif" }} className="text-lg">Luna</h2>
@@ -1969,7 +2029,7 @@ export default function Luna() {
                   <button
                     type="button"
                     onClick={() => setMobileSidebarOpen(false)}
-                    className="rounded-lg border border-[#30375d] bg-[#1d2238] p-1.5"
+                    className="rounded-xl border border-[#274149] bg-[#0f1f24] p-1.5"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -1977,12 +2037,12 @@ export default function Luna() {
 
                 <div className="luna-scrollbar h-[calc(100%-56px)] overflow-y-auto p-3">
                   <div className="relative mb-3">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7a7f9a]" />
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6f8682]" />
                     <input
                       value={searchQuery}
                       onChange={(event) => setSearchQuery(event.target.value)}
                       placeholder="Search chats..."
-                      className="w-full rounded-xl border border-[#2a2d45] bg-[#1a1d2e] py-2 pl-9 pr-3 text-sm text-[#e7e9ff] outline-none"
+                      className="w-full rounded-2xl border border-[#1f3135] bg-[#0c1719] py-2 pl-9 pr-3 text-sm text-[#e7f0ee] outline-none"
                     />
                   </div>
 
@@ -1993,7 +2053,7 @@ export default function Luna() {
                     <SidebarButton icon={Settings} label="Settings" onClick={() => { navigate("/profile"); setMobileSidebarOpen(false); }} />
                   </div>
 
-                  <div className="mt-5 mb-2 text-[11px] uppercase tracking-[0.14em] text-[#7a7f9a]">Chat History</div>
+                  <div className="mb-2 mt-5 text-[11px] uppercase tracking-[0.14em] text-[#6f8682]">Recent Chats</div>
                   <div className="space-y-1">
                     {historyList.map((session) => (
                       <button
@@ -2002,12 +2062,12 @@ export default function Luna() {
                         onClick={() => handleSelectSession(session.id)}
                         className={`block w-full rounded-lg px-2 py-2 text-left text-sm ${
                           session.id === activeSession?.id
-                            ? "bg-[#2a3153] text-[#e4e9ff]"
-                            : "bg-[#181c2e] text-[#cfd4ff]"
+                            ? "bg-[#102126] text-[#ecf5f3]"
+                            : "bg-[#0c1719] text-[#d5e6e3]"
                         }`}
                       >
                         <p className="truncate">{session.title}</p>
-                        <p className="text-[11px] text-[#8188b0]">{formatHistoryTime(session.updatedAt)}</p>
+                        <p className="text-[11px] text-[#7a938e]">{formatHistoryTime(session.updatedAt)}</p>
                       </button>
                     ))}
                   </div>
@@ -2017,19 +2077,19 @@ export default function Luna() {
           ) : null}
         </AnimatePresence>
         <section className="relative flex min-w-0 flex-1 flex-col">
-          <div className="flex items-center justify-between gap-3 border-b border-[#1d2233] px-3 py-3 md:hidden">
+          <div className="flex items-center justify-between gap-3 border-b border-white/6 px-3 py-3 md:hidden">
             <div className="flex min-w-0 items-center gap-2">
               <button
                 type="button"
                 onClick={() => setMobileSidebarOpen(true)}
-                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#2f3558] bg-[#1d2238] text-[#d2d8ff]"
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-[#274149] bg-[#0f1f24] text-[#d2e7e2]"
                 aria-label="Open navigation"
               >
                 <Menu className="h-4 w-4" />
               </button>
               <div className="min-w-0">
-                <p className="text-[11px] uppercase tracking-[0.16em] text-[#7f87b0]">Luna Chat</p>
-                <h1 className="truncate text-base font-semibold text-[#f4f6ff]" style={{ fontFamily: "'Syne', sans-serif" }}>
+                <p className="text-[11px] uppercase tracking-[0.16em] text-[#7a938e]">Luna Workspace</p>
+                <h1 className="truncate text-base font-semibold text-[#f4f8f7]" style={{ fontFamily: "'Syne', sans-serif" }}>
                   {activeSession?.title || "New chat"}
                 </h1>
               </div>
@@ -2038,7 +2098,7 @@ export default function Luna() {
               <button
                 type="button"
                 onClick={() => createFreshSession()}
-                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#2f3558] bg-[#1d2238] text-[#d2d8ff]"
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-[#274149] bg-[#0f1f24] text-[#d2e7e2]"
                 aria-label="Start a new chat"
               >
                 <Plus className="h-4 w-4" />
@@ -2050,8 +2110,28 @@ export default function Luna() {
           <div className="px-3 pt-3 md:px-6 md:pt-4">
             <AnnouncementBanner className="mb-3" />
           </div>
-          <div className="hidden items-center justify-end px-3 md:flex md:px-6">
-            <ModelSelector selectedModel={selectedModel} onSelect={setSelectedModel} />
+          <div className="hidden items-center justify-between px-3 md:flex md:px-6">
+            <div className="flex min-w-0 items-center gap-4">
+              <div className="min-w-0">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-[#78938d]">Workspace briefing</p>
+                <h1 className="truncate text-2xl font-semibold text-[#f5f8f7]" style={{ fontFamily: "'Syne', sans-serif" }}>
+                  {activeSession?.title || "New chat"}
+                </h1>
+              </div>
+              <div className="hidden lg:flex items-center gap-2">
+                {modePills.map((pill) => (
+                  <span key={pill} className="rounded-full border border-[#274149] bg-[#0f1f24] px-3 py-1 text-xs text-[#d0e2de]">
+                    {pill}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="rounded-full border border-[#274149] bg-[#0f1f24] px-3 py-1.5 text-xs text-[#8fb0aa]">
+                {formatDateLabel()}
+              </div>
+              <ModelSelector selectedModel={selectedModel} onSelect={setSelectedModel} />
+            </div>
           </div>
 
           <div className="relative flex-1 overflow-hidden px-3 pb-3 pt-2 md:px-6">
@@ -2070,61 +2150,143 @@ export default function Luna() {
                   transition={{ duration: 0.35 }}
                   className="flex h-full flex-col items-center justify-center py-6 md:py-10"
                 >
-                  <motion.h2
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ type: "spring", duration: 0.7 }}
-                    className="mb-4 max-w-[12ch] text-center text-[1.95rem] font-semibold leading-tight text-[#f5f7ff] sm:text-[2.2rem] md:mb-6 md:max-w-none md:text-[2.4rem]"
-                    style={{ fontFamily: "'Syne', sans-serif" }}
-                  >
-                    What&apos;s on your mind today?
-                  </motion.h2>
-
-                  <p className="mb-6 max-w-xl text-center text-sm leading-6 text-[#9da6d4]">
-                    Search the web, draft images, or continue your last thread with a layout tuned for phone and laptop.
-                  </p>
-
-                  <Composer
-                    compact
-                    value={inputValue}
-                    onChange={setInputValue}
-                    onSend={() => sendMessage()}
-                    disabled={isTranscribing}
-                    sendDisabled={isTyping || isTranscribing}
-                    voiceActive={voiceActive}
-                    transcribing={isTranscribing}
-                    onToggleVoice={handleVoiceToggle}
-                    webSearch={webSearchMode}
-                    imageMode={imageMode}
-                    onToggleWebSearch={() => setWebSearchMode((prev) => !prev)}
-                    onToggleImageMode={() => setImageMode((prev) => !prev)}
-                    onAttach={(files) => setAttachments((prev) => [...prev, ...files])}
-                    attachments={attachments}
-                    onRemoveAttachment={(index) => setAttachments((prev) => prev.filter((_, i) => i !== index))}
-                  />
-
-                  <motion.div
-                    initial="hidden"
-                    animate="show"
-                    variants={{
-                      hidden: {},
-                      show: { transition: { staggerChildren: 0.05 } },
-                    }}
-                    className="luna-scrollbar mt-5 flex w-full max-w-4xl flex-wrap justify-center gap-2 pb-1"
-                  >
-                    {QUICK_CHIPS.map((chip) => (
-                      <motion.button
-                        key={chip.label}
-                        whileTap={{ scale: 0.97 }}
-                        variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}
-                        onClick={() => setInputValue(chip.prompt)}
-                        className="rounded-full border border-[#2d3353] bg-[#1a1f35] px-3 py-1.5 text-xs text-[#d7ddff] transition duration-150 hover:-translate-y-0.5 hover:border-[#5b6af5] hover:shadow-[0_8px_24px_rgba(91,106,245,0.2)]"
+                  <div className="mx-auto grid w-full max-w-6xl gap-6 lg:grid-cols-[minmax(0,1.25fr)_340px]">
+                    <div className="rounded-[32px] border border-[#1f3135] bg-[linear-gradient(180deg,rgba(9,16,19,0.94),rgba(7,12,14,0.98))] p-5 shadow-[0_30px_80px_rgba(0,0,0,0.28)] md:p-8">
+                      <div className="mb-5 flex flex-wrap items-center gap-3">
+                        <span className="inline-flex items-center gap-2 rounded-full border border-[#274149] bg-[#0f1f24] px-3 py-1 text-xs uppercase tracking-[0.16em] text-[#88a7a1]">
+                          <Sparkles className="h-3.5 w-3.5" />
+                          Professional AI workspace
+                        </span>
+                        <span className="inline-flex items-center gap-2 rounded-full border border-[#6f5624] bg-[#2d2413] px-3 py-1 text-xs text-[#f0d79b]">
+                          <Star className="h-3.5 w-3.5" />
+                          New theme
+                        </span>
+                      </div>
+                      <motion.h2
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ type: "spring", duration: 0.7 }}
+                        className="mb-4 max-w-[14ch] text-left text-[2rem] font-semibold leading-tight text-[#f5f8f7] sm:text-[2.35rem] md:max-w-[16ch] md:text-[2.8rem]"
+                        style={{ fontFamily: "'Syne', sans-serif" }}
                       >
-                        <span className="mr-1.5">{chip.icon}</span>
-                        {chip.label}
-                      </motion.button>
-                    ))}
-                  </motion.div>
+                        Build faster with a cleaner Luna workspace.
+                      </motion.h2>
+
+                      <p className="mb-6 max-w-2xl text-sm leading-7 text-[#90a7a2] md:text-base">
+                        Research, draft, summarize, and iterate in one place. The updated Luna workspace adds clearer conversation hierarchy, project structure, status visibility, and more intentional interaction design.
+                      </p>
+
+                      <div className="mb-6 grid gap-3 sm:grid-cols-3">
+                        {workspaceStats.map((item) => {
+                          const Icon = item.icon;
+                          return (
+                            <div key={item.label} className="rounded-2xl border border-[#1f3135] bg-[#0b1518] p-4">
+                              <div className="mb-3 inline-flex rounded-xl border border-[#274149] bg-[#102126] p-2 text-[#d8ebe7]">
+                                <Icon className="h-4 w-4" />
+                              </div>
+                              <p className="text-2xl font-semibold text-[#f4f8f7]">{item.value}</p>
+                              <p className="text-xs uppercase tracking-[0.16em] text-[#71908a]">{item.label}</p>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      <Composer
+                        compact
+                        value={inputValue}
+                        onChange={setInputValue}
+                        onSend={() => sendMessage()}
+                        disabled={isTranscribing}
+                        sendDisabled={isTyping || isTranscribing}
+                        voiceActive={voiceActive}
+                        transcribing={isTranscribing}
+                        onToggleVoice={handleVoiceToggle}
+                        webSearch={webSearchMode}
+                        imageMode={imageMode}
+                        onToggleWebSearch={() => setWebSearchMode((prev) => !prev)}
+                        onToggleImageMode={() => setImageMode((prev) => !prev)}
+                        onAttach={(files) => setAttachments((prev) => [...prev, ...files])}
+                        attachments={attachments}
+                        onRemoveAttachment={(index) => setAttachments((prev) => prev.filter((_, i) => i !== index))}
+                      />
+
+                      <motion.div
+                        initial="hidden"
+                        animate="show"
+                        variants={{
+                          hidden: {},
+                          show: { transition: { staggerChildren: 0.05 } },
+                        }}
+                        className="luna-scrollbar mt-5 flex w-full flex-wrap gap-2 pb-1"
+                      >
+                        {QUICK_CHIPS.map((chip) => (
+                          <motion.button
+                            key={chip.label}
+                            whileTap={{ scale: 0.97 }}
+                            variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}
+                            onClick={() => setInputValue(chip.prompt)}
+                            className="rounded-full border border-[#274149] bg-[#0f1f24] px-3 py-2 text-xs text-[#d7e8e5] transition duration-150 hover:-translate-y-0.5 hover:border-[#4f7c75] hover:bg-[#102126]"
+                          >
+                            <span className="mr-1.5 text-[#e1ba6d]">{chip.icon}</span>
+                            {chip.label}
+                          </motion.button>
+                        ))}
+                      </motion.div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="rounded-[28px] border border-[#1f3135] bg-[linear-gradient(180deg,rgba(10,18,20,0.96),rgba(7,12,14,0.98))] p-5">
+                        <div className="mb-4 flex items-center justify-between">
+                          <div>
+                            <p className="text-[11px] uppercase tracking-[0.16em] text-[#71908a]">Today</p>
+                            <h3 className="text-lg font-semibold text-[#f3f8f6]" style={{ fontFamily: "'Syne', sans-serif" }}>
+                              Workspace focus
+                            </h3>
+                          </div>
+                          <div className="rounded-full border border-[#274149] bg-[#0f1f24] px-3 py-1 text-xs text-[#8db0aa]">
+                            {formatDateLabel()}
+                          </div>
+                        </div>
+                        <div className="space-y-3">
+                          {WORKSPACE_FEATURES.map((item) => {
+                            const Icon = item.icon;
+                            return (
+                              <div key={item.title} className="rounded-2xl border border-[#1f3135] bg-[#0b1518] p-4">
+                                <div className="mb-2 inline-flex rounded-xl border border-[#274149] bg-[#102126] p-2 text-[#d8ebe7]">
+                                  <Icon className="h-4 w-4" />
+                                </div>
+                                <p className="text-sm font-medium text-[#eff6f4]">{item.title}</p>
+                                <p className="mt-1 text-xs leading-6 text-[#84a09b]">{item.description}</p>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <div className="rounded-[28px] border border-[#1f3135] bg-[#0b1518] p-5">
+                        <div className="mb-3 flex items-center gap-2 text-[#d9ebe7]">
+                          <Clock3 className="h-4 w-4 text-[#e1ba6d]" />
+                          <h3 className="text-sm font-semibold">Recent activity</h3>
+                        </div>
+                        <div className="space-y-3">
+                          {historyList.slice(0, 3).map((session) => (
+                            <button
+                              key={session.id}
+                              type="button"
+                              onClick={() => handleSelectSession(session.id)}
+                              className="block w-full rounded-2xl border border-[#1f3135] bg-[#0f1f24] px-4 py-3 text-left transition hover:border-[#4f7c75]"
+                            >
+                              <p className="truncate text-sm text-[#eef6f4]">{session.title}</p>
+                              <p className="mt-1 text-xs text-[#7d9994]">{formatHistoryTime(session.updatedAt)}</p>
+                            </button>
+                          ))}
+                          {historyList.length === 0 ? (
+                            <p className="text-xs text-[#7d9994]">Your recent chats will appear here once you start working.</p>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </motion.div>
               ) : (
                 <motion.div
@@ -2135,10 +2297,39 @@ export default function Luna() {
                   transition={{ duration: 0.25 }}
                   className="luna-scrollbar h-full overflow-y-auto pr-1"
                 >
-                  <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 pb-6 pt-3 md:pb-8">
+                  <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 pb-6 pt-3 md:pb-8">
+                    <div className="sticky top-0 z-10 mb-2 rounded-[28px] border border-[#1f3135] bg-[linear-gradient(180deg,rgba(9,16,19,0.95),rgba(7,12,14,0.9))] px-4 py-4 backdrop-blur">
+                      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                        <div className="min-w-0">
+                          <div className="mb-2 flex flex-wrap items-center gap-2">
+                            <span className="inline-flex items-center gap-2 rounded-full border border-[#274149] bg-[#102126] px-3 py-1 text-[11px] uppercase tracking-[0.15em] text-[#89aba4]">
+                              <Zap className="h-3.5 w-3.5" />
+                              Active workspace
+                            </span>
+                            <span className="inline-flex items-center gap-2 rounded-full border border-[#6f5624] bg-[#2d2413] px-3 py-1 text-[11px] text-[#f0d79b]">
+                              <Clock3 className="h-3.5 w-3.5" />
+                              Updated {formatHistoryTime(activeSession?.updatedAt)}
+                            </span>
+                          </div>
+                          <h2 className="truncate text-2xl font-semibold text-[#f4f8f7]" style={{ fontFamily: "'Syne', sans-serif" }}>
+                            {activeSession?.title || "New chat"}
+                          </h2>
+                          <p className="mt-1 text-sm text-[#89a49f]">
+                            Use the controls below to shift between research, drafting, and media generation without leaving the thread.
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          {modePills.map((pill) => (
+                            <span key={pill} className="rounded-full border border-[#274149] bg-[#0f1f24] px-3 py-1.5 text-xs text-[#d4e6e2]">
+                              {pill}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
                     {historyLoading ? (
-                      <div className="flex items-center gap-3 rounded-2xl border border-[#2a2d45] bg-[#141a2d]/80 px-4 py-3 text-sm text-[#cfd4ff]">
-                        <Loader2 className="h-4 w-4 animate-spin text-[#8f9af5]" />
+                      <div className="flex items-center gap-3 rounded-2xl border border-[#1f3135] bg-[#0b1518] px-4 py-3 text-sm text-[#d6e8e4]">
+                        <Loader2 className="h-4 w-4 animate-spin text-[#7fc7ba]" />
                         Loading your chats...
                       </div>
                     ) : null}
@@ -2162,8 +2353,8 @@ export default function Luna() {
           </div>
 
           {visibleMain ? (
-            <div className="border-t border-[#232841] bg-[#0d0f17]/92 px-3 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:px-6">
-              <div className="mx-auto max-w-4xl">
+            <div className="border-t border-white/6 bg-[#071013]/92 px-3 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:px-6">
+              <div className="mx-auto max-w-5xl">
                 <Composer
                   value={inputValue}
                   onChange={setInputValue}
@@ -2199,14 +2390,14 @@ export default function Luna() {
               initial={{ opacity: 0, y: 16, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 16, scale: 0.98 }}
-              className="w-full max-w-md rounded-2xl border border-[#2a2d45] bg-[#171b2d] p-5"
+              className="w-full max-w-md rounded-[28px] border border-[#1f3135] bg-[linear-gradient(180deg,rgba(10,18,20,0.96),rgba(7,12,14,0.98))] p-5"
             >
               <div className="mb-3 flex items-center justify-between">
                 <h3 className="text-lg font-semibold" style={{ fontFamily: "'Syne', sans-serif" }}>Create Project Folder</h3>
                 <button
                   type="button"
                   onClick={() => setNewProjectOpen(false)}
-                  className="rounded-md border border-[#2f3558] bg-[#202642] p-1.5 text-[#cfd5ff]"
+                  className="rounded-xl border border-[#274149] bg-[#0f1f24] p-1.5 text-[#cfe3df]"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -2216,14 +2407,14 @@ export default function Luna() {
                 value={newProjectName}
                 onChange={(event) => setNewProjectName(event.target.value)}
                 placeholder="Project name"
-                className="w-full rounded-xl border border-[#2a2d45] bg-[#1d2238] px-3 py-2 text-sm outline-none focus:border-[#5b6af5]"
+                className="w-full rounded-2xl border border-[#1f3135] bg-[#0c1719] px-3 py-2 text-sm outline-none focus:border-[#4f7c75]"
               />
 
               <div className="mt-4 flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setNewProjectOpen(false)}
-                  className="rounded-lg border border-[#353d64] bg-[#1f2440] px-3 py-1.5 text-sm text-[#ced5ff]"
+                  className="rounded-xl border border-[#274149] bg-[#0f1f24] px-3 py-1.5 text-sm text-[#d4e6e2]"
                 >
                   Cancel
                 </button>
@@ -2231,7 +2422,7 @@ export default function Luna() {
                 <button
                   type="button"
                   onClick={handleCreateProject}
-                  className="rounded-lg border border-[#5b6af5]/70 bg-[#5b6af5]/25 px-3 py-1.5 text-sm text-[#e7eaff]"
+                  className="rounded-xl border border-[#e1ba6d]/40 bg-[#e1ba6d]/15 px-3 py-1.5 text-sm text-[#f3dfae]"
                 >
                   Create
                 </button>
@@ -2247,7 +2438,7 @@ export default function Luna() {
             initial={{ opacity: 0, x: 26, y: 10 }}
             animate={{ opacity: 1, x: 0, y: 0 }}
             exit={{ opacity: 0, x: 26, y: 10 }}
-            className="fixed bottom-5 right-5 z-[70] w-[min(92vw,360px)] rounded-xl border border-[#3a2a45] bg-[#23182c]/95 p-3 text-sm text-[#f6d9ff] shadow-[0_16px_40px_rgba(0,0,0,0.45)]"
+            className="fixed bottom-5 right-5 z-[70] w-[min(92vw,360px)] rounded-2xl border border-[#1f3135] bg-[linear-gradient(180deg,rgba(10,18,20,0.96),rgba(7,12,14,0.98))] p-3 text-sm text-[#e6f2ef] shadow-[0_16px_40px_rgba(0,0,0,0.45)]"
           >
             <p>{toast.message}</p>
             <div className="mt-2 flex justify-end gap-2">
@@ -2255,7 +2446,7 @@ export default function Luna() {
                 <button
                   type="button"
                   onClick={handleRetry}
-                  className="rounded-md border border-[#5b6af5]/70 bg-[#5b6af5]/20 px-2.5 py-1 text-xs text-[#e8ecff]"
+                  className="rounded-xl border border-[#e1ba6d]/35 bg-[#e1ba6d]/12 px-2.5 py-1 text-xs text-[#f5dfad]"
                 >
                   Retry
                 </button>
@@ -2263,7 +2454,7 @@ export default function Luna() {
               <button
                 type="button"
                 onClick={() => setToast(null)}
-                className="rounded-md border border-[#4a3650] bg-[#2b2131] px-2.5 py-1 text-xs text-[#f2d3ff]"
+                className="rounded-xl border border-[#274149] bg-[#0f1f24] px-2.5 py-1 text-xs text-[#d4e6e2]"
               >
                 Dismiss
               </button>
