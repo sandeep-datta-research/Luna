@@ -76,7 +76,7 @@ const fadeUpVariants = {
   }),
 };
 
-export default function HeroGeometric() {
+export default function HeroGeometric({ mobileLanding = false }) {
   const [isSignedIn, setIsSignedIn] = useState(false);
 
   useEffect(() => {
@@ -103,59 +103,59 @@ export default function HeroGeometric() {
   const primaryLabel = isSignedIn ? "Start Chat" : "Get Started";
 
   return (
-    <section className="relative flex min-h-[calc(100vh-70px)] w-full items-center justify-center overflow-hidden bg-[#07070d]">
+    <section className={`relative flex w-full items-center justify-center overflow-hidden bg-[#07070d] ${mobileLanding ? "min-h-[calc(100vh-132px)]" : "min-h-[calc(100vh-70px)]"}`}>
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_24%_20%,rgba(82,39,255,0.18),transparent_44%),radial-gradient(circle_at_84%_18%,rgba(177,158,239,0.13),transparent_38%),radial-gradient(circle_at_70%_82%,rgba(255,159,252,0.09),transparent_45%)]" />
 
       <div className="absolute inset-0 overflow-hidden">
         <ElegantShape
           delay={0.25}
-          width={600}
-          height={140}
+          width={mobileLanding ? 340 : 600}
+          height={mobileLanding ? 92 : 140}
           rotate={10}
           gradient="from-violet-400/40"
-          className="top-[12%] left-[-12%] md:top-[18%] md:left-[-6%]"
+          className={mobileLanding ? "top-[10%] left-[-22%]" : "top-[12%] left-[-12%] md:top-[18%] md:left-[-6%]"}
         />
 
         <ElegantShape
           delay={0.42}
-          width={500}
-          height={120}
+          width={mobileLanding ? 280 : 500}
+          height={mobileLanding ? 76 : 120}
           rotate={-16}
           gradient="from-fuchsia-300/35"
-          className="top-[68%] right-[-9%] md:top-[74%] md:right-[-2%]"
+          className={mobileLanding ? "top-[64%] right-[-20%]" : "top-[68%] right-[-9%] md:top-[74%] md:right-[-2%]"}
         />
 
         <ElegantShape
           delay={0.34}
-          width={320}
-          height={84}
+          width={mobileLanding ? 190 : 320}
+          height={mobileLanding ? 54 : 84}
           rotate={-7}
           gradient="from-indigo-300/30"
-          className="bottom-[6%] left-[4%] md:bottom-[10%] md:left-[9%]"
+          className={mobileLanding ? "bottom-[10%] left-[-2%]" : "bottom-[6%] left-[4%] md:bottom-[10%] md:left-[9%]"}
         />
 
         <ElegantShape
           delay={0.55}
-          width={210}
-          height={62}
+          width={mobileLanding ? 130 : 210}
+          height={mobileLanding ? 40 : 62}
           rotate={21}
           gradient="from-violet-200/35"
-          className="top-[9%] right-[13%] md:top-[14%] md:right-[18%]"
+          className={mobileLanding ? "top-[12%] right-[2%]" : "top-[9%] right-[13%] md:top-[14%] md:right-[18%]"}
         />
 
         <ElegantShape
           delay={0.63}
-          width={156}
-          height={44}
+          width={mobileLanding ? 92 : 156}
+          height={mobileLanding ? 28 : 44}
           rotate={-23}
           gradient="from-purple-300/35"
-          className="top-[4%] left-[20%] md:top-[9%] md:left-[24%]"
+          className={mobileLanding ? "top-[6%] left-[18%]" : "top-[4%] left-[20%] md:top-[9%] md:left-[24%]"}
         />
       </div>
 
-      <div className="pointer-events-none absolute left-1/2 top-1/2 h-[430px] w-[430px] -translate-x-1/2 -translate-y-1/2 sm:h-[540px] sm:w-[540px]">
+      <div className={`pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 ${mobileLanding ? "h-[308px] w-[308px]" : "h-[430px] w-[430px] sm:h-[540px] sm:w-[540px]"}`}>
         <div
-          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 scale-[0.38] sm:scale-[0.52]"
+          className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 ${mobileLanding ? "scale-[0.285]" : "scale-[0.38] sm:scale-[0.52]"}`}
           style={{ width: "1080px", height: "1080px", position: "relative" }}
         >
           <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_50%_50%,rgba(124,58,237,0.22),transparent_58%)] blur-2xl" />
@@ -178,14 +178,14 @@ export default function HeroGeometric() {
         </div>
       </div>
 
-      <div className="relative z-10 mx-auto w-full max-w-6xl px-4 md:px-6">
-        <div className="mx-auto max-w-3xl text-center">
+      <div className={`relative z-10 mx-auto w-full ${mobileLanding ? "max-w-[420px] px-4" : "max-w-6xl px-4 md:px-6"}`}>
+        <div className={`mx-auto text-center ${mobileLanding ? "max-w-[340px] pt-8" : "max-w-3xl"}`}>
           <Motion.div
             custom={0}
             variants={fadeUpVariants}
             initial="hidden"
             animate="visible"
-            className="mb-7 inline-flex items-center gap-2 rounded-full border border-violet-300/25 bg-[#0f1022]/62 px-4 py-1.5 shadow-sm backdrop-blur-sm md:mb-10"
+            className={`inline-flex items-center gap-2 rounded-full border border-violet-300/25 bg-[#0f1022]/62 px-4 py-1.5 shadow-sm backdrop-blur-sm ${mobileLanding ? "mb-5" : "mb-7 md:mb-10"}`}
           >
             <Sparkles className="h-4 w-4 text-violet-300" />
             <span className="bg-gradient-to-r from-violet-200 via-fuchsia-200 to-violet-300 bg-clip-text text-sm font-semibold tracking-wide text-transparent">
@@ -199,11 +199,11 @@ export default function HeroGeometric() {
             initial="hidden"
             animate="visible"
           >
-            <h1 className="mx-3 mb-6 text-white md:mb-8">
-              <span className="block text-2xl font-semibold leading-tight tracking-[-0.02em] text-transparent bg-gradient-to-r from-white via-[#E9D5FF] to-[#C4B5FD] bg-clip-text sm:text-4xl md:text-5xl lg:text-6xl">
+            <h1 className={`text-white ${mobileLanding ? "mx-0 mb-4" : "mx-3 mb-6 md:mb-8"}`}>
+              <span className={`block font-semibold leading-tight tracking-[-0.02em] text-transparent bg-gradient-to-r from-white via-[#E9D5FF] to-[#C4B5FD] bg-clip-text ${mobileLanding ? "text-[2rem]" : "text-2xl sm:text-4xl md:text-5xl lg:text-6xl"}`}>
                 GROW AND LEARN
               </span>
-              <span className="block pt-2 text-base font-medium leading-relaxed tracking-[0.08em] text-zinc-300 sm:pt-3 sm:text-lg md:text-xl">
+              <span className={`block font-medium leading-relaxed tracking-[0.08em] text-zinc-300 ${mobileLanding ? "pt-2 text-[0.95rem]" : "pt-2 text-base sm:pt-3 sm:text-lg md:text-xl"}`}>
                 Luna Your digital friend
               </span>
             </h1>
@@ -215,7 +215,7 @@ export default function HeroGeometric() {
             initial="hidden"
             animate="visible"
           >
-            <p className="mx-auto mb-10 max-w-2xl px-4 text-base leading-relaxed text-zinc-300 sm:text-lg md:text-xl">
+            <p className={`mx-auto leading-relaxed text-zinc-300 ${mobileLanding ? "mb-7 max-w-[260px] px-2 text-sm" : "mb-10 max-w-2xl px-4 text-base sm:text-lg md:text-xl"}`}>
               One interface. Multiple AI minds. Meet Luna.
             </p>
           </Motion.div>
@@ -225,7 +225,7 @@ export default function HeroGeometric() {
             variants={fadeUpVariants}
             initial="hidden"
             animate="visible"
-            className="flex flex-col justify-center gap-4 sm:flex-row"
+            className={`flex flex-col justify-center gap-4 ${mobileLanding ? "" : "sm:flex-row"}`}
           >
             <Button
               asChild
