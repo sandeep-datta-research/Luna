@@ -8,6 +8,7 @@ const TOOL_NAMES = {
   KNOWLEDGE_LOOKUP: "knowledge_lookup",
   WEB_SEARCH: "web_search",
   NEWS: "news",
+  CLOCK: "clock",
 };
 
 const STOPWORDS = new Set([
@@ -235,6 +236,18 @@ function shouldUseNews(message) {
   return text.includes("news") || text.includes("headlines") || text.includes("latest updates");
 }
 
+function shouldUseClock(message) {
+  const text = normalizeText(message).toLowerCase();
+  return (
+    text.includes("time") ||
+    text.includes("date today") ||
+    text.includes("today's date") ||
+    text.includes("current date") ||
+    text.includes("what day is it") ||
+    text.includes("clock")
+  );
+}
+
 function shouldUseKnowledgeLookup(message) {
   const text = normalizeText(message).toLowerCase();
   return text.includes("wikipedia") || text.includes("wiki") || text.includes("lookup");
@@ -249,6 +262,72 @@ function extractQueryAfter(text, keywords) {
     }
   }
   return "";
+}
+
+function getClockSnapshot() {
+  const now = new Date();
+  return {
+    iso: now.toISOString(),
+    utc: new Intl.DateTimeFormat("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      second: "2-digit",
+      timeZone: "UTC",
+      timeZoneName: "short",
+    }).format(now),
+    local: new Intl.DateTimeFormat("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      second: "2-digit",
+      timeZoneName: "short",
+    }).format(now),
+    timezone:
+      Intl.DateTimeFormat().resolvedOptions().timeZone ||
+      process.env.TZ ||
+      "UTC",
+  };
+}
+
+function decodeXmlEntities(value) {
+  return `${value || ""}`
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+}
+
+function stripXmlTags(value) {
+  return decodeXmlEntities(value).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function parseRssItems(xml, limit = 5) {
+  const source = `${xml || ""}`;
+  const items = [...source.matchAll(/<item>([\s\S]*?)<\/item>/gi)].slice(0, limit);
+  return items.map((match) => {
+    const block = match[1] || "";
+    const title = stripXmlTags(block.match(/<title>([\s\S]*?)<\/title>/i)?.[1] || "Untitled");
+    const link = stripXmlTags(block.match(/<link>([\s\S]*?)<\/link>/i)?.[1] || "");
+    const sourceName =
+      stripXmlTags(block.match(/<source[^>]*>([\s\S]*?)<\/source>/i)?.[1] || "") || "Google News";
+    const snippet = stripXmlTags(block.match(/<description>([\s\S]*?)<\/description>/i)?.[1] || "");
+
+    return {
+      title,
+      link,
+      source: sourceName,
+      snippet: truncateText(snippet, 220),
+    };
+  });
 }
 
 function formatToolResult(result) {
@@ -291,7 +370,15 @@ function formatToolResult(result) {
     case TOOL_NAMES.NEWS:
       return [
         "News results:",
-        ...result.output.results.map((item, index) => `${index + 1}. ${item.title} (${item.source}) � ${item.link}`),
+        ...result.output.results.map((item, index) => `${index + 1}. ${item.title} (${item.source}) - ${item.link}`),
+      ].join("\n");
+    case TOOL_NAMES.CLOCK:
+      return [
+        "Live clock:",
+        `- Local: ${result.output.local}`,
+        `- UTC: ${result.output.utc}`,
+        `- ISO: ${result.output.iso}`,
+        `- Time zone: ${result.output.timezone}`,
       ].join("\n");
     default:
       return truncateText(JSON.stringify(result.output || {}));
@@ -334,6 +421,10 @@ export function planToolCalls(message) {
   if (shouldUseNews(raw)) {
     const query = extractQueryAfter(raw, ["news", "headlines", "latest"]) || "";
     calls.push({ tool: TOOL_NAMES.NEWS, input: { query } });
+  }
+
+  if (shouldUseClock(raw)) {
+    calls.push({ tool: TOOL_NAMES.CLOCK, input: {} });
   }
 
   if (shouldUseKnowledgeLookup(raw)) {
@@ -457,14 +548,24 @@ export async function executeToolCalls(toolCalls) {
         }
         case TOOL_NAMES.NEWS: {
           const apiKey = (process.env.NEWS_API_KEY || "").trim();
-          if (!apiKey) {
-            results.push({ tool: TOOL_NAMES.NEWS, ok: false, input: call.input, output: null, error: "NEWS_API_KEY is not configured." });
-            break;
+          const query = `${call.input?.query || ""}`.trim();
+          let articles = [];
+
+          if (apiKey) {
+            const encodedQuery = encodeURIComponent(query);
+            const url = query
+              ? `https://newsapi.org/v2/top-headlines?q=${encodedQuery}&pageSize=5&language=en&apiKey=${apiKey}`
+              : `https://newsapi.org/v2/top-headlines?language=en&pageSize=5&apiKey=${apiKey}`;
+            const response = await axios.get(url, { timeout: 10000 });
+            articles = Array.isArray(response.data?.articles) ? response.data.articles.slice(0, 5) : [];
+          } else {
+            const rssUrl = query
+              ? `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-US&gl=US&ceid=US:en`
+              : "https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en";
+            const response = await axios.get(rssUrl, { timeout: 10000, responseType: "text" });
+            articles = parseRssItems(response.data, 5);
           }
-          const query = encodeURIComponent(call.input?.query || "");
-          const url = `https://newsapi.org/v2/top-headlines?q=${query}&pageSize=5&language=en&apiKey=${apiKey}`;
-          const response = await axios.get(url, { timeout: 10000 });
-          const articles = Array.isArray(response.data?.articles) ? response.data.articles.slice(0, 5) : [];
+
           results.push({
             tool: TOOL_NAMES.NEWS,
             ok: true,
@@ -472,10 +573,21 @@ export async function executeToolCalls(toolCalls) {
             output: {
               results: articles.map((article) => ({
                 title: article.title || "Untitled",
-                link: article.url || "",
-                source: article.source?.name || "News",
+                link: article.url || article.link || "",
+                source: article.source?.name || article.source || "News",
+                snippet: article.description || article.snippet || "",
               })),
             },
+            error: null,
+          });
+          break;
+        }
+        case TOOL_NAMES.CLOCK: {
+          results.push({
+            tool: TOOL_NAMES.CLOCK,
+            ok: true,
+            input: call.input,
+            output: getClockSnapshot(),
             error: null,
           });
           break;

@@ -960,6 +960,32 @@ function splitTextForStream(text, maxChunk = 18) {
   return chunks;
 }
 
+function splitForUiTokens(text) {
+  const normalized = typeof text === "string" ? text : "";
+  if (!normalized) return [];
+
+  const rawParts = normalized.match(/\s+|[^\s]+/g) || [];
+  const tokens = [];
+
+  for (const part of rawParts) {
+    if (/^\s+$/.test(part)) {
+      tokens.push(part);
+      continue;
+    }
+
+    if (part.length <= 12) {
+      tokens.push(part);
+      continue;
+    }
+
+    for (let index = 0; index < part.length; index += 8) {
+      tokens.push(part.slice(index, index + 8));
+    }
+  }
+
+  return tokens;
+}
+
 function streamTextChunks(text, onToken) {
   const chunks = splitTextForStream(text);
   for (const chunk of chunks) {
@@ -1833,8 +1859,13 @@ app.post("/api/luna/stream", async (req, res) => {
   let reply = "";
   const sendToken = (chunk) => {
     if (closed || !chunk) return;
-    reply += chunk;
-    sendSseEvent(res, "token", { token: chunk });
+    const uiTokens = splitForUiTokens(chunk);
+    if (uiTokens.length === 0) return;
+
+    for (const token of uiTokens) {
+      reply += token;
+      sendSseEvent(res, "token", { token });
+    }
   };
 
   try {
@@ -2555,7 +2586,6 @@ async function startServer() {
 }
 
 startServer();
-
 
 
 
