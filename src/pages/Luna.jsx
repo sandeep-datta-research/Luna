@@ -1,6 +1,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { flushSync } from "react-dom";
 import {
   Bot,
   BrainCircuit,
@@ -1246,20 +1247,22 @@ export default function Luna() {
         if (assistantAdded) return;
         assistantId = createId("assistant");
         assistantAdded = true;
-        updateSession(target.id, (session) => ({
-          ...session,
-          messages: [
-            ...session.messages,
-            {
-              id: assistantId,
-              role: "assistant",
-              content: initialContent,
-              createdAt: nowIso(),
-              llm: "",
-            },
-          ],
-          updatedAt: nowIso(),
-        }));
+        flushSync(() => {
+          updateSession(target.id, (session) => ({
+            ...session,
+            messages: [
+              ...session.messages,
+              {
+                id: assistantId,
+                role: "assistant",
+                content: initialContent,
+                createdAt: nowIso(),
+                llm: "",
+              },
+            ],
+            updatedAt: nowIso(),
+          }));
+        });
       };
 
       const applyChunk = (chunk) => {
@@ -1270,13 +1273,15 @@ export default function Luna() {
           return;
         }
 
-        updateSession(target.id, (session) => ({
-          ...session,
-          messages: session.messages.map((msg) =>
-            msg.id === assistantId ? { ...msg, content: msg.content + chunk } : msg,
-          ),
-          updatedAt: nowIso(),
-        }));
+        flushSync(() => {
+          updateSession(target.id, (session) => ({
+            ...session,
+            messages: session.messages.map((msg) =>
+              msg.id === assistantId ? { ...msg, content: msg.content + chunk } : msg,
+            ),
+            updatedAt: nowIso(),
+          }));
+        });
       };
 
       const appendChunk = (chunk) => {
