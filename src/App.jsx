@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { HashRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import AdminDashboard from "./components/mvpblocks";
 import SignInPage from "./components/mvpblocks/login-form-3";
+import Orb from "./components/ui/orb";
 import Home from "./pages/home";
 import Features from "./pages/Features";
 import Luna from "./pages/Luna";
@@ -73,26 +74,23 @@ function App() {
             transition={{ duration: 0.36, ease: "easeOut" }}
             className="pointer-events-none fixed inset-0 z-[120] overflow-hidden bg-[#05060d]"
           >
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(91,61,245,0.32),transparent_42%),radial-gradient(circle_at_80%_30%,rgba(34,211,238,0.18),transparent_35%),linear-gradient(180deg,#07070d,#04050a)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(79,70,229,0.16),transparent_30%),linear-gradient(180deg,#06070c,#04050a)]" />
             <motion.div
-              initial={{ opacity: 0, scale: 0.92, y: 18 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 1.03 }}
-              transition={{ duration: 0.55, ease: "easeOut" }}
+              initial={{ opacity: 0, scale: 0.38 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 2.15 }}
+              transition={{ duration: 0.85, ease: [0.22, 1, 0.36, 1] }}
               className="relative flex min-h-screen items-center justify-center px-6"
             >
               <div className="relative flex flex-col items-center">
-                <motion.div
-                  animate={{ boxShadow: ["0 0 0 rgba(91,61,245,0.15)", "0 0 60px rgba(91,61,245,0.35)", "0 0 0 rgba(91,61,245,0.15)"] }}
-                  transition={{ duration: 1.2, ease: "easeInOut", repeat: Infinity }}
-                  className="mb-6 flex h-24 w-24 items-center justify-center rounded-[28px] border border-white/10 bg-white/5 backdrop-blur-xl"
-                >
-                  <div className="h-12 w-12 rounded-2xl bg-[linear-gradient(135deg,#7c5cff,#3dd9c9)]" />
-                </motion.div>
+                <div className="relative mb-6 h-36 w-36">
+                  <div className="absolute inset-[12%] rounded-full bg-[radial-gradient(circle_at_center,rgba(79,70,229,0.14),transparent_62%)] blur-xl" />
+                  <Orb hue={248} hoverIntensity={0.9} rotateOnHover={false} backgroundColor="#05060d" />
+                </div>
                 <motion.p
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.12, duration: 0.45 }}
+                  transition={{ delay: 0.18, duration: 0.45 }}
                   className="text-3xl font-semibold tracking-[0.18em] text-white"
                 >
                   LUNA
@@ -100,7 +98,7 @@ function App() {
                 <motion.p
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 0.78 }}
-                  transition={{ delay: 0.25, duration: 0.45 }}
+                  transition={{ delay: 0.28, duration: 0.45 }}
                   className="mt-3 text-sm uppercase tracking-[0.32em] text-zinc-400"
                 >
                   Think. Chat. Build.

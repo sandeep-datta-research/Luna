@@ -52,10 +52,10 @@ function ElegantShape({
             "absolute inset-0 rounded-full",
             "bg-gradient-to-r to-transparent",
             gradient,
-            "border border-white/25 bg-white/10 backdrop-blur-[10px]",
-            "shadow-[0_12px_32px_0_rgba(15,17,35,0.35)]",
+            "border border-white/18 bg-white/6 backdrop-blur-[8px]",
+            "shadow-[0_10px_24px_0_rgba(8,10,22,0.22)]",
             "after:absolute after:inset-0 after:rounded-full",
-            "after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.32),transparent_70%)]",
+            "after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.16),transparent_72%)]",
           )}
         />
       </Motion.div>
@@ -104,7 +104,7 @@ export default function HeroGeometric({ mobileLanding = false }) {
 
   return (
     <section className={`relative flex w-full items-center justify-center overflow-hidden bg-[#07070d] ${mobileLanding ? "min-h-[calc(100vh-132px)]" : "min-h-[calc(100vh-70px)]"}`}>
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_24%_20%,rgba(82,39,255,0.18),transparent_44%),radial-gradient(circle_at_84%_18%,rgba(177,158,239,0.13),transparent_38%),radial-gradient(circle_at_70%_82%,rgba(255,159,252,0.09),transparent_45%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_24%_20%,rgba(82,39,255,0.1),transparent_40%),radial-gradient(circle_at_84%_18%,rgba(177,158,239,0.08),transparent_34%),linear-gradient(180deg,#06070c,#080910)]" />
 
       <div className="absolute inset-0 overflow-hidden">
         <ElegantShape
@@ -158,19 +158,18 @@ export default function HeroGeometric({ mobileLanding = false }) {
           className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 ${mobileLanding ? "scale-[0.285]" : "scale-[0.38] sm:scale-[0.52]"}`}
           style={{ width: "1080px", height: "1080px", position: "relative" }}
         >
-          <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_50%_50%,rgba(124,58,237,0.22),transparent_58%)] blur-2xl" />
-          <div className="absolute inset-[6%] rounded-full bg-[radial-gradient(circle_at_50%_50%,rgba(124,58,237,0.22),transparent_65%)] opacity-80 blur-xl" />
-          <div className="absolute inset-[14%] rounded-full bg-[radial-gradient(circle_at_50%_50%,rgba(79,70,229,0.18),transparent_62%)] opacity-70 blur-lg" />
+          <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_50%_50%,rgba(124,58,237,0.12),transparent_56%)] blur-2xl" />
+          <div className="absolute inset-[10%] rounded-full bg-[radial-gradient(circle_at_50%_50%,rgba(79,70,229,0.12),transparent_62%)] opacity-65 blur-lg" />
           <div
-            className="absolute inset-[2%] rounded-full bg-[conic-gradient(from_120deg,rgba(124,58,237,0.55),rgba(79,70,229,0.08),rgba(124,58,237,0.55))] opacity-70"
+            className="absolute inset-[8%] rounded-full bg-[conic-gradient(from_120deg,rgba(124,58,237,0.28),rgba(79,70,229,0.02),rgba(124,58,237,0.24))] opacity-55"
             style={{
-              WebkitMaskImage: "radial-gradient(circle, transparent 62%, #000 63%)",
-              maskImage: "radial-gradient(circle, transparent 62%, #000 63%)",
+              WebkitMaskImage: "radial-gradient(circle, transparent 66%, #000 67%)",
+              maskImage: "radial-gradient(circle, transparent 66%, #000 67%)",
             }}
           />
           <Orb
-            hue={262}
-            hoverIntensity={2}
+            hue={248}
+            hoverIntensity={1.1}
             rotateOnHover
             forceHoverState={false}
             backgroundColor="#07070d"
@@ -187,8 +186,8 @@ export default function HeroGeometric({ mobileLanding = false }) {
             animate="visible"
             className={`inline-flex items-center gap-2 rounded-full border border-violet-300/25 bg-[#0f1022]/62 px-4 py-1.5 shadow-sm backdrop-blur-sm ${mobileLanding ? "mb-5" : "mb-7 md:mb-10"}`}
           >
-            <Sparkles className="h-4 w-4 text-violet-300" />
-            <span className="bg-gradient-to-r from-violet-200 via-fuchsia-200 to-violet-300 bg-clip-text text-sm font-semibold tracking-wide text-transparent">
+            <Sparkles className="h-4 w-4 text-violet-200" />
+            <span className="bg-gradient-to-r from-zinc-100 via-violet-100 to-zinc-200 bg-clip-text text-sm font-semibold tracking-wide text-transparent">
               Luna
             </span>
           </Motion.div>
@@ -200,10 +199,10 @@ export default function HeroGeometric({ mobileLanding = false }) {
             animate="visible"
           >
             <h1 className={`text-white ${mobileLanding ? "mx-0 mb-4" : "mx-3 mb-6 md:mb-8"}`}>
-              <span className={`block font-semibold leading-tight tracking-[-0.02em] text-transparent bg-gradient-to-r from-white via-[#E9D5FF] to-[#C4B5FD] bg-clip-text ${mobileLanding ? "text-[2rem]" : "text-2xl sm:text-4xl md:text-5xl lg:text-6xl"}`}>
+              <span className={`block font-semibold leading-tight tracking-[-0.03em] text-transparent bg-gradient-to-r from-white via-[#f3f4f6] to-[#cbd5e1] bg-clip-text ${mobileLanding ? "text-[2rem]" : "text-2xl sm:text-4xl md:text-5xl lg:text-6xl"}`}>
                 GROW AND LEARN
               </span>
-              <span className={`block font-medium leading-relaxed tracking-[0.08em] text-zinc-300 ${mobileLanding ? "pt-2 text-[0.95rem]" : "pt-2 text-base sm:pt-3 sm:text-lg md:text-xl"}`}>
+              <span className={`block font-medium leading-relaxed tracking-[0.08em] text-zinc-400 ${mobileLanding ? "pt-2 text-[0.95rem]" : "pt-2 text-base sm:pt-3 sm:text-lg md:text-xl"}`}>
                 Luna Your digital friend
               </span>
             </h1>
@@ -215,7 +214,7 @@ export default function HeroGeometric({ mobileLanding = false }) {
             initial="hidden"
             animate="visible"
           >
-            <p className={`mx-auto leading-relaxed text-zinc-300 ${mobileLanding ? "mb-7 max-w-[260px] px-2 text-sm" : "mb-10 max-w-2xl px-4 text-base sm:text-lg md:text-xl"}`}>
+            <p className={`mx-auto leading-relaxed text-zinc-400 ${mobileLanding ? "mb-7 max-w-[260px] px-2 text-sm" : "mb-10 max-w-2xl px-4 text-base sm:text-lg md:text-xl"}`}>
               One interface. Multiple AI minds. Meet Luna.
             </p>
           </Motion.div>

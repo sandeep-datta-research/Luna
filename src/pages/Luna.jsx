@@ -1,7 +1,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { flushSync } from "react-dom";
 import {
   Bot,
   BrainCircuit,
@@ -31,6 +30,8 @@ import {
   Star,
   Trash2,
   UserCircle2,
+  Volume2,
+  VolumeX,
   X,
   Zap,
 } from "lucide-react";
@@ -119,6 +120,30 @@ function formatHistoryTime(value) {
     hour: "numeric",
     minute: "2-digit",
   }).format(date);
+}
+
+function pickPreferredSpeechVoice(voices = []) {
+  if (!Array.isArray(voices) || voices.length === 0) return null;
+
+  const scored = voices
+    .filter((voice) => (voice?.lang || "").toLowerCase().startsWith("en"))
+    .map((voice) => {
+      const name = `${voice?.name || ""}`.toLowerCase();
+      let score = 0;
+      if (name.includes("female")) score += 5;
+      if (name.includes("samantha")) score += 4;
+      if (name.includes("aria")) score += 4;
+      if (name.includes("zira")) score += 4;
+      if (name.includes("google uk english female")) score += 6;
+      if (name.includes("kyoko")) score += 3;
+      if (name.includes("jenny")) score += 3;
+      if (name.includes("nova")) score += 2;
+      if (voice.default) score += 1;
+      return { voice, score };
+    })
+    .sort((a, b) => b.score - a.score);
+
+  return scored[0]?.voice || voices[0] || null;
 }
 
 function sanitizeMessage(raw) {
@@ -288,7 +313,15 @@ function ModelSelector({ selectedModel, onSelect }) {
   );
 }
 
-function MessageBubble({ message, showLunaHeader, isLatestAssistant, onCopy, onRegenerate }) {
+function MessageBubble({
+  message,
+  showLunaHeader,
+  isLatestAssistant,
+  onCopy,
+  onRegenerate,
+  onSpeak,
+  isSpeaking = false,
+}) {
   const isUser = message.role === "user";
 
   return (
@@ -327,6 +360,14 @@ function MessageBubble({ message, showLunaHeader, isLatestAssistant, onCopy, onR
                 title="Copy"
               >
                 <Copy className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => onSpeak(message)}
+                className="rounded-md border border-[#274149] bg-[#0f1f24]/95 p-1 text-[#cfe4e0] transition hover:border-[#4f7c75]"
+                title={isSpeaking ? "Stop audio reply" : "Play audio reply"}
+              >
+                {isSpeaking ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
               </button>
 
               {isLatestAssistant ? (
@@ -589,6 +630,10 @@ export default function Luna() {
   }, []);
   const [lastRetryPayload, setLastRetryPayload] = useState(null);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [audioReplyEnabled, setAudioReplyEnabled] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(false);
+  const [speakingMessageId, setSpeakingMessageId] = useState("");
+  const [availableVoices, setAvailableVoices] = useState([]);
 
   const mediaRecorderRef = useRef(null);
   const mediaStreamRef = useRef(null);
@@ -604,6 +649,8 @@ export default function Luna() {
   const streamAbortRef = useRef(null);
   const loadedConversationIdsRef = useRef(new Set());
   const historyLoadedRef = useRef(false);
+  const speechUtteranceRef = useRef(null);
+  const lastAutoSpokenMessageIdRef = useRef("");
 
   const sortedSessions = useMemo(
     () => [...sessions].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)),
@@ -626,6 +673,14 @@ export default function Luna() {
     }
     return "";
   }, [activeMessages]);
+
+  useEffect(() => {
+    if (!audioReplyEnabled || isTyping || !latestAssistantId) return;
+    const latestAssistant = activeMessages.find((message) => message.id === latestAssistantId);
+    if (!latestAssistant || speakingMessageId === latestAssistantId || lastAutoSpokenMessageIdRef.current === latestAssistantId) return;
+    lastAutoSpokenMessageIdRef.current = latestAssistantId;
+    speakMessage(latestAssistant);
+  }, [activeMessages, audioReplyEnabled, isTyping, latestAssistantId, speakMessage, speakingMessageId]);
 
   const historyList = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -749,6 +804,10 @@ export default function Luna() {
 
   useEffect(() => {
     return () => {
+      if (typeof window !== "undefined" && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
         mediaRecorderRef.current.stop();
       }
@@ -757,6 +816,24 @@ export default function Luna() {
       clearVoiceSilenceMonitor();
     };
   }, [clearVoiceSilenceMonitor, stopMediaStreamTracks]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+      setSpeechSupported(false);
+      setAvailableVoices([]);
+      return undefined;
+    }
+
+    const syncVoices = () => {
+      const voices = window.speechSynthesis.getVoices() || [];
+      setAvailableVoices(voices);
+      setSpeechSupported(voices.length > 0 || "speechSynthesis" in window);
+    };
+
+    syncVoices();
+    window.speechSynthesis.addEventListener?.("voiceschanged", syncVoices);
+    return () => window.speechSynthesis.removeEventListener?.("voiceschanged", syncVoices);
+  }, []);
 
   const updateSession = useCallback((sessionId, updater) => {
     setSessions((prev) =>
@@ -1243,50 +1320,61 @@ export default function Luna() {
       let assistantId = "";
       let assistantAdded = false;
       let streamedText = "";
+      let pendingChunkBuffer = "";
+      let flushFrameId = 0;
       const ensureAssistant = (initialContent = "") => {
         if (assistantAdded) return;
         assistantId = createId("assistant");
         assistantAdded = true;
-        flushSync(() => {
-          updateSession(target.id, (session) => ({
-            ...session,
-            messages: [
-              ...session.messages,
-              {
-                id: assistantId,
-                role: "assistant",
-                content: initialContent,
-                createdAt: nowIso(),
-                llm: "",
-              },
-            ],
-            updatedAt: nowIso(),
-          }));
-        });
+        updateSession(target.id, (session) => ({
+          ...session,
+          messages: [
+            ...session.messages,
+            {
+              id: assistantId,
+              role: "assistant",
+              content: initialContent,
+              createdAt: nowIso(),
+              llm: "",
+            },
+          ],
+          updatedAt: nowIso(),
+        }));
+      };
+
+      const flushPendingChunks = () => {
+        flushFrameId = 0;
+        if (!pendingChunkBuffer || !assistantId) return;
+
+        const chunk = pendingChunkBuffer;
+        pendingChunkBuffer = "";
+        updateSession(target.id, (session) => ({
+          ...session,
+          messages: session.messages.map((msg) =>
+            msg.id === assistantId ? { ...msg, content: msg.content + chunk } : msg,
+          ),
+          updatedAt: nowIso(),
+        }));
+      };
+
+      const scheduleChunkFlush = () => {
+        if (flushFrameId || typeof window === "undefined") return;
+        flushFrameId = window.requestAnimationFrame(flushPendingChunks);
       };
 
       const applyChunk = (chunk) => {
-        if (!chunk) return;
-        if (!assistantAdded) {
-          ensureAssistant(chunk);
-          setIsTyping(false);
-          return;
-        }
-
-        flushSync(() => {
-          updateSession(target.id, (session) => ({
-            ...session,
-            messages: session.messages.map((msg) =>
-              msg.id === assistantId ? { ...msg, content: msg.content + chunk } : msg,
-            ),
-            updatedAt: nowIso(),
-          }));
-        });
+        if (!chunk || !assistantId) return;
+        pendingChunkBuffer += chunk;
+        scheduleChunkFlush();
       };
 
       const appendChunk = (chunk) => {
         if (!chunk) return;
         streamedText += chunk;
+        if (!assistantAdded) {
+          ensureAssistant("");
+          setIsTyping(false);
+        }
         applyChunk(chunk);
       };
 
@@ -1347,6 +1435,13 @@ export default function Luna() {
       const finalReply = text(payload.reply) || streamedText || "I could not generate a reply. Please retry.";
       const llm = text(payload.llm);
       const payloadConversationId = text(payload.conversationId);
+
+        if (flushFrameId && typeof window !== "undefined") {
+          window.cancelAnimationFrame(flushFrameId);
+          flushPendingChunks();
+        } else {
+          flushPendingChunks();
+        }
 
       if (!assistantAdded) {
         ensureAssistant(finalReply);
@@ -1422,6 +1517,10 @@ export default function Luna() {
           });
         }
       } finally {
+        if (flushFrameId && typeof window !== "undefined") {
+          window.cancelAnimationFrame(flushFrameId);
+        }
+        flushPendingChunks();
         if (streamTimeout) {
           clearTimeout(streamTimeout);
         }
@@ -1496,6 +1595,48 @@ export default function Luna() {
       showErrorToast("Copy failed.");
     }
   }, [showErrorToast]);
+
+  const stopSpeech = useCallback(() => {
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    speechUtteranceRef.current = null;
+    setSpeakingMessageId("");
+  }, []);
+
+  const speakMessage = useCallback((message) => {
+    if (typeof window === "undefined" || !window.speechSynthesis) {
+      showErrorToast("Audio replies are not supported in this browser.");
+      return;
+    }
+
+    const content = text(message?.content);
+    if (!content) return;
+
+    if (speakingMessageId && speakingMessageId === message.id) {
+      stopSpeech();
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(content);
+    const preferredVoice = pickPreferredSpeechVoice(availableVoices);
+    if (preferredVoice) utterance.voice = preferredVoice;
+    utterance.rate = 1;
+    utterance.pitch = 1.15;
+    utterance.volume = 1;
+    utterance.onend = () => {
+      speechUtteranceRef.current = null;
+      setSpeakingMessageId("");
+    };
+    utterance.onerror = () => {
+      speechUtteranceRef.current = null;
+      setSpeakingMessageId("");
+      showErrorToast("Audio reply failed.");
+    };
+    speechUtteranceRef.current = utterance;
+    setSpeakingMessageId(message.id);
+    window.speechSynthesis.speak(utterance);
+  }, [availableVoices, showErrorToast, speakingMessageId, stopSpeech]);
 
   const handleRetry = useCallback(async () => {
     if (!lastRetryPayload) return;
@@ -2100,6 +2241,24 @@ export default function Luna() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {speechSupported ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (audioReplyEnabled) stopSpeech();
+                    setAudioReplyEnabled((prev) => !prev);
+                  }}
+                  className={`inline-flex h-10 min-w-[44px] items-center justify-center rounded-2xl border px-3 text-xs ${
+                    audioReplyEnabled
+                      ? "border-[#4f7c75] bg-[#102126] text-[#d7ece7]"
+                      : "border-[#274149] bg-[#0f1f24] text-[#9db6b1]"
+                  }`}
+                  aria-label="Toggle audio replies"
+                  title="Toggle audio replies"
+                >
+                  {audioReplyEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+                </button>
+              ) : null}
               <button
                 type="button"
                 onClick={() => createFreshSession()}
@@ -2132,6 +2291,22 @@ export default function Luna() {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              {speechSupported ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (audioReplyEnabled) stopSpeech();
+                    setAudioReplyEnabled((prev) => !prev);
+                  }}
+                  className={`rounded-full border px-3 py-1.5 text-xs ${
+                    audioReplyEnabled
+                      ? "border-[#4f7c75] bg-[#102126] text-[#e7f4f1]"
+                      : "border-[#274149] bg-[#0f1f24] text-[#8fb0aa]"
+                  }`}
+                >
+                  {audioReplyEnabled ? "Voice replies on" : "Voice replies off"}
+                </button>
+              ) : null}
               <div className="rounded-full border border-[#274149] bg-[#0f1f24] px-3 py-1.5 text-xs text-[#8fb0aa]">
                 {formatDateLabel()}
               </div>
@@ -2345,6 +2520,8 @@ export default function Luna() {
                         showLunaHeader={message.role === "assistant"}
                         isLatestAssistant={message.id === latestAssistantId}
                         onCopy={copyMessage}
+                        onSpeak={speakMessage}
+                        isSpeaking={speakingMessageId === message.id}
                         onRegenerate={regenerateLatest}
                       />
                     ))}
