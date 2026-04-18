@@ -530,11 +530,21 @@ export function createMongoStore() {
     }
 
     const lastSeenAt = nowIso();
-    await sessions().updateOne({ token: safeToken }, { $set: { lastSeenAt } });
+    const expiresAtDate = new Date(Date.now() + getSessionTtlMs());
+    await sessions().updateOne(
+      { token: safeToken },
+      {
+        $set: {
+          lastSeenAt,
+          expiresAt: expiresAtDate.toISOString(),
+          expiresAtDate,
+        },
+      },
+    );
 
     return {
       user: sanitizeUserRecord(user),
-      session: sanitizeSessionRecord({ ...session, lastSeenAt }),
+      session: sanitizeSessionRecord({ ...session, lastSeenAt, expiresAt: expiresAtDate.toISOString(), expiresAtDate }),
     };
   }
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Menu, Mic, Send, Shield, X } from "lucide-react";
@@ -150,7 +150,159 @@ function MobileInputPreview({ ctaHref }) {
   );
 }
 
-function MobileLanding({ ctaHref, menuOpen, onOpenMenu, onCloseMenu }) {
+function UserGrowthSection({ userMetrics, chartPoints, compact = false }) {
+  const gradientId = useId().replace(/:/g, "");
+  const areaId = `${gradientId}-area`;
+
+  return (
+    <div className={`rounded-3xl border border-indigo-300/25 bg-gradient-to-b from-[#121225] to-[#0c0c16] shadow-[0_30px_90px_-55px_rgba(91,106,245,0.7)] ${compact ? "px-4 py-5" : "px-6 py-6 sm:px-8"}`}>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <p className="text-xs uppercase tracking-[0.3em] text-indigo-200/70">User Growth</p>
+          <h3 className={`mt-2 font-semibold text-white ${compact ? "text-xl" : "text-2xl sm:text-3xl"}`}>
+            {userMetrics.total.toLocaleString()} total users
+          </h3>
+          <p className="mt-2 text-sm text-indigo-100/70">Last {userMetrics.days} days of signups</p>
+        </div>
+        <div className="rounded-2xl border border-indigo-300/20 bg-indigo-500/5 px-4 py-2 text-xs text-indigo-100/70">
+          Updated automatically
+        </div>
+      </div>
+
+      <div className="mt-6 rounded-2xl border border-indigo-300/20 bg-[#0b0b14]/70 p-4">
+        <svg viewBox="0 0 560 140" className={`w-full ${compact ? "h-[120px]" : "h-[140px]"}`}>
+          <defs>
+            <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="#5B6AF5" />
+              <stop offset="50%" stopColor="#8B5CF6" />
+              <stop offset="100%" stopColor="#EC4899" />
+            </linearGradient>
+            <linearGradient id={areaId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="rgba(91,106,245,0.35)" />
+              <stop offset="100%" stopColor="rgba(91,106,245,0)" />
+            </linearGradient>
+          </defs>
+          <polyline
+            points={chartPoints || "8,120 552,120"}
+            fill="none"
+            stroke={`url(#${gradientId})`}
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <polyline
+            points={`${chartPoints || "8,120 552,120"} 552,136 8,136`}
+            fill={`url(#${areaId})`}
+            stroke="none"
+          />
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+function FeedbackSection({
+  feedbackForm,
+  setFeedbackForm,
+  feedbackBusy,
+  feedbackNote,
+  handleFeedbackSubmit,
+  carouselTestimonials,
+  compact = false,
+}) {
+  return (
+    <section className={`rounded-3xl border border-zinc-800 bg-zinc-900/60 text-zinc-300 ${compact ? "px-4 py-5" : "px-6 py-6 sm:px-8"}`}>
+      <h2 className="text-lg font-semibold text-white">Feedback</h2>
+      <p className="mt-2 text-sm leading-relaxed">
+        Share your experience. Admin can feature selected feedback in the carousel below.
+      </p>
+
+      <form onSubmit={handleFeedbackSubmit} className={`mt-5 grid gap-3 rounded-2xl border border-zinc-800 bg-zinc-950/60 p-4 ${compact ? "" : "sm:grid-cols-2"}`}>
+        <label className={`text-xs text-zinc-400 ${compact ? "" : ""}`}>
+          Name
+          <input
+            value={feedbackForm.name}
+            onChange={(e) => setFeedbackForm((prev) => ({ ...prev, name: e.target.value }))}
+            placeholder="Your name"
+            className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900/70 px-3 py-2 text-sm text-zinc-100 outline-none"
+          />
+        </label>
+
+        <label className="text-xs text-zinc-400">
+          Email
+          <input
+            value={feedbackForm.email}
+            onChange={(e) => setFeedbackForm((prev) => ({ ...prev, email: e.target.value }))}
+            placeholder="you@example.com"
+            className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900/70 px-3 py-2 text-sm text-zinc-100 outline-none"
+          />
+        </label>
+
+        <label className={`text-xs text-zinc-400 ${compact ? "" : "sm:col-span-2"}`}>
+          Feedback
+          <textarea
+            value={feedbackForm.message}
+            onChange={(e) => setFeedbackForm((prev) => ({ ...prev, message: e.target.value }))}
+            placeholder="Tell us what to improve in Luna..."
+            className="mt-1 min-h-[100px] w-full rounded-lg border border-zinc-700 bg-zinc-900/70 px-3 py-2 text-sm text-zinc-100 outline-none"
+          />
+        </label>
+
+        <label className="text-xs text-zinc-400">
+          Rating
+          <select
+            value={feedbackForm.rating}
+            onChange={(e) => setFeedbackForm((prev) => ({ ...prev, rating: Number(e.target.value) }))}
+            className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900/70 px-3 py-2 text-sm text-zinc-100 outline-none"
+          >
+            <option value={5}>5 - Excellent</option>
+            <option value={4}>4 - Good</option>
+            <option value={3}>3 - Average</option>
+            <option value={2}>2 - Needs work</option>
+            <option value={1}>1 - Poor</option>
+          </select>
+        </label>
+
+        <div className={`flex items-end ${compact ? "" : "justify-end sm:col-span-1"}`}>
+          <button
+            type="submit"
+            disabled={feedbackBusy}
+            className="rounded-lg border border-violet-400/35 bg-violet-500/20 px-4 py-2 text-sm font-medium text-violet-100 hover:bg-violet-500/30 disabled:opacity-60"
+          >
+            {feedbackBusy ? "Submitting..." : "Submit Feedback"}
+          </button>
+        </div>
+
+        {feedbackNote ? <p className={`${compact ? "" : "sm:col-span-2"} text-xs text-cyan-200`}>{feedbackNote}</p> : null}
+      </form>
+
+      <div className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-950/40">
+        <TestimonialsCarousel
+          testimonials={carouselTestimonials}
+          title="Luna Community"
+          subtitle="Featured feedback selected by admin."
+          autoplaySpeed={3600}
+          className={compact ? "py-8" : "py-10 md:py-14"}
+        />
+      </div>
+    </section>
+  );
+}
+
+function MobileLanding({
+  ctaHref,
+  menuOpen,
+  onOpenMenu,
+  onCloseMenu,
+  userMetrics,
+  chartPoints,
+  feedbackForm,
+  setFeedbackForm,
+  feedbackBusy,
+  feedbackNote,
+  handleFeedbackSubmit,
+  carouselTestimonials,
+}) {
   const menuLinks = [
     { label: "Home", href: "/" },
     { label: "Features", href: "/features" },
@@ -163,8 +315,26 @@ function MobileLanding({ ctaHref, menuOpen, onOpenMenu, onCloseMenu }) {
     <div className="md:hidden min-h-screen overflow-hidden bg-[#07070d] text-white">
       <div className="relative mx-auto flex min-h-screen w-full max-w-[420px] flex-col">
         <MobileNavbar ctaHref={ctaHref} onOpenMenu={onOpenMenu} />
+        <div className="px-4 pt-2">
+          <AnnouncementBanner />
+        </div>
         <HeroGeometric mobileLanding />
         <MobileInputPreview ctaHref={ctaHref} />
+        <div className="space-y-5 px-4 pb-10">
+          <div className="dark about-glow-shell overflow-hidden rounded-[28px] border border-cyan-300/25 bg-gradient-to-b from-zinc-900/92 to-zinc-950/95 shadow-[0_30px_90px_-55px_rgba(34,211,238,0.95)]">
+            <AboutUs1 />
+          </div>
+          <UserGrowthSection userMetrics={userMetrics} chartPoints={chartPoints} compact />
+          <FeedbackSection
+            feedbackForm={feedbackForm}
+            setFeedbackForm={setFeedbackForm}
+            feedbackBusy={feedbackBusy}
+            feedbackNote={feedbackNote}
+            handleFeedbackSubmit={handleFeedbackSubmit}
+            carouselTestimonials={carouselTestimonials}
+            compact
+          />
+        </div>
       </div>
 
       <AnimatePresence>
@@ -264,135 +434,22 @@ function DesktopHome({
         </motion.section>
 
         <motion.section {...fadeInUp} className="mx-auto mt-8 w-full max-w-6xl px-4 sm:px-6 lg:px-8">
-          <div className="rounded-3xl border border-indigo-300/25 bg-gradient-to-b from-[#121225] to-[#0c0c16] px-6 py-6 shadow-[0_30px_90px_-55px_rgba(91,106,245,0.7)] sm:px-8">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <p className="text-xs uppercase tracking-[0.3em] text-indigo-200/70">User Growth</p>
-                <h3 className="mt-2 text-2xl font-semibold text-white sm:text-3xl">
-                  {userMetrics.total.toLocaleString()} total users
-                </h3>
-                <p className="mt-2 text-sm text-indigo-100/70">
-                  Last {userMetrics.days} days of signups
-                </p>
-              </div>
-              <div className="rounded-2xl border border-indigo-300/20 bg-indigo-500/5 px-4 py-2 text-xs text-indigo-100/70">
-                Updated automatically
-              </div>
-            </div>
-
-            <div className="mt-6 rounded-2xl border border-indigo-300/20 bg-[#0b0b14]/70 p-4">
-              <svg viewBox="0 0 560 140" className="h-[140px] w-full">
-                <defs>
-                  <linearGradient id="lunaUserLine" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stopColor="#5B6AF5" />
-                    <stop offset="50%" stopColor="#8B5CF6" />
-                    <stop offset="100%" stopColor="#EC4899" />
-                  </linearGradient>
-                  <linearGradient id="lunaUserArea" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="rgba(91,106,245,0.35)" />
-                    <stop offset="100%" stopColor="rgba(91,106,245,0)" />
-                  </linearGradient>
-                </defs>
-                <polyline
-                  points={chartPoints || "8,120 552,120"}
-                  fill="none"
-                  stroke="url(#lunaUserLine)"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <polyline
-                  points={`${chartPoints || "8,120 552,120"} 552,136 8,136`}
-                  fill="url(#lunaUserArea)"
-                  stroke="none"
-                />
-              </svg>
-            </div>
-          </div>
+          <UserGrowthSection userMetrics={userMetrics} chartPoints={chartPoints} />
         </motion.section>
 
         <Analytics />
         <SpeedInsights />
 
-        <motion.section
-          id="feedback"
-          {...fadeInUp}
-          className="scroll-mt-28 mx-auto mt-6 w-full max-w-6xl rounded-2xl border border-zinc-800 bg-zinc-900/60 px-6 py-6 text-zinc-300 sm:px-8"
-        >
-          <h2 className="text-lg font-semibold text-white">Feedback</h2>
-          <p className="mt-2 text-sm leading-relaxed">
-            Share your experience. Admin can feature selected feedback in the carousel below.
-          </p>
-
-          <form onSubmit={handleFeedbackSubmit} className="mt-5 grid gap-3 rounded-2xl border border-zinc-800 bg-zinc-950/60 p-4 sm:grid-cols-2">
-            <label className="text-xs text-zinc-400">
-              Name
-              <input
-                value={feedbackForm.name}
-                onChange={(e) => setFeedbackForm((prev) => ({ ...prev, name: e.target.value }))}
-                placeholder="Your name"
-                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900/70 px-3 py-2 text-sm text-zinc-100 outline-none"
-              />
-            </label>
-
-            <label className="text-xs text-zinc-400">
-              Email
-              <input
-                value={feedbackForm.email}
-                onChange={(e) => setFeedbackForm((prev) => ({ ...prev, email: e.target.value }))}
-                placeholder="you@example.com"
-                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900/70 px-3 py-2 text-sm text-zinc-100 outline-none"
-              />
-            </label>
-
-            <label className="text-xs text-zinc-400 sm:col-span-2">
-              Feedback
-              <textarea
-                value={feedbackForm.message}
-                onChange={(e) => setFeedbackForm((prev) => ({ ...prev, message: e.target.value }))}
-                placeholder="Tell us what to improve in Luna..."
-                className="mt-1 min-h-[100px] w-full rounded-lg border border-zinc-700 bg-zinc-900/70 px-3 py-2 text-sm text-zinc-100 outline-none"
-              />
-            </label>
-
-            <label className="text-xs text-zinc-400">
-              Rating
-              <select
-                value={feedbackForm.rating}
-                onChange={(e) => setFeedbackForm((prev) => ({ ...prev, rating: Number(e.target.value) }))}
-                className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900/70 px-3 py-2 text-sm text-zinc-100 outline-none"
-              >
-                <option value={5}>5 - Excellent</option>
-                <option value={4}>4 - Good</option>
-                <option value={3}>3 - Average</option>
-                <option value={2}>2 - Needs work</option>
-                <option value={1}>1 - Poor</option>
-              </select>
-            </label>
-
-            <div className="flex items-end justify-end sm:col-span-1">
-              <button
-                type="submit"
-                disabled={feedbackBusy}
-                className="rounded-lg border border-violet-400/35 bg-violet-500/20 px-4 py-2 text-sm font-medium text-violet-100 hover:bg-violet-500/30 disabled:opacity-60"
-              >
-                {feedbackBusy ? "Submitting..." : "Submit Feedback"}
-              </button>
-            </div>
-
-            {feedbackNote ? <p className="sm:col-span-2 text-xs text-cyan-200">{feedbackNote}</p> : null}
-          </form>
-
-          <div className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-950/40">
-            <TestimonialsCarousel
-              testimonials={carouselTestimonials}
-              title="Luna Community"
-              subtitle="Featured feedback selected by admin."
-              autoplaySpeed={3600}
-              className="py-10 md:py-14"
-            />
-          </div>
-        </motion.section>
+        <motion.div id="feedback" {...fadeInUp} className="scroll-mt-28 mx-auto mt-6 w-full max-w-6xl px-4 sm:px-6 lg:px-8">
+          <FeedbackSection
+            feedbackForm={feedbackForm}
+            setFeedbackForm={setFeedbackForm}
+            feedbackBusy={feedbackBusy}
+            feedbackNote={feedbackNote}
+            handleFeedbackSubmit={handleFeedbackSubmit}
+            carouselTestimonials={carouselTestimonials}
+          />
+        </motion.div>
       </main>
     </div>
   );
@@ -567,6 +624,14 @@ export default function Home() {
         menuOpen={mobileMenuOpen}
         onOpenMenu={() => setMobileMenuOpen(true)}
         onCloseMenu={() => setMobileMenuOpen(false)}
+        userMetrics={userMetrics}
+        chartPoints={chartPoints}
+        feedbackForm={feedbackForm}
+        setFeedbackForm={setFeedbackForm}
+        feedbackBusy={feedbackBusy}
+        feedbackNote={feedbackNote}
+        handleFeedbackSubmit={handleFeedbackSubmit}
+        carouselTestimonials={carouselTestimonials}
       />
       <DesktopHome
         cardNavItems={cardNavItems}

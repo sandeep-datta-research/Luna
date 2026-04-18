@@ -447,7 +447,9 @@ export async function validateSessionToken(token) {
       return null;
     }
 
-    session.lastSeenAt = nowIso();
+    const now = nowIso();
+    session.lastSeenAt = now;
+    session.expiresAt = new Date(Date.now() + getSessionTtlMs()).toISOString();
     return {
       user: clone(user),
       session: clone(session),

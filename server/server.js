@@ -1481,6 +1481,7 @@ app.get("/api/auth/me", async (req, res) => {
   try {
     const auth = await requireAuthenticatedUser(req, res);
     if (!auth) return;
+    setAuthCookie(req, res, auth.token, auth.session?.expiresAt);
 
     await ensureMembershipUser({ userId: auth.user.id, email: auth.user.email, name: auth.user.name });
     const membership = await getMembershipByUserId(auth.user.id);
@@ -2775,7 +2776,6 @@ async function startServer() {
 }
 
 startServer();
-
 
 
 
