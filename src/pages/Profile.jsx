@@ -24,6 +24,11 @@ export default function Profile() {
   const [pictureUrl, setPictureUrl] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveNote, setSaveNote] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordNote, setPasswordNote] = useState("");
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -51,6 +56,7 @@ export default function Profile() {
   const plan = profile?.membership?.plan === "pro" ? "pro" : "free";
   const usage = profile?.usage;
   const requests = Array.isArray(profile?.upgradeRequests) ? profile.upgradeRequests : [];
+  const account = profile?.account || {};
 
   const handleUploadPicture = (event) => {
     const file = event.target.files?.[0];
@@ -126,6 +132,43 @@ export default function Profile() {
         };
         setStoredUser(next);
       }
+  };
+
+  const handleSavePassword = async () => {
+    if (isGuest) {
+      setPasswordNote("Sign in first to manage your password.");
+      return;
+    }
+
+    setPasswordSaving(true);
+    setPasswordNote("");
+
+    const result = await fetchApi("/api/auth/password/set", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        currentPassword,
+        newPassword,
+        confirmPassword,
+      }),
+    });
+
+    setPasswordSaving(false);
+
+    if (!result.ok) {
+      setPasswordNote(result.message || "Failed to update password.");
+      return;
+    }
+
+    setProfile((prev) => ({
+      ...(prev || {}),
+      user: result.data?.user || prev?.user || null,
+      account: result.data?.account || prev?.account || {},
+    }));
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+    setPasswordNote(result.data?.message || "Password updated.");
   };
 
   return (
@@ -245,6 +288,71 @@ export default function Profile() {
 
                   {isGuest ? <p className="text-xs text-amber-300">Sign in to edit username and profile picture.</p> : null}
                   {saveNote ? <p className="text-xs text-cyan-200">{saveNote}</p> : null}
+                </div>
+              </div>
+
+              <div className="mt-6 rounded-xl border border-zinc-800 bg-zinc-950/60 p-4">
+                <p className="text-sm font-semibold text-zinc-100">Account Security</p>
+                <p className="mt-1 text-xs text-zinc-400">
+                  {account.hasPassword
+                    ? "You have a Luna password set. Change it here."
+                    : "No Luna password is set yet. If you signed in with Google, you can add one now."}
+                </p>
+                <div className="mt-3 grid gap-3">
+                  {account.hasPassword ? (
+                    <label className="text-xs text-zinc-400">
+                      Current password
+                      <input
+                        type="password"
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        disabled={isGuest || passwordSaving}
+                        className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900/70 px-3 py-2 text-sm text-zinc-100 outline-none"
+                        placeholder="Enter current password"
+                      />
+                    </label>
+                  ) : null}
+
+                  <label className="text-xs text-zinc-400">
+                    New password
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      disabled={isGuest || passwordSaving}
+                      className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900/70 px-3 py-2 text-sm text-zinc-100 outline-none"
+                      placeholder="At least 10 chars, upper/lowercase + number"
+                    />
+                  </label>
+
+                  <label className="text-xs text-zinc-400">
+                    Confirm new password
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      disabled={isGuest || passwordSaving}
+                      className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900/70 px-3 py-2 text-sm text-zinc-100 outline-none"
+                      placeholder="Repeat the new password"
+                    />
+                  </label>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleSavePassword}
+                      disabled={isGuest || passwordSaving}
+                      className="inline-flex items-center rounded-lg border border-emerald-400/35 bg-emerald-500/15 px-3 py-2 text-xs text-emerald-100 hover:bg-emerald-500/25 disabled:opacity-60"
+                    >
+                      {passwordSaving ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : null}
+                      {account.hasPassword ? "Reset Password" : "Set Password"}
+                    </button>
+                    {account.passwordUpdatedAt ? (
+                      <p className="text-xs text-zinc-500">Last updated: {formatDate(account.passwordUpdatedAt)}</p>
+                    ) : null}
+                  </div>
+
+                  {passwordNote ? <p className="text-xs text-cyan-200">{passwordNote}</p> : null}
                 </div>
               </div>
             </section>

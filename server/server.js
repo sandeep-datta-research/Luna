@@ -5,11 +5,14 @@ import dotenv from "dotenv";
 import { randomUUID } from "crypto";
 import {
   countUserMessagesForDate,
+  createLocalUser,
   createConversation,
   createSession,
   deleteConversation,
   ensureConversation,
   getConversationById,
+  getUserAuthByEmail,
+  getUserByEmail,
   getConversationStats,
   getUserById,
   getUserSignupStats,
@@ -22,13 +25,15 @@ import {
   listUsers,
   listFeedback,
   revokeSessionToken,
+  resetUserPasswordWithToken,
   saveConversationTurn,
   setFeedbackFeatured,
+  storePasswordResetToken,
   submitFeedback,
   toHistoryPayload,
   upsertUserMemory as upsertDbUserMemory,
   upsertGoogleUser,
-  upsertLocalUser,
+  updateUserPassword,
   updateUserProfile,
   validateSessionToken,
 } from "./db-adapter.js";
@@ -47,6 +52,13 @@ import { CATEGORY_LABELS, classifyMessage } from "./luna-classifier.js";
 import { getRoutingPlan, runRoutedProviders, runRoutedProvidersStream } from "./luna-router.js";
 import { buildToolSystemPrompt, executeToolCalls, formatToolResults, planToolCalls } from "./luna-tools.js";
 import { getSupabaseAdmin } from "./supabase.js";
+import {
+  createPasswordResetToken,
+  getPasswordResetPreviewAllowed,
+  hashPassword,
+  hashResetToken,
+  verifyPassword,
+} from "./password-auth.js";
 dotenv.config();
 
 const app = express();
@@ -493,6 +505,20 @@ async function resolveRequestUser(req, res) {
 
 function normalizeEmail(value) {
   return typeof value === "string" ? value.trim().toLowerCase() : "";
+}
+
+function buildAccountSecurity(user) {
+  const hasPassword = Boolean(user?.hasPassword);
+  const hasGoogle = Boolean(`${user?.googleSub || ""}`.trim());
+  const providers = [];
+  if (hasGoogle) providers.push("google");
+  if (hasPassword) providers.push("password");
+  return {
+    hasPassword,
+    hasGoogle,
+    authProviders: providers,
+    passwordUpdatedAt: typeof user?.passwordUpdatedAt === "string" ? user.passwordUpdatedAt : "",
+  };
 }
 
 function isoDateKey(dateValue = new Date()) {
@@ -1365,17 +1391,50 @@ app.post("/api/auth/local", async (req, res) => {
       return res.status(400).json({ error: "Email is required." });
     }
 
+    const password = typeof req.body?.password === "string" ? req.body.password : "";
+    if (!password) {
+      return res.status(400).json({ error: "Password is required." });
+    }
+
     const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
-    const user = await upsertLocalUser({ email, name });
-    await ensureMembershipUser({ userId: user.id, email: user.email, name: user.name });
-    const membership = await getMembershipByUserId(user.id);
-    const session = await createSession(user.id);
+    let user = await getUserAuthByEmail(email);
+
+    if (!user) {
+      const passwordHash = await hashPassword(password);
+      user = await createLocalUser({
+        email,
+        name,
+        passwordHash,
+        passwordUpdatedAt: new Date().toISOString(),
+      });
+    } else if (!user.hasPassword) {
+      return res.status(400).json({
+        error: user.googleSub
+          ? "This account currently uses Google sign-in. Sign in with Google, then set a Luna password from Profile."
+          : "This account does not have a password yet.",
+      });
+    } else {
+      const isValid = await verifyPassword(password, user.passwordHash);
+      if (!isValid) {
+        return res.status(401).json({ error: "Invalid email or password." });
+      }
+    }
+
+    const safeUser = await getUserById(user.id);
+    if (!safeUser) {
+      return res.status(500).json({ error: "User lookup failed." });
+    }
+
+    await ensureMembershipUser({ userId: safeUser.id, email: safeUser.email, name: safeUser.name });
+    const membership = await getMembershipByUserId(safeUser.id);
+    const session = await createSession(safeUser.id);
     setAuthCookie(req, res, session.token, session.expiresAt);
 
     return res.json({
       token: session.token,
       expiresAt: session.expiresAt,
-      user,
+      user: safeUser,
+      account: buildAccountSecurity(safeUser),
       membership: {
         plan: membership?.plan === "pro" ? "pro" : "free",
         activatedAt: membership?.activatedAt || "",
@@ -1404,6 +1463,7 @@ app.post("/api/auth/google", async (req, res) => {
       token: session.token,
       expiresAt: session.expiresAt,
       user,
+      account: buildAccountSecurity(user),
       membership: {
         plan: membership?.plan === "pro" ? "pro" : "free",
         activatedAt: membership?.activatedAt || "",
@@ -1427,6 +1487,7 @@ app.get("/api/auth/me", async (req, res) => {
 
     return res.json({
       user: auth.user,
+      account: buildAccountSecurity(auth.user),
       membership: {
         plan: membership?.plan === "pro" ? "pro" : "free",
         activatedAt: membership?.activatedAt || "",
@@ -1439,6 +1500,133 @@ app.get("/api/auth/me", async (req, res) => {
   } catch (error) {
     const normalized = extractProviderError(error);
     return res.status(500).json({ error: normalized.providerMessage });
+  }
+});
+
+app.post("/api/auth/password/set", async (req, res) => {
+  try {
+    const auth = await requireAuthenticatedUser(req, res);
+    if (!auth) return;
+
+    const currentPassword = typeof req.body?.currentPassword === "string" ? req.body.currentPassword : "";
+    const newPassword = typeof req.body?.newPassword === "string" ? req.body.newPassword : "";
+    const confirmPassword = typeof req.body?.confirmPassword === "string" ? req.body.confirmPassword : "";
+
+    if (!newPassword) {
+      return res.status(400).json({ error: "New password is required." });
+    }
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ error: "Passwords do not match." });
+    }
+
+    const userWithAuth = await getUserAuthByEmail(auth.user.email);
+    if (!userWithAuth) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    if (userWithAuth.hasPassword) {
+      const currentValid = await verifyPassword(currentPassword, userWithAuth.passwordHash);
+      if (!currentValid) {
+        return res.status(401).json({ error: "Current password is incorrect." });
+      }
+    }
+
+    const passwordHash = await hashPassword(newPassword);
+    const updatedUser = await updateUserPassword({
+      userId: userWithAuth.id,
+      passwordHash,
+      passwordUpdatedAt: new Date().toISOString(),
+      resetTokenHash: "",
+      resetTokenExpiresAt: "",
+    });
+
+    return res.json({
+      ok: true,
+      user: updatedUser,
+      account: buildAccountSecurity(updatedUser),
+      message: userWithAuth.hasPassword ? "Password updated successfully." : "Password set successfully.",
+    });
+  } catch (error) {
+    const normalized = extractProviderError(error);
+    return res.status(error.status || normalized.status || 400).json({
+      error: error.message || normalized.providerMessage,
+    });
+  }
+});
+
+app.post("/api/auth/password/reset/request", async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body?.email);
+    if (!email) {
+      return res.status(400).json({ error: "Email is required." });
+    }
+
+    const previewAllowed = getPasswordResetPreviewAllowed();
+    const reset = createPasswordResetToken();
+    const user = await storePasswordResetToken({
+      email,
+      resetTokenHash: reset.tokenHash,
+      resetTokenExpiresAt: reset.expiresAt,
+    });
+
+    return res.json({
+      ok: true,
+      message: "If that account exists, a reset token has been generated.",
+      resetTokenPreview: user && previewAllowed ? reset.token : "",
+      resetTokenExpiresAt: user && previewAllowed ? reset.expiresAt : "",
+    });
+  } catch (error) {
+    const normalized = extractProviderError(error);
+    return res.status(error.status || normalized.status || 400).json({
+      error: error.message || normalized.providerMessage,
+    });
+  }
+});
+
+app.post("/api/auth/password/reset/confirm", async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body?.email);
+    const token = typeof req.body?.token === "string" ? req.body.token.trim() : "";
+    const newPassword = typeof req.body?.newPassword === "string" ? req.body.newPassword : "";
+    const confirmPassword = typeof req.body?.confirmPassword === "string" ? req.body.confirmPassword : "";
+
+    if (!email) return res.status(400).json({ error: "Email is required." });
+    if (!token) return res.status(400).json({ error: "Reset token is required." });
+    if (!newPassword) return res.status(400).json({ error: "New password is required." });
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ error: "Passwords do not match." });
+    }
+
+    const passwordHash = await hashPassword(newPassword);
+    const updatedUser = await resetUserPasswordWithToken({
+      email,
+      resetTokenHash: hashResetToken(token),
+      passwordHash,
+      passwordUpdatedAt: new Date().toISOString(),
+    });
+
+    await ensureMembershipUser({ userId: updatedUser.id, email: updatedUser.email, name: updatedUser.name });
+    const membership = await getMembershipByUserId(updatedUser.id);
+    const session = await createSession(updatedUser.id);
+    setAuthCookie(req, res, session.token, session.expiresAt);
+
+    return res.json({
+      ok: true,
+      token: session.token,
+      expiresAt: session.expiresAt,
+      user: updatedUser,
+      account: buildAccountSecurity(updatedUser),
+      membership: {
+        plan: membership?.plan === "pro" ? "pro" : "free",
+        activatedAt: membership?.activatedAt || "",
+      },
+      message: "Password reset successfully.",
+    });
+  } catch (error) {
+    const normalized = extractProviderError(error);
+    return res.status(error.status || normalized.status || 400).json({
+      error: error.message || normalized.providerMessage,
+    });
   }
 });
 
@@ -1506,6 +1694,7 @@ app.get("/api/profile", async (req, res) => {
       user: userContext.user,
       userId: userContext.userId,
       isGuest: !isAuthenticatedUserContext(userContext),
+      account: buildAccountSecurity(userContext.user),
       membership: {
         plan: membershipContext.plan,
         activatedAt: membershipContext.membership?.activatedAt || "",
@@ -2586,10 +2775,6 @@ async function startServer() {
 }
 
 startServer();
-
-
-
-
 
 
 

@@ -52,6 +52,7 @@ function sanitizeUser(raw) {
   const createdAt = normalizeText(raw?.createdAt) || nowIso();
   const updatedAt = normalizeText(raw?.updatedAt) || createdAt;
   const memory = sanitizeUserMemory(raw?.memory);
+  const passwordHash = normalizeText(raw?.passwordHash);
 
   return {
     id: normalizeText(raw?.id) || createId("usr"),
@@ -59,6 +60,11 @@ function sanitizeUser(raw) {
     email: normalizeText(raw?.email),
     name: normalizeText(raw?.name),
     picture: normalizeText(raw?.picture),
+    passwordHash,
+    hasPassword: Boolean(passwordHash),
+    passwordUpdatedAt: normalizeText(raw?.passwordUpdatedAt),
+    resetTokenHash: normalizeText(raw?.resetTokenHash),
+    resetTokenExpiresAt: normalizeText(raw?.resetTokenExpiresAt),
     memory,
     createdAt,
     updatedAt,
@@ -110,6 +116,23 @@ function sanitizeDb(raw) {
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
+}
+
+function toPublicUser(user) {
+  const safeUser = sanitizeUser(user);
+  return {
+    id: safeUser.id,
+    googleSub: safeUser.googleSub,
+    email: safeUser.email,
+    name: safeUser.name,
+    picture: safeUser.picture,
+    hasPassword: safeUser.hasPassword,
+    passwordUpdatedAt: safeUser.passwordUpdatedAt,
+    memory: safeUser.memory,
+    createdAt: safeUser.createdAt,
+    updatedAt: safeUser.updatedAt,
+    lastLoginAt: safeUser.lastLoginAt,
+  };
 }
 
 function cleanupExpiredSessions(db) {
@@ -198,7 +221,7 @@ export async function upsertGoogleUser({ sub, email, name, picture }) {
       user.lastLoginAt = now;
     }
 
-    return clone(user);
+    return toPublicUser(user);
   });
 }
 
@@ -235,7 +258,148 @@ export async function upsertLocalUser({ email, name }) {
       user.lastLoginAt = now;
     }
 
-    return clone(user);
+    return toPublicUser(user);
+  });
+}
+
+export async function getUserByEmail(email) {
+  const safeEmail = normalizeText(email).toLowerCase();
+  if (!safeEmail) return null;
+
+  const db = await readDb();
+  cleanupExpiredSessions(db);
+  const user = db.users.find((item) => item.email === safeEmail);
+  return user ? toPublicUser(user) : null;
+}
+
+export async function getUserAuthByEmail(email) {
+  const safeEmail = normalizeText(email).toLowerCase();
+  if (!safeEmail) return null;
+
+  const db = await readDb();
+  cleanupExpiredSessions(db);
+  const user = db.users.find((item) => item.email === safeEmail);
+  return user ? clone(sanitizeUser(user)) : null;
+}
+
+export async function createLocalUser({ email, name, passwordHash, passwordUpdatedAt = "" }) {
+  const safeEmail = normalizeText(email).toLowerCase();
+  if (!safeEmail) throw new Error("Email is required");
+
+  const safePasswordHash = normalizeText(passwordHash);
+  if (!safePasswordHash) throw new Error("Password hash is required");
+
+  const derivedName = safeEmail.split("@")[0] || "Luna User";
+  const safeName = normalizeText(name) || derivedName;
+  const now = nowIso();
+
+  return runDbMutation((db) => {
+    cleanupExpiredSessions(db);
+
+    const existing = db.users.find((item) => item.email === safeEmail);
+    if (existing) throw new Error("User already exists");
+
+    const user = {
+      id: createId("usr"),
+      googleSub: "",
+      email: safeEmail,
+      name: safeName,
+      picture: "",
+      passwordHash: safePasswordHash,
+      passwordUpdatedAt: normalizeText(passwordUpdatedAt) || now,
+      resetTokenHash: "",
+      resetTokenExpiresAt: "",
+      createdAt: now,
+      updatedAt: now,
+      lastLoginAt: now,
+    };
+
+    db.users.unshift(user);
+    return toPublicUser(user);
+  });
+}
+
+export async function updateUserPassword({
+  userId,
+  passwordHash,
+  passwordUpdatedAt = "",
+  resetTokenHash = "",
+  resetTokenExpiresAt = "",
+}) {
+  const safeUserId = normalizeText(userId);
+  if (!safeUserId) throw new Error("userId is required");
+  const safePasswordHash = normalizeText(passwordHash);
+  if (!safePasswordHash) throw new Error("Password hash is required");
+
+  return runDbMutation((db) => {
+    cleanupExpiredSessions(db);
+
+    const user = db.users.find((item) => item.id === safeUserId);
+    if (!user) throw new Error("User not found");
+
+    user.passwordHash = safePasswordHash;
+    user.passwordUpdatedAt = normalizeText(passwordUpdatedAt) || nowIso();
+    user.resetTokenHash = normalizeText(resetTokenHash);
+    user.resetTokenExpiresAt = normalizeText(resetTokenExpiresAt);
+    user.updatedAt = nowIso();
+    return toPublicUser(user);
+  });
+}
+
+export async function storePasswordResetToken({ email, resetTokenHash, resetTokenExpiresAt }) {
+  const safeEmail = normalizeText(email).toLowerCase();
+  if (!safeEmail) return null;
+
+  return runDbMutation((db) => {
+    cleanupExpiredSessions(db);
+
+    const user = db.users.find((item) => item.email === safeEmail);
+    if (!user) return null;
+
+    user.resetTokenHash = normalizeText(resetTokenHash);
+    user.resetTokenExpiresAt = normalizeText(resetTokenExpiresAt);
+    user.updatedAt = nowIso();
+    return toPublicUser(user);
+  });
+}
+
+export async function resetUserPasswordWithToken({
+  email,
+  resetTokenHash,
+  passwordHash,
+  passwordUpdatedAt = "",
+}) {
+  const safeEmail = normalizeText(email).toLowerCase();
+  if (!safeEmail) throw new Error("Email is required");
+
+  const safeResetTokenHash = normalizeText(resetTokenHash);
+  if (!safeResetTokenHash) throw new Error("Reset token is required");
+
+  const safePasswordHash = normalizeText(passwordHash);
+  if (!safePasswordHash) throw new Error("Password hash is required");
+
+  return runDbMutation((db) => {
+    cleanupExpiredSessions(db);
+
+    const user = db.users.find((item) => item.email === safeEmail);
+    if (!user) throw new Error("Invalid reset token");
+
+    const expiresAtMs = new Date(user.resetTokenExpiresAt).getTime();
+    if (
+      !user.resetTokenHash ||
+      user.resetTokenHash !== safeResetTokenHash ||
+      !Number.isFinite(expiresAtMs) ||
+      expiresAtMs <= Date.now()
+    ) {
+      throw new Error("Invalid or expired reset token");
+    }
+
+    user.passwordHash = safePasswordHash;
+    user.passwordUpdatedAt = normalizeText(passwordUpdatedAt) || nowIso();
+    user.resetTokenHash = "";
+    user.resetTokenExpiresAt = "";
+    user.updatedAt = nowIso();
+    return toPublicUser(user);
   });
 }
 
@@ -309,7 +473,7 @@ export async function getUserById(userId) {
   const db = await readDb();
   cleanupExpiredSessions(db);
   const user = db.users.find((item) => item.id === safeUserId);
-  return user ? clone(user) : null;
+  return user ? toPublicUser(user) : null;
 }
 
 export async function updateUserProfile({ userId, name, picture }) {
@@ -341,14 +505,16 @@ export async function updateUserProfile({ userId, name, picture }) {
     if (picture !== undefined) user.picture = safePicture;
     user.updatedAt = nowIso();
 
-    return clone(user);
+    return toPublicUser(user);
   });
 }
 
 export async function listUsers() {
   const db = await readDb();
   cleanupExpiredSessions(db);
-  return clone(db.users).sort((a, b) => new Date(b.lastLoginAt).getTime() - new Date(a.lastLoginAt).getTime());
+  return clone(db.users)
+    .map((user) => toPublicUser(user))
+    .sort((a, b) => new Date(b.lastLoginAt).getTime() - new Date(a.lastLoginAt).getTime());
 }
 
 export async function getUserMemory(userId) {

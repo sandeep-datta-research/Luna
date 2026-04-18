@@ -89,6 +89,7 @@ function sanitizeConversation(raw) {
 function sanitizeUserRecord(raw) {
   const createdAt = toIso(raw?.createdAt);
   const updatedAt = toIso(raw?.updatedAt || createdAt);
+  const passwordHash = normalizeText(raw?.passwordHash);
 
   return {
     id: normalizeText(raw?.id) || createId("usr"),
@@ -96,6 +97,11 @@ function sanitizeUserRecord(raw) {
     email: normalizeText(raw?.email),
     name: normalizeText(raw?.name),
     picture: normalizeText(raw?.picture),
+    passwordHash,
+    hasPassword: Boolean(passwordHash),
+    passwordUpdatedAt: normalizeText(raw?.passwordUpdatedAt),
+    resetTokenHash: normalizeText(raw?.resetTokenHash),
+    resetTokenExpiresAt: normalizeText(raw?.resetTokenExpiresAt),
     memory: sanitizeUserMemory(raw?.memory),
     createdAt,
     updatedAt,
@@ -162,6 +168,23 @@ function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
+function toPublicUser(user) {
+  const safeUser = sanitizeUserRecord(user);
+  return {
+    id: safeUser.id,
+    googleSub: safeUser.googleSub,
+    email: safeUser.email,
+    name: safeUser.name,
+    picture: safeUser.picture,
+    hasPassword: safeUser.hasPassword,
+    passwordUpdatedAt: safeUser.passwordUpdatedAt,
+    memory: safeUser.memory,
+    createdAt: safeUser.createdAt,
+    updatedAt: safeUser.updatedAt,
+    lastLoginAt: safeUser.lastLoginAt,
+  };
+}
+
 function toConversationSummary(conversation) {
   const messageCount = conversation.messages.length;
   const lastMessage = messageCount > 0 ? conversation.messages[messageCount - 1] : null;
@@ -200,7 +223,10 @@ export function createMongoStore() {
   async function ensureIndexes() {
     await Promise.all([
       users().createIndex({ googleSub: 1 }, { unique: true, sparse: true }),
-      users().createIndex({ email: 1 }),
+      users().createIndex(
+        { email: 1 },
+        { unique: true, partialFilterExpression: { email: { $type: "string", $ne: "" } } },
+      ),
       users().createIndex({ lastLoginAt: -1 }),
       sessions().createIndex({ token: 1 }, { unique: true }),
       sessions().createIndex({ expiresAtDate: 1 }, { expireAfterSeconds: 0 }),
@@ -255,7 +281,7 @@ export function createMongoStore() {
       });
 
       await users().insertOne(nextUser);
-      return clone(nextUser);
+      return toPublicUser(nextUser);
     }
 
     const nextUser = {
@@ -269,7 +295,7 @@ export function createMongoStore() {
     };
 
     await users().updateOne({ id: nextUser.id }, { $set: nextUser });
-    return clone(nextUser);
+    return toPublicUser(nextUser);
   }
 
   async function upsertLocalUser({ email, name }) {
@@ -297,7 +323,7 @@ export function createMongoStore() {
       });
 
       await users().insertOne(nextUser);
-      return clone(nextUser);
+      return toPublicUser(nextUser);
     }
 
     const nextUser = {
@@ -309,7 +335,154 @@ export function createMongoStore() {
     };
 
     await users().updateOne({ id: nextUser.id }, { $set: nextUser });
-    return clone(nextUser);
+    return toPublicUser(nextUser);
+  }
+
+  async function getUserByEmail(email) {
+    await init();
+    const safeEmail = normalizeText(email).toLowerCase();
+    if (!safeEmail) return null;
+
+    const user = await users().findOne({ email: safeEmail });
+    return user ? toPublicUser(user) : null;
+  }
+
+  async function getUserAuthByEmail(email) {
+    await init();
+    const safeEmail = normalizeText(email).toLowerCase();
+    if (!safeEmail) return null;
+
+    const user = await users().findOne({ email: safeEmail });
+    return user ? sanitizeUserRecord(user) : null;
+  }
+
+  async function createLocalUser({ email, name, passwordHash, passwordUpdatedAt = "" }) {
+    await init();
+    await cleanupExpiredSessions();
+
+    const safeEmail = normalizeText(email).toLowerCase();
+    if (!safeEmail) throw new Error("Email is required");
+
+    const safePasswordHash = normalizeText(passwordHash);
+    if (!safePasswordHash) throw new Error("Password hash is required");
+
+    const derivedName = safeEmail.split("@")[0] || "Luna User";
+    const safeName = normalizeText(name) || derivedName;
+    const now = nowIso();
+    const existing = await users().findOne({ email: safeEmail });
+    if (existing) throw new Error("User already exists");
+
+    const nextUser = sanitizeUserRecord({
+      id: createId("usr"),
+      googleSub: "",
+      email: safeEmail,
+      name: safeName,
+      picture: "",
+      passwordHash: safePasswordHash,
+      passwordUpdatedAt: normalizeText(passwordUpdatedAt) || now,
+      resetTokenHash: "",
+      resetTokenExpiresAt: "",
+      createdAt: now,
+      updatedAt: now,
+      lastLoginAt: now,
+    });
+
+    await users().insertOne(nextUser);
+    return toPublicUser(nextUser);
+  }
+
+  async function updateUserPassword({
+    userId,
+    passwordHash,
+    passwordUpdatedAt = "",
+    resetTokenHash = "",
+    resetTokenExpiresAt = "",
+  }) {
+    await init();
+    const safeUserId = normalizeText(userId);
+    if (!safeUserId) throw new Error("userId is required");
+
+    const safePasswordHash = normalizeText(passwordHash);
+    if (!safePasswordHash) throw new Error("Password hash is required");
+
+    const existing = await users().findOne({ id: safeUserId });
+    if (!existing) throw new Error("User not found");
+
+    const next = {
+      ...sanitizeUserRecord(existing),
+      passwordHash: safePasswordHash,
+      hasPassword: true,
+      passwordUpdatedAt: normalizeText(passwordUpdatedAt) || nowIso(),
+      resetTokenHash: normalizeText(resetTokenHash),
+      resetTokenExpiresAt: normalizeText(resetTokenExpiresAt),
+      updatedAt: nowIso(),
+    };
+
+    await users().updateOne({ id: safeUserId }, { $set: next });
+    return toPublicUser(next);
+  }
+
+  async function storePasswordResetToken({ email, resetTokenHash, resetTokenExpiresAt }) {
+    await init();
+    const safeEmail = normalizeText(email).toLowerCase();
+    if (!safeEmail) return null;
+
+    const existing = await users().findOne({ email: safeEmail });
+    if (!existing) return null;
+
+    const next = {
+      ...sanitizeUserRecord(existing),
+      resetTokenHash: normalizeText(resetTokenHash),
+      resetTokenExpiresAt: normalizeText(resetTokenExpiresAt),
+      updatedAt: nowIso(),
+    };
+
+    await users().updateOne({ id: next.id }, { $set: next });
+    return toPublicUser(next);
+  }
+
+  async function resetUserPasswordWithToken({
+    email,
+    resetTokenHash,
+    passwordHash,
+    passwordUpdatedAt = "",
+  }) {
+    await init();
+    const safeEmail = normalizeText(email).toLowerCase();
+    if (!safeEmail) throw new Error("Email is required");
+
+    const safeResetTokenHash = normalizeText(resetTokenHash);
+    if (!safeResetTokenHash) throw new Error("Reset token is required");
+
+    const safePasswordHash = normalizeText(passwordHash);
+    if (!safePasswordHash) throw new Error("Password hash is required");
+
+    const existing = await users().findOne({ email: safeEmail });
+    if (!existing) throw new Error("Invalid reset token");
+
+    const user = sanitizeUserRecord(existing);
+    const expiresAtMs = new Date(user.resetTokenExpiresAt).getTime();
+    if (
+      !user.resetTokenHash ||
+      user.resetTokenHash !== safeResetTokenHash ||
+      !Number.isFinite(expiresAtMs) ||
+      expiresAtMs <= Date.now()
+    ) {
+      throw new Error("Invalid or expired reset token");
+    }
+
+    const next = {
+      ...user,
+      passwordHash: safePasswordHash,
+      hasPassword: true,
+      passwordUpdatedAt: normalizeText(passwordUpdatedAt) || nowIso(),
+      resetTokenHash: "",
+      resetTokenExpiresAt: "",
+      updatedAt: nowIso(),
+    };
+
+    await users().updateOne({ id: next.id }, { $set: next });
+    return toPublicUser(next);
   }
 
   async function createSession(userId) {
@@ -380,7 +553,7 @@ export function createMongoStore() {
     if (!safeUserId) return null;
 
     const user = await users().findOne({ id: safeUserId });
-    return user ? sanitizeUserRecord(user) : null;
+    return user ? toPublicUser(user) : null;
   }
 
   async function updateUserProfile({ userId, name, picture }) {
@@ -413,7 +586,7 @@ export function createMongoStore() {
     next.updatedAt = nowIso();
 
     await users().updateOne({ id: safeUserId }, { $set: next });
-    return clone(next);
+    return toPublicUser(next);
   }
 
   async function listUsers() {
@@ -421,7 +594,7 @@ export function createMongoStore() {
     await cleanupExpiredSessions();
 
     const docs = await users().find({}).sort({ lastLoginAt: -1, updatedAt: -1 }).limit(10000).toArray();
-    return docs.map((doc) => sanitizeUserRecord(doc));
+    return docs.map((doc) => toPublicUser(doc));
   }
 
   async function getUserMemory(userId) {
@@ -795,6 +968,12 @@ export function createMongoStore() {
     close,
     upsertGoogleUser,
     upsertLocalUser,
+    getUserByEmail,
+    getUserAuthByEmail,
+    createLocalUser,
+    updateUserPassword,
+    storePasswordResetToken,
+    resetUserPasswordWithToken,
     createSession,
     validateSessionToken,
     revokeSessionToken,

@@ -36,11 +36,19 @@ export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [noticeMessage, setNoticeMessage] = useState("");
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetToken, setResetToken] = useState("");
+  const [resetPassword, setResetPassword] = useState("");
+  const [resetConfirmPassword, setResetConfirmPassword] = useState("");
+  const [resetTokenPreview, setResetTokenPreview] = useState("");
+  const [mode, setMode] = useState("signin");
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     setLoading(true);
     setErrorMessage("");
+    setNoticeMessage("");
 
     try {
       const normalizedEmail = (email || "").trim().toLowerCase();
@@ -49,7 +57,7 @@ export default function SignInPage() {
       const result = await fetchApi("/api/auth/local", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: normalizedEmail, name: displayName }),
+        body: JSON.stringify({ email: normalizedEmail, name: displayName, password }),
       });
 
       if (!result.ok || !result.data?.token || !result.data?.user) {
@@ -66,6 +74,72 @@ export default function SignInPage() {
       navigate("/profile");
     } catch (error) {
       setErrorMessage(error?.message || "Unable to sign in. Please try again.");
+      setLoading(false);
+    }
+  };
+
+  const handleRequestReset = async (event) => {
+    event.preventDefault();
+    setLoading(true);
+    setErrorMessage("");
+    setNoticeMessage("");
+    setResetTokenPreview("");
+
+    try {
+      const result = await fetchApi("/api/auth/password/reset/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: (resetEmail || "").trim().toLowerCase() }),
+      });
+
+      if (!result.ok) {
+        setErrorMessage(result.message || "Unable to start reset.");
+        setLoading(false);
+        return;
+      }
+
+      setNoticeMessage(result.data?.message || "Reset token created.");
+      setResetTokenPreview(result.data?.resetTokenPreview || "");
+      setMode("reset-confirm");
+      setLoading(false);
+    } catch (error) {
+      setErrorMessage(error?.message || "Unable to start reset.");
+      setLoading(false);
+    }
+  };
+
+  const handleConfirmReset = async (event) => {
+    event.preventDefault();
+    setLoading(true);
+    setErrorMessage("");
+    setNoticeMessage("");
+
+    try {
+      const result = await fetchApi("/api/auth/password/reset/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: (resetEmail || "").trim().toLowerCase(),
+          token: (resetToken || "").trim(),
+          newPassword: resetPassword,
+          confirmPassword: resetConfirmPassword,
+        }),
+      });
+
+      if (!result.ok || !result.data?.user) {
+        setErrorMessage(result.message || "Unable to reset password.");
+        setLoading(false);
+        return;
+      }
+
+      if (typeof window !== "undefined") {
+        setStoredUser(result.data.user);
+      }
+
+      setLoading(false);
+      navigate("/profile");
+    } catch (error) {
+      setErrorMessage(error?.message || "Unable to reset password.");
       setLoading(false);
     }
   };
@@ -118,6 +192,32 @@ export default function SignInPage() {
                   <p className="mt-2 text-sm text-zinc-400">Sign in to continue your Luna journey</p>
                 </div>
 
+                <div className="mb-5 flex gap-2 rounded-xl border border-zinc-800 bg-zinc-900/60 p-1 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode("signin");
+                      setErrorMessage("");
+                      setNoticeMessage("");
+                    }}
+                    className={`flex-1 rounded-lg px-3 py-2 ${mode === "signin" ? "bg-violet-500/25 text-violet-100" : "text-zinc-400 hover:text-zinc-200"}`}
+                  >
+                    Sign in
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode("reset-request");
+                      setErrorMessage("");
+                      setNoticeMessage("");
+                    }}
+                    className={`flex-1 rounded-lg px-3 py-2 ${mode !== "signin" ? "bg-violet-500/25 text-violet-100" : "text-zinc-400 hover:text-zinc-200"}`}
+                  >
+                    Reset password
+                  </button>
+                </div>
+
+                {mode === "signin" ? (
                 <form onSubmit={handleSubmit} className="space-y-5">
                   <div>
                     <label htmlFor="email" className="mb-2 block text-xs font-medium uppercase tracking-wide text-zinc-300">
@@ -182,7 +282,149 @@ export default function SignInPage() {
                       {errorMessage}
                     </div>
                   ) : null}
+                  {noticeMessage ? (
+                    <div className="rounded-xl border border-emerald-400/40 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200">
+                      {noticeMessage}
+                    </div>
+                  ) : null}
                 </form>
+                ) : null}
+
+                {mode === "reset-request" ? (
+                  <form onSubmit={handleRequestReset} className="space-y-5">
+                    <div>
+                      <label htmlFor="reset-email" className="mb-2 block text-xs font-medium uppercase tracking-wide text-zinc-300">
+                        Account email
+                      </label>
+                      <div className="relative">
+                        <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+                        <input
+                          id="reset-email"
+                          type="email"
+                          value={resetEmail}
+                          onChange={(event) => setResetEmail(event.target.value)}
+                          required
+                          className="w-full rounded-xl border border-zinc-700 bg-zinc-900/70 py-3 pl-10 pr-3 text-sm text-zinc-100 outline-none placeholder:text-zinc-500 focus:border-violet-400/70"
+                          placeholder="you@example.com"
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-violet-500 to-fuchsia-500 px-4 py-3 text-sm font-semibold text-white transition hover:from-violet-400 hover:to-fuchsia-400 disabled:opacity-70"
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span className="ml-2">Starting reset...</span>
+                        </>
+                      ) : (
+                        "Send reset code"
+                      )}
+                    </button>
+
+                    <p className="text-xs text-zinc-500">
+                      If the account exists, Luna will create a short-lived reset token. In local/dev setups the token is shown below.
+                    </p>
+                    {errorMessage ? <div className="rounded-xl border border-rose-400/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">{errorMessage}</div> : null}
+                    {noticeMessage ? <div className="rounded-xl border border-emerald-400/40 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200">{noticeMessage}</div> : null}
+                    {resetTokenPreview ? (
+                      <div className="rounded-xl border border-cyan-400/30 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-100">
+                        Dev reset token: <span className="font-semibold">{resetTokenPreview}</span>
+                      </div>
+                    ) : null}
+                  </form>
+                ) : null}
+
+                {mode === "reset-confirm" ? (
+                  <form onSubmit={handleConfirmReset} className="space-y-5">
+                    <div>
+                      <label htmlFor="reset-confirm-email" className="mb-2 block text-xs font-medium uppercase tracking-wide text-zinc-300">
+                        Account email
+                      </label>
+                      <div className="relative">
+                        <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+                        <input
+                          id="reset-confirm-email"
+                          type="email"
+                          value={resetEmail}
+                          onChange={(event) => setResetEmail(event.target.value)}
+                          required
+                          className="w-full rounded-xl border border-zinc-700 bg-zinc-900/70 py-3 pl-10 pr-3 text-sm text-zinc-100 outline-none placeholder:text-zinc-500 focus:border-violet-400/70"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label htmlFor="reset-token" className="mb-2 block text-xs font-medium uppercase tracking-wide text-zinc-300">
+                        Reset code
+                      </label>
+                      <input
+                        id="reset-token"
+                        type="text"
+                        value={resetToken}
+                        onChange={(event) => setResetToken(event.target.value)}
+                        required
+                        className="w-full rounded-xl border border-zinc-700 bg-zinc-900/70 px-3 py-3 text-sm text-zinc-100 outline-none placeholder:text-zinc-500 focus:border-violet-400/70"
+                        placeholder="Paste the reset token"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="reset-password" className="mb-2 block text-xs font-medium uppercase tracking-wide text-zinc-300">
+                        New password
+                      </label>
+                      <div className="relative">
+                        <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+                        <input
+                          id="reset-password"
+                          type="password"
+                          value={resetPassword}
+                          onChange={(event) => setResetPassword(event.target.value)}
+                          required
+                          className="w-full rounded-xl border border-zinc-700 bg-zinc-900/70 py-3 pl-10 pr-3 text-sm text-zinc-100 outline-none placeholder:text-zinc-500 focus:border-violet-400/70"
+                          placeholder="At least 10 chars, upper/lowercase + number"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label htmlFor="reset-confirm-password" className="mb-2 block text-xs font-medium uppercase tracking-wide text-zinc-300">
+                        Confirm new password
+                      </label>
+                      <div className="relative">
+                        <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+                        <input
+                          id="reset-confirm-password"
+                          type="password"
+                          value={resetConfirmPassword}
+                          onChange={(event) => setResetConfirmPassword(event.target.value)}
+                          required
+                          className="w-full rounded-xl border border-zinc-700 bg-zinc-900/70 py-3 pl-10 pr-3 text-sm text-zinc-100 outline-none placeholder:text-zinc-500 focus:border-violet-400/70"
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-violet-500 to-fuchsia-500 px-4 py-3 text-sm font-semibold text-white transition hover:from-violet-400 hover:to-fuchsia-400 disabled:opacity-70"
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span className="ml-2">Resetting password...</span>
+                        </>
+                      ) : (
+                        "Confirm reset"
+                      )}
+                    </button>
+                    {errorMessage ? <div className="rounded-xl border border-rose-400/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">{errorMessage}</div> : null}
+                    {noticeMessage ? <div className="rounded-xl border border-emerald-400/40 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200">{noticeMessage}</div> : null}
+                  </form>
+                ) : null}
 
                 <div className="relative my-6 text-center text-xs text-zinc-500">
                   <div className="absolute inset-0 flex items-center">
@@ -192,6 +434,10 @@ export default function SignInPage() {
                 </div>
 
                 <GoogleOAuthCard onSignedIn={() => navigate("/profile")} />
+
+                <p className="mt-4 text-center text-xs text-zinc-500">
+                  Google users can sign in first, then set a Luna password from Profile.
+                </p>
 
                 <p className="mt-6 text-center text-sm text-zinc-400">
                   Already signed in?{" "}

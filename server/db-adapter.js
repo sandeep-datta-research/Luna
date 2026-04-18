@@ -167,6 +167,48 @@ export async function upsertLocalUser(payload) {
   );
 }
 
+export async function getUserByEmail(email) {
+  return runWithStore(
+    () => fileUsers.getUserByEmail(email),
+    (store) => store.getUserByEmail(email),
+  );
+}
+
+export async function getUserAuthByEmail(email) {
+  return runWithStore(
+    () => fileUsers.getUserAuthByEmail(email),
+    (store) => store.getUserAuthByEmail(email),
+  );
+}
+
+export async function createLocalUser(payload) {
+  return runWithStore(
+    () => fileUsers.createLocalUser(payload),
+    (store) => store.createLocalUser(payload),
+  );
+}
+
+export async function updateUserPassword(payload) {
+  return runWithStore(
+    () => fileUsers.updateUserPassword(payload),
+    (store) => store.updateUserPassword(payload),
+  );
+}
+
+export async function storePasswordResetToken(payload) {
+  return runWithStore(
+    () => fileUsers.storePasswordResetToken(payload),
+    (store) => store.storePasswordResetToken(payload),
+  );
+}
+
+export async function resetUserPasswordWithToken(payload) {
+  return runWithStore(
+    () => fileUsers.resetUserPasswordWithToken(payload),
+    (store) => store.resetUserPasswordWithToken(payload),
+  );
+}
+
 export async function createSession(userId) {
   return runWithStore(
     () => fileUsers.createSession(userId),
