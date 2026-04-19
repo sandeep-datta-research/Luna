@@ -1984,10 +1984,6 @@ export default function Luna() {
                 </motion.div>
 
                 <motion.div variants={{ hidden: { opacity: 0, x: -20 }, show: { opacity: 1, x: 0 } }}>
-                  <SidebarButton icon={FolderPlus} label="New Project" collapsed={!isSidebarOpen} onClick={() => setNewProjectOpen(true)} />
-                </motion.div>
-
-                <motion.div variants={{ hidden: { opacity: 0, x: -20 }, show: { opacity: 1, x: 0 } }}>
                   <SidebarButton icon={Settings} label="Settings" collapsed={!isSidebarOpen} onClick={() => navigate("/profile")} />
                 </motion.div>
               </motion.div>
@@ -2040,61 +2036,6 @@ export default function Luna() {
                       );
                     })}
                   </div>
-                  <div className="mb-2 mt-5 px-1 text-[11px] uppercase tracking-[0.14em] text-[#6f8682]">Projects</div>
-                  <div className="space-y-1">
-                    {projects.map((project) => {
-                      const open = expandedProjectId === project.id;
-                      const projectSessions = sessionsByProject.get(project.id) || [];
-
-                      return (
-                        <div key={project.id} className="rounded-2xl border border-[#1f3135] bg-[#0c1719]">
-                          <button
-                            type="button"
-                            onClick={() => setExpandedProjectId((prev) => (prev === project.id ? "" : project.id))}
-                            className="flex w-full items-center justify-between px-2.5 py-2.5 text-left text-sm text-[#d8e7e4]"
-                          >
-                            <span className="inline-flex items-center gap-2 truncate">
-                              <Folder className="h-4 w-4 text-[#8eb0a9]" />
-                              <span className="truncate">{project.name}</span>
-                            </span>
-                            {open ? <ChevronDown className="h-4 w-4 text-[#7f9994]" /> : <ChevronRight className="h-4 w-4 text-[#7f9994]" />}
-                          </button>
-
-                          <AnimatePresence>
-                            {open ? (
-                              <motion.div
-                                initial={{ height: 0, opacity: 0 }}
-                                animate={{ height: "auto", opacity: 1 }}
-                                exit={{ height: 0, opacity: 0 }}
-                                className="overflow-hidden"
-                              >
-                                <div className="space-y-1 px-2 pb-2">
-                                  {projectSessions.length === 0 ? (
-                                    <p className="px-2 py-1 text-xs text-[#7a938e]">No chats in this project.</p>
-                                  ) : null}
-
-                                  {projectSessions.slice(0, 6).map((session) => (
-                                    <button
-                                      key={session.id}
-                                      type="button"
-                                      onClick={() => handleSelectSession(session.id)}
-                                      className={`block w-full truncate rounded-lg px-2 py-1.5 text-left text-xs transition ${
-                                        session.id === activeSession?.id
-                                          ? "bg-[#102126] text-[#ecf5f3]"
-                                          : "text-[#9ab7b1] hover:bg-[#102126]"
-                                      }`}
-                                    >
-                                      {session.title}
-                                    </button>
-                                  ))}
-                                </div>
-                              </motion.div>
-                            ) : null}
-                          </AnimatePresence>
-                        </div>
-                      );
-                    })}
-                  </div>
                 </>
               ) : null}
             </div>
@@ -2102,24 +2043,6 @@ export default function Luna() {
             <div className="border-t border-white/6 p-3">
               {isSidebarOpen ? (
                 <>
-                  <div className="mb-3 rounded-2xl border border-[#a88446]/35 bg-[#2b2416] p-3">
-                    <motion.span
-                      animate={{ opacity: [0.7, 1, 0.7] }}
-                      transition={{ repeat: Infinity, duration: 2 }}
-                      className="inline-flex rounded-full border border-[#e1ba6d]/60 bg-[#a88446]/20 px-2 py-0.5 text-[11px] font-semibold text-[#f0d79b]"
-                    >
-                      Pro workspace
-                    </motion.span>
-                    <p className="mt-2 text-xs text-[#d7c69f]">Upgrade for faster models, longer context, and premium research workflows.</p>
-                    <button
-                      type="button"
-                      onClick={() => navigate("/pricing")}
-                      className="mt-2 inline-flex rounded-xl border border-[#e1ba6d]/45 bg-[#e1ba6d]/15 px-3 py-1.5 text-xs font-medium text-[#f7e6b9] transition hover:bg-[#e1ba6d]/25"
-                    >
-                      View Plan
-                    </button>
-                  </div>
-
                   <div className="flex items-center gap-2 rounded-2xl border border-[#1f3135] bg-[#0c1719]/95 px-2 py-2">
                     {user.picture ? (
                       <img src={user.picture} alt={user.name} className="h-9 w-9 rounded-full object-cover" />
@@ -2195,7 +2118,6 @@ export default function Luna() {
                   <div className="space-y-2">
                     <SidebarButton icon={Home} label="Home" onClick={() => { navigate("/"); setMobileSidebarOpen(false); }} />
                     <SidebarButton icon={PenSquare} label="New Chat" onClick={() => { createFreshSession(); setMobileSidebarOpen(false); }} />
-                    <SidebarButton icon={FolderPlus} label="New Project" onClick={() => { setNewProjectOpen(true); setMobileSidebarOpen(false); }} />
                     <SidebarButton icon={Settings} label="Settings" onClick={() => { navigate("/profile"); setMobileSidebarOpen(false); }} />
                   </div>
 
@@ -2330,47 +2252,28 @@ export default function Luna() {
                   transition={{ duration: 0.35 }}
                   className="flex h-full flex-col items-center justify-center py-6 md:py-10"
                 >
-                  <div className="mx-auto grid w-full max-w-6xl gap-6 lg:grid-cols-[minmax(0,1.25fr)_340px]">
-                    <div className="rounded-[32px] border border-[#1f3135] bg-[linear-gradient(180deg,rgba(9,16,19,0.94),rgba(7,12,14,0.98))] p-5 shadow-[0_30px_80px_rgba(0,0,0,0.28)] md:p-8">
-                      <div className="mb-5 flex flex-wrap items-center gap-3">
-                        <span className="inline-flex items-center gap-2 rounded-full border border-[#274149] bg-[#0f1f24] px-3 py-1 text-xs uppercase tracking-[0.16em] text-[#88a7a1]">
-                          <Sparkles className="h-3.5 w-3.5" />
-                          Professional AI workspace
-                        </span>
-                        <span className="inline-flex items-center gap-2 rounded-full border border-[#6f5624] bg-[#2d2413] px-3 py-1 text-xs text-[#f0d79b]">
-                          <Star className="h-3.5 w-3.5" />
-                          New theme
-                        </span>
-                      </div>
+                  <div className="mx-auto flex w-full max-w-4xl flex-col items-center justify-center">
+                    <div className="w-full rounded-[36px] border border-[#1f3135] bg-[linear-gradient(180deg,rgba(9,16,19,0.92),rgba(7,12,14,0.98))] px-5 py-8 shadow-[0_30px_80px_rgba(0,0,0,0.24)] md:px-10 md:py-12">
+                      <motion.p
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4 }}
+                        className="mb-3 text-center text-[11px] uppercase tracking-[0.26em] text-[#88a7a1]"
+                      >
+                        Luna Chat
+                      </motion.p>
                       <motion.h2
-                        initial={{ opacity: 0, y: 30 }}
+                        initial={{ opacity: 0, y: 24 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ type: "spring", duration: 0.7 }}
-                        className="mb-4 max-w-[14ch] text-left text-[2rem] font-semibold leading-tight text-[#f5f8f7] sm:text-[2.35rem] md:max-w-[16ch] md:text-[2.8rem]"
+                        className="mx-auto mb-3 max-w-[18ch] text-center text-[2rem] font-semibold leading-tight text-[#f5f8f7] sm:text-[2.4rem] md:text-[3rem]"
                         style={{ fontFamily: "'Syne', sans-serif" }}
                       >
-                        Build faster with a cleaner Luna workspace.
+                        Hi {user?.name ? user.name.split(" ")[0] : "there"}, what should Luna help you with?
                       </motion.h2>
-
-                      <p className="mb-6 max-w-2xl text-sm leading-7 text-[#90a7a2] md:text-base">
-                        Research, draft, summarize, and iterate in one place. The updated Luna workspace adds clearer conversation hierarchy, project structure, status visibility, and more intentional interaction design.
+                      <p className="mx-auto mb-8 max-w-2xl text-center text-sm leading-7 text-[#90a7a2] md:text-base">
+                        Ask for research, writing, debugging, strategy, summaries, or image prompts. The composer stays centered so you can get straight to work.
                       </p>
-
-                      <div className="mb-6 grid gap-3 sm:grid-cols-3">
-                        {workspaceStats.map((item) => {
-                          const Icon = item.icon;
-                          return (
-                            <div key={item.label} className="rounded-2xl border border-[#1f3135] bg-[#0b1518] p-4">
-                              <div className="mb-3 inline-flex rounded-xl border border-[#274149] bg-[#102126] p-2 text-[#d8ebe7]">
-                                <Icon className="h-4 w-4" />
-                              </div>
-                              <p className="text-2xl font-semibold text-[#f4f8f7]">{item.value}</p>
-                              <p className="text-xs uppercase tracking-[0.16em] text-[#71908a]">{item.label}</p>
-                            </div>
-                          );
-                        })}
-                      </div>
-
                       <Composer
                         compact
                         value={inputValue}
@@ -2397,7 +2300,7 @@ export default function Luna() {
                           hidden: {},
                           show: { transition: { staggerChildren: 0.05 } },
                         }}
-                        className="luna-scrollbar mt-5 flex w-full flex-wrap gap-2 pb-1"
+                        className="luna-scrollbar mt-5 flex w-full flex-wrap justify-center gap-2 pb-1"
                       >
                         {QUICK_CHIPS.map((chip) => (
                           <motion.button
@@ -2412,59 +2315,6 @@ export default function Luna() {
                           </motion.button>
                         ))}
                       </motion.div>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="rounded-[28px] border border-[#1f3135] bg-[linear-gradient(180deg,rgba(10,18,20,0.96),rgba(7,12,14,0.98))] p-5">
-                        <div className="mb-4 flex items-center justify-between">
-                          <div>
-                            <p className="text-[11px] uppercase tracking-[0.16em] text-[#71908a]">Today</p>
-                            <h3 className="text-lg font-semibold text-[#f3f8f6]" style={{ fontFamily: "'Syne', sans-serif" }}>
-                              Workspace focus
-                            </h3>
-                          </div>
-                          <div className="rounded-full border border-[#274149] bg-[#0f1f24] px-3 py-1 text-xs text-[#8db0aa]">
-                            {formatDateLabel()}
-                          </div>
-                        </div>
-                        <div className="space-y-3">
-                          {WORKSPACE_FEATURES.map((item) => {
-                            const Icon = item.icon;
-                            return (
-                              <div key={item.title} className="rounded-2xl border border-[#1f3135] bg-[#0b1518] p-4">
-                                <div className="mb-2 inline-flex rounded-xl border border-[#274149] bg-[#102126] p-2 text-[#d8ebe7]">
-                                  <Icon className="h-4 w-4" />
-                                </div>
-                                <p className="text-sm font-medium text-[#eff6f4]">{item.title}</p>
-                                <p className="mt-1 text-xs leading-6 text-[#84a09b]">{item.description}</p>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      <div className="rounded-[28px] border border-[#1f3135] bg-[#0b1518] p-5">
-                        <div className="mb-3 flex items-center gap-2 text-[#d9ebe7]">
-                          <Clock3 className="h-4 w-4 text-[#e1ba6d]" />
-                          <h3 className="text-sm font-semibold">Recent activity</h3>
-                        </div>
-                        <div className="space-y-3">
-                          {historyList.slice(0, 3).map((session) => (
-                            <button
-                              key={session.id}
-                              type="button"
-                              onClick={() => handleSelectSession(session.id)}
-                              className="block w-full rounded-2xl border border-[#1f3135] bg-[#0f1f24] px-4 py-3 text-left transition hover:border-[#4f7c75]"
-                            >
-                              <p className="truncate text-sm text-[#eef6f4]">{session.title}</p>
-                              <p className="mt-1 text-xs text-[#7d9994]">{formatHistoryTime(session.updatedAt)}</p>
-                            </button>
-                          ))}
-                          {historyList.length === 0 ? (
-                            <p className="text-xs text-[#7d9994]">Your recent chats will appear here once you start working.</p>
-                          ) : null}
-                        </div>
-                      </div>
                     </div>
                   </div>
                 </motion.div>
@@ -2536,7 +2386,13 @@ export default function Luna() {
 
           {visibleMain ? (
             <div className="border-t border-white/6 bg-[#071013]/92 px-3 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:px-6">
-              <div className="mx-auto max-w-5xl">
+              <div className="mx-auto max-w-4xl">
+                <div className="mb-3 hidden text-center md:block">
+                  <p className="text-[11px] uppercase tracking-[0.2em] text-[#6f8682]">Luna chat</p>
+                  <p className="mt-1 text-lg font-semibold text-[#edf5f2]" style={{ fontFamily: "'Syne', sans-serif" }}>
+                    {activeMessages.length ? "Keep the thread moving." : "Start with one clear prompt."}
+                  </p>
+                </div>
                 <Composer
                   value={inputValue}
                   onChange={setInputValue}

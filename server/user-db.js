@@ -65,6 +65,8 @@ function sanitizeUser(raw) {
     passwordUpdatedAt: normalizeText(raw?.passwordUpdatedAt),
     resetTokenHash: normalizeText(raw?.resetTokenHash),
     resetTokenExpiresAt: normalizeText(raw?.resetTokenExpiresAt),
+    resetCodeHash: normalizeText(raw?.resetCodeHash),
+    resetCodeExpiresAt: normalizeText(raw?.resetCodeExpiresAt),
     memory,
     createdAt,
     updatedAt,
@@ -309,6 +311,8 @@ export async function createLocalUser({ email, name, passwordHash, passwordUpdat
       passwordUpdatedAt: normalizeText(passwordUpdatedAt) || now,
       resetTokenHash: "",
       resetTokenExpiresAt: "",
+      resetCodeHash: "",
+      resetCodeExpiresAt: "",
       createdAt: now,
       updatedAt: now,
       lastLoginAt: now,
@@ -325,6 +329,8 @@ export async function updateUserPassword({
   passwordUpdatedAt = "",
   resetTokenHash = "",
   resetTokenExpiresAt = "",
+  resetCodeHash = "",
+  resetCodeExpiresAt = "",
 }) {
   const safeUserId = normalizeText(userId);
   if (!safeUserId) throw new Error("userId is required");
@@ -341,12 +347,20 @@ export async function updateUserPassword({
     user.passwordUpdatedAt = normalizeText(passwordUpdatedAt) || nowIso();
     user.resetTokenHash = normalizeText(resetTokenHash);
     user.resetTokenExpiresAt = normalizeText(resetTokenExpiresAt);
+    user.resetCodeHash = normalizeText(resetCodeHash);
+    user.resetCodeExpiresAt = normalizeText(resetCodeExpiresAt);
     user.updatedAt = nowIso();
     return toPublicUser(user);
   });
 }
 
-export async function storePasswordResetToken({ email, resetTokenHash, resetTokenExpiresAt }) {
+export async function storePasswordResetToken({
+  email,
+  resetTokenHash,
+  resetTokenExpiresAt,
+  resetCodeHash = "",
+  resetCodeExpiresAt = "",
+}) {
   const safeEmail = normalizeText(email).toLowerCase();
   if (!safeEmail) return null;
 
@@ -358,6 +372,8 @@ export async function storePasswordResetToken({ email, resetTokenHash, resetToke
 
     user.resetTokenHash = normalizeText(resetTokenHash);
     user.resetTokenExpiresAt = normalizeText(resetTokenExpiresAt);
+    user.resetCodeHash = normalizeText(resetCodeHash);
+    user.resetCodeExpiresAt = normalizeText(resetCodeExpiresAt);
     user.updatedAt = nowIso();
     return toPublicUser(user);
   });
@@ -366,6 +382,7 @@ export async function storePasswordResetToken({ email, resetTokenHash, resetToke
 export async function resetUserPasswordWithToken({
   email,
   resetTokenHash,
+  resetCodeHash,
   passwordHash,
   passwordUpdatedAt = "",
 }) {
@@ -374,6 +391,9 @@ export async function resetUserPasswordWithToken({
 
   const safeResetTokenHash = normalizeText(resetTokenHash);
   if (!safeResetTokenHash) throw new Error("Reset token is required");
+
+  const safeResetCodeHash = normalizeText(resetCodeHash);
+  if (!safeResetCodeHash) throw new Error("Verification code is required");
 
   const safePasswordHash = normalizeText(passwordHash);
   if (!safePasswordHash) throw new Error("Password hash is required");
@@ -385,19 +405,26 @@ export async function resetUserPasswordWithToken({
     if (!user) throw new Error("Invalid reset token");
 
     const expiresAtMs = new Date(user.resetTokenExpiresAt).getTime();
+    const codeExpiresAtMs = new Date(user.resetCodeExpiresAt).getTime();
     if (
       !user.resetTokenHash ||
       user.resetTokenHash !== safeResetTokenHash ||
+      !user.resetCodeHash ||
+      user.resetCodeHash !== safeResetCodeHash ||
       !Number.isFinite(expiresAtMs) ||
-      expiresAtMs <= Date.now()
+      expiresAtMs <= Date.now() ||
+      !Number.isFinite(codeExpiresAtMs) ||
+      codeExpiresAtMs <= Date.now()
     ) {
-      throw new Error("Invalid or expired reset token");
+      throw new Error("Invalid or expired reset verification.");
     }
 
     user.passwordHash = safePasswordHash;
     user.passwordUpdatedAt = normalizeText(passwordUpdatedAt) || nowIso();
     user.resetTokenHash = "";
     user.resetTokenExpiresAt = "";
+    user.resetCodeHash = "";
+    user.resetCodeExpiresAt = "";
     user.updatedAt = nowIso();
     return toPublicUser(user);
   });

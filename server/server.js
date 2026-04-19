@@ -53,12 +53,14 @@ import { getRoutingPlan, runRoutedProviders, runRoutedProvidersStream } from "./
 import { buildToolSystemPrompt, executeToolCalls, formatToolResults, planToolCalls } from "./luna-tools.js";
 import { getSupabaseAdmin } from "./supabase.js";
 import {
+  createPasswordResetEmailCode,
   createPasswordResetToken,
-  getPasswordResetPreviewAllowed,
   hashPassword,
+  hashResetVerificationCode,
   hashResetToken,
   verifyPassword,
 } from "./password-auth.js";
+import { isResetEmailConfigured, sendPasswordResetVerificationEmail } from "./reset-email.js";
 dotenv.config();
 
 const app = express();
@@ -1539,6 +1541,8 @@ app.post("/api/auth/password/set", async (req, res) => {
       passwordUpdatedAt: new Date().toISOString(),
       resetTokenHash: "",
       resetTokenExpiresAt: "",
+      resetCodeHash: "",
+      resetCodeExpiresAt: "",
     });
 
     return res.json({
@@ -1562,19 +1566,35 @@ app.post("/api/auth/password/reset/request", async (req, res) => {
       return res.status(400).json({ error: "Email is required." });
     }
 
-    const previewAllowed = getPasswordResetPreviewAllowed();
+    const emailConfigured = isResetEmailConfigured();
     const reset = createPasswordResetToken();
+    const verification = createPasswordResetEmailCode();
     const user = await storePasswordResetToken({
       email,
       resetTokenHash: reset.tokenHash,
       resetTokenExpiresAt: reset.expiresAt,
+      resetCodeHash: verification.codeHash,
+      resetCodeExpiresAt: verification.expiresAt,
     });
+
+    if (user && emailConfigured) {
+      await sendPasswordResetVerificationEmail({
+        to: email,
+        code: verification.code,
+        expiresAt: verification.expiresAt,
+      });
+    }
 
     return res.json({
       ok: true,
-      message: "If that account exists, a reset token has been generated.",
-      resetTokenPreview: user && previewAllowed ? reset.token : "",
-      resetTokenExpiresAt: user && previewAllowed ? reset.expiresAt : "",
+      message: emailConfigured
+        ? "If that account exists, Luna sent a password reset verification code to the email address on file."
+        : "If that account exists, Luna generated a password reset code and showed it in the reset screen.",
+      resetToken: user ? reset.token : "",
+      resetTokenPreview: user ? reset.token : "",
+      resetTokenExpiresAt: user ? reset.expiresAt : "",
+      resetCodePreview: user ? verification.code : "",
+      resetCodeExpiresAt: user ? verification.expiresAt : "",
     });
   } catch (error) {
     const normalized = extractProviderError(error);
@@ -1588,11 +1608,13 @@ app.post("/api/auth/password/reset/confirm", async (req, res) => {
   try {
     const email = normalizeEmail(req.body?.email);
     const token = typeof req.body?.token === "string" ? req.body.token.trim() : "";
+    const verificationCode = typeof req.body?.verificationCode === "string" ? req.body.verificationCode.trim() : "";
     const newPassword = typeof req.body?.newPassword === "string" ? req.body.newPassword : "";
     const confirmPassword = typeof req.body?.confirmPassword === "string" ? req.body.confirmPassword : "";
 
     if (!email) return res.status(400).json({ error: "Email is required." });
     if (!token) return res.status(400).json({ error: "Reset token is required." });
+    if (!verificationCode) return res.status(400).json({ error: "Verification code is required." });
     if (!newPassword) return res.status(400).json({ error: "New password is required." });
     if (newPassword !== confirmPassword) {
       return res.status(400).json({ error: "Passwords do not match." });
@@ -1602,6 +1624,7 @@ app.post("/api/auth/password/reset/confirm", async (req, res) => {
     const updatedUser = await resetUserPasswordWithToken({
       email,
       resetTokenHash: hashResetToken(token),
+      resetCodeHash: hashResetVerificationCode(verificationCode),
       passwordHash,
       passwordUpdatedAt: new Date().toISOString(),
     });
@@ -2776,7 +2799,5 @@ async function startServer() {
 }
 
 startServer();
-
-
 
 

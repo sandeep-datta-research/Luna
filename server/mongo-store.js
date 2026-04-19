@@ -102,6 +102,8 @@ function sanitizeUserRecord(raw) {
     passwordUpdatedAt: normalizeText(raw?.passwordUpdatedAt),
     resetTokenHash: normalizeText(raw?.resetTokenHash),
     resetTokenExpiresAt: normalizeText(raw?.resetTokenExpiresAt),
+    resetCodeHash: normalizeText(raw?.resetCodeHash),
+    resetCodeExpiresAt: normalizeText(raw?.resetCodeExpiresAt),
     memory: sanitizeUserMemory(raw?.memory),
     createdAt,
     updatedAt,
@@ -382,6 +384,8 @@ export function createMongoStore() {
       passwordUpdatedAt: normalizeText(passwordUpdatedAt) || now,
       resetTokenHash: "",
       resetTokenExpiresAt: "",
+      resetCodeHash: "",
+      resetCodeExpiresAt: "",
       createdAt: now,
       updatedAt: now,
       lastLoginAt: now,
@@ -397,6 +401,8 @@ export function createMongoStore() {
     passwordUpdatedAt = "",
     resetTokenHash = "",
     resetTokenExpiresAt = "",
+    resetCodeHash = "",
+    resetCodeExpiresAt = "",
   }) {
     await init();
     const safeUserId = normalizeText(userId);
@@ -415,6 +421,8 @@ export function createMongoStore() {
       passwordUpdatedAt: normalizeText(passwordUpdatedAt) || nowIso(),
       resetTokenHash: normalizeText(resetTokenHash),
       resetTokenExpiresAt: normalizeText(resetTokenExpiresAt),
+      resetCodeHash: normalizeText(resetCodeHash),
+      resetCodeExpiresAt: normalizeText(resetCodeExpiresAt),
       updatedAt: nowIso(),
     };
 
@@ -422,7 +430,13 @@ export function createMongoStore() {
     return toPublicUser(next);
   }
 
-  async function storePasswordResetToken({ email, resetTokenHash, resetTokenExpiresAt }) {
+  async function storePasswordResetToken({
+    email,
+    resetTokenHash,
+    resetTokenExpiresAt,
+    resetCodeHash = "",
+    resetCodeExpiresAt = "",
+  }) {
     await init();
     const safeEmail = normalizeText(email).toLowerCase();
     if (!safeEmail) return null;
@@ -434,6 +448,8 @@ export function createMongoStore() {
       ...sanitizeUserRecord(existing),
       resetTokenHash: normalizeText(resetTokenHash),
       resetTokenExpiresAt: normalizeText(resetTokenExpiresAt),
+      resetCodeHash: normalizeText(resetCodeHash),
+      resetCodeExpiresAt: normalizeText(resetCodeExpiresAt),
       updatedAt: nowIso(),
     };
 
@@ -444,6 +460,7 @@ export function createMongoStore() {
   async function resetUserPasswordWithToken({
     email,
     resetTokenHash,
+    resetCodeHash,
     passwordHash,
     passwordUpdatedAt = "",
   }) {
@@ -454,6 +471,9 @@ export function createMongoStore() {
     const safeResetTokenHash = normalizeText(resetTokenHash);
     if (!safeResetTokenHash) throw new Error("Reset token is required");
 
+    const safeResetCodeHash = normalizeText(resetCodeHash);
+    if (!safeResetCodeHash) throw new Error("Verification code is required");
+
     const safePasswordHash = normalizeText(passwordHash);
     if (!safePasswordHash) throw new Error("Password hash is required");
 
@@ -462,13 +482,18 @@ export function createMongoStore() {
 
     const user = sanitizeUserRecord(existing);
     const expiresAtMs = new Date(user.resetTokenExpiresAt).getTime();
+    const codeExpiresAtMs = new Date(user.resetCodeExpiresAt).getTime();
     if (
       !user.resetTokenHash ||
       user.resetTokenHash !== safeResetTokenHash ||
+      !user.resetCodeHash ||
+      user.resetCodeHash !== safeResetCodeHash ||
       !Number.isFinite(expiresAtMs) ||
-      expiresAtMs <= Date.now()
+      expiresAtMs <= Date.now() ||
+      !Number.isFinite(codeExpiresAtMs) ||
+      codeExpiresAtMs <= Date.now()
     ) {
-      throw new Error("Invalid or expired reset token");
+      throw new Error("Invalid or expired reset verification.");
     }
 
     const next = {
@@ -478,6 +503,8 @@ export function createMongoStore() {
       passwordUpdatedAt: normalizeText(passwordUpdatedAt) || nowIso(),
       resetTokenHash: "",
       resetTokenExpiresAt: "",
+      resetCodeHash: "",
+      resetCodeExpiresAt: "",
       updatedAt: nowIso(),
     };
 

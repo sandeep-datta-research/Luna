@@ -38,10 +38,12 @@ export default function SignInPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [noticeMessage, setNoticeMessage] = useState("");
   const [resetEmail, setResetEmail] = useState("");
-  const [resetToken, setResetToken] = useState("");
+  const [resetChallengeToken, setResetChallengeToken] = useState("");
+  const [resetVerificationCode, setResetVerificationCode] = useState("");
   const [resetPassword, setResetPassword] = useState("");
   const [resetConfirmPassword, setResetConfirmPassword] = useState("");
   const [resetTokenPreview, setResetTokenPreview] = useState("");
+  const [resetCodePreview, setResetCodePreview] = useState("");
   const [mode, setMode] = useState("signin");
 
   const handleSubmit = async (event) => {
@@ -83,7 +85,10 @@ export default function SignInPage() {
     setLoading(true);
     setErrorMessage("");
     setNoticeMessage("");
+    setResetChallengeToken("");
+    setResetVerificationCode("");
     setResetTokenPreview("");
+    setResetCodePreview("");
 
     try {
       const result = await fetchApi("/api/auth/password/reset/request", {
@@ -98,8 +103,10 @@ export default function SignInPage() {
         return;
       }
 
-      setNoticeMessage(result.data?.message || "Reset token created.");
+      setNoticeMessage(result.data?.message || "Reset verification started.");
+      setResetChallengeToken(result.data?.resetToken || "");
       setResetTokenPreview(result.data?.resetTokenPreview || "");
+      setResetCodePreview(result.data?.resetCodePreview || "");
       setMode("reset-confirm");
       setLoading(false);
     } catch (error) {
@@ -115,12 +122,17 @@ export default function SignInPage() {
     setNoticeMessage("");
 
     try {
+      if (!(resetChallengeToken || "").trim()) {
+        throw new Error("Start the reset flow again to get a fresh verification code.");
+      }
+
       const result = await fetchApi("/api/auth/password/reset/confirm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: (resetEmail || "").trim().toLowerCase(),
-          token: (resetToken || "").trim(),
+          token: (resetChallengeToken || "").trim(),
+          verificationCode: (resetVerificationCode || "").trim(),
           newPassword: resetPassword,
           confirmPassword: resetConfirmPassword,
         }),
@@ -199,6 +211,8 @@ export default function SignInPage() {
                       setMode("signin");
                       setErrorMessage("");
                       setNoticeMessage("");
+                      setResetChallengeToken("");
+                      setResetVerificationCode("");
                     }}
                     className={`flex-1 rounded-lg px-3 py-2 ${mode === "signin" ? "bg-violet-500/25 text-violet-100" : "text-zinc-400 hover:text-zinc-200"}`}
                   >
@@ -210,6 +224,8 @@ export default function SignInPage() {
                       setMode("reset-request");
                       setErrorMessage("");
                       setNoticeMessage("");
+                      setResetChallengeToken("");
+                      setResetVerificationCode("");
                     }}
                     className={`flex-1 rounded-lg px-3 py-2 ${mode !== "signin" ? "bg-violet-500/25 text-violet-100" : "text-zinc-400 hover:text-zinc-200"}`}
                   >
@@ -326,13 +342,18 @@ export default function SignInPage() {
                     </button>
 
                     <p className="text-xs text-zinc-500">
-                      If the account exists, Luna will create a short-lived reset token. In local/dev setups the token is shown below.
+                      If email delivery is configured, Luna will send a 6-digit verification code. Otherwise the reset challenge and code are shown below for now.
                     </p>
                     {errorMessage ? <div className="rounded-xl border border-rose-400/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">{errorMessage}</div> : null}
                     {noticeMessage ? <div className="rounded-xl border border-emerald-400/40 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200">{noticeMessage}</div> : null}
                     {resetTokenPreview ? (
                       <div className="rounded-xl border border-cyan-400/30 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-100">
-                        Dev reset token: <span className="font-semibold">{resetTokenPreview}</span>
+                        Dev reset challenge: <span className="font-semibold">{resetTokenPreview}</span>
+                      </div>
+                    ) : null}
+                    {resetCodePreview ? (
+                      <div className="rounded-xl border border-cyan-400/30 bg-cyan-500/10 px-3 py-2 text-xs text-cyan-100">
+                        Dev email code: <span className="font-semibold">{resetCodePreview}</span>
                       </div>
                     ) : null}
                   </form>
@@ -358,17 +379,19 @@ export default function SignInPage() {
                     </div>
 
                     <div>
-                      <label htmlFor="reset-token" className="mb-2 block text-xs font-medium uppercase tracking-wide text-zinc-300">
-                        Reset code
+                      <label htmlFor="reset-verification-code" className="mb-2 block text-xs font-medium uppercase tracking-wide text-zinc-300">
+                        Verification code
                       </label>
                       <input
-                        id="reset-token"
+                        id="reset-verification-code"
                         type="text"
-                        value={resetToken}
-                        onChange={(event) => setResetToken(event.target.value)}
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        value={resetVerificationCode}
+                        onChange={(event) => setResetVerificationCode(event.target.value)}
                         required
                         className="w-full rounded-xl border border-zinc-700 bg-zinc-900/70 px-3 py-3 text-sm text-zinc-100 outline-none placeholder:text-zinc-500 focus:border-violet-400/70"
-                        placeholder="Paste the reset token"
+                        placeholder="Enter the 6-digit code from your email"
                       />
                     </div>
 
@@ -423,6 +446,11 @@ export default function SignInPage() {
                     </button>
                     {errorMessage ? <div className="rounded-xl border border-rose-400/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">{errorMessage}</div> : null}
                     {noticeMessage ? <div className="rounded-xl border border-emerald-400/40 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200">{noticeMessage}</div> : null}
+                    {!resetChallengeToken ? (
+                      <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+                        This reset session expired in the browser. Start the reset flow again to get a fresh email code.
+                      </div>
+                    ) : null}
                   </form>
                 ) : null}
 

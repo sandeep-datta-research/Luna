@@ -1,4 +1,4 @@
-import { randomBytes, scrypt as scryptCallback, timingSafeEqual, createHash } from "crypto";
+import { randomBytes, randomInt, scrypt as scryptCallback, timingSafeEqual, createHash } from "crypto";
 import { promisify } from "util";
 
 const scrypt = promisify(scryptCallback);
@@ -9,6 +9,7 @@ const SCRYPT_N = 16384;
 const SCRYPT_R = 8;
 const SCRYPT_P = 1;
 const RESET_TOKEN_TTL_MINUTES = 20;
+const RESET_EMAIL_CODE_TTL_MINUTES = 10;
 
 function normalizeText(value) {
   return typeof value === "string" ? value.trim() : "";
@@ -64,12 +65,26 @@ export function hashResetToken(token) {
   return createHash("sha256").update(value).digest("hex");
 }
 
+export function hashResetVerificationCode(code) {
+  return hashResetToken(code);
+}
+
 export function createPasswordResetToken() {
   const token = randomBytes(24).toString("base64url");
   const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MINUTES * 60 * 1000).toISOString();
   return {
     token,
     tokenHash: hashResetToken(token),
+    expiresAt,
+  };
+}
+
+export function createPasswordResetEmailCode() {
+  const code = `${randomInt(0, 1000000)}`.padStart(6, "0");
+  const expiresAt = new Date(Date.now() + RESET_EMAIL_CODE_TTL_MINUTES * 60 * 1000).toISOString();
+  return {
+    code,
+    codeHash: hashResetVerificationCode(code),
     expiresAt,
   };
 }
