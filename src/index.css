@@ -102,12 +102,43 @@
       linear-gradient(180deg, #071013 0%, #091518 100%);
   }
 
+  a,
+  button,
+  input,
+  textarea,
+  select {
+    transition:
+      transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+      background-color 220ms ease,
+      border-color 220ms ease,
+      color 220ms ease,
+      box-shadow 260ms ease,
+      opacity 220ms ease;
+  }
+
   img,
   video,
   canvas,
   svg {
     max-width: 100%;
     height: auto;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes lunaGlobalFadeUp {
+    0% {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  #root {
+    animation: lunaGlobalFadeUp 420ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 }
 

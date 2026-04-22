@@ -30,8 +30,6 @@ import {
   Star,
   Trash2,
   UserCircle2,
-  Volume2,
-  VolumeX,
   X,
   Zap,
 } from "lucide-react";
@@ -120,30 +118,6 @@ function formatHistoryTime(value) {
     hour: "numeric",
     minute: "2-digit",
   }).format(date);
-}
-
-function pickPreferredSpeechVoice(voices = []) {
-  if (!Array.isArray(voices) || voices.length === 0) return null;
-
-  const scored = voices
-    .filter((voice) => (voice?.lang || "").toLowerCase().startsWith("en"))
-    .map((voice) => {
-      const name = `${voice?.name || ""}`.toLowerCase();
-      let score = 0;
-      if (name.includes("female")) score += 5;
-      if (name.includes("samantha")) score += 4;
-      if (name.includes("aria")) score += 4;
-      if (name.includes("zira")) score += 4;
-      if (name.includes("google uk english female")) score += 6;
-      if (name.includes("kyoko")) score += 3;
-      if (name.includes("jenny")) score += 3;
-      if (name.includes("nova")) score += 2;
-      if (voice.default) score += 1;
-      return { voice, score };
-    })
-    .sort((a, b) => b.score - a.score);
-
-  return scored[0]?.voice || voices[0] || null;
 }
 
 function sanitizeMessage(raw) {
@@ -243,6 +217,7 @@ function SidebarButton({ icon, label, onClick, collapsed = false, danger = false
   const IconComponent = icon;
   return (
     <motion.button
+      whileHover={{ y: -1, scale: 1.01 }}
       whileTap={{ scale: 0.97 }}
       type="button"
       onClick={onClick}
@@ -319,8 +294,6 @@ function MessageBubble({
   isLatestAssistant,
   onCopy,
   onRegenerate,
-  onSpeak,
-  isSpeaking = false,
 }) {
   const isUser = message.role === "user";
 
@@ -361,15 +334,6 @@ function MessageBubble({
               >
                 <Copy className="h-3.5 w-3.5" />
               </button>
-              <button
-                type="button"
-                onClick={() => onSpeak(message)}
-                className="rounded-md border border-[#274149] bg-[#0f1f24]/95 p-1 text-[#cfe4e0] transition hover:border-[#4f7c75]"
-                title={isSpeaking ? "Stop audio reply" : "Play audio reply"}
-              >
-                {isSpeaking ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
-              </button>
-
               {isLatestAssistant ? (
                 <button
                   type="button"
@@ -630,10 +594,6 @@ export default function Luna() {
   }, []);
   const [lastRetryPayload, setLastRetryPayload] = useState(null);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [audioReplyEnabled, setAudioReplyEnabled] = useState(false);
-  const [speechSupported, setSpeechSupported] = useState(false);
-  const [speakingMessageId, setSpeakingMessageId] = useState("");
-  const [availableVoices, setAvailableVoices] = useState([]);
 
   const mediaRecorderRef = useRef(null);
   const mediaStreamRef = useRef(null);
@@ -649,8 +609,6 @@ export default function Luna() {
   const streamAbortRef = useRef(null);
   const loadedConversationIdsRef = useRef(new Set());
   const historyLoadedRef = useRef(false);
-  const speechUtteranceRef = useRef(null);
-  const lastAutoSpokenMessageIdRef = useRef("");
 
   const sortedSessions = useMemo(
     () => [...sessions].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)),
@@ -673,14 +631,6 @@ export default function Luna() {
     }
     return "";
   }, [activeMessages]);
-
-  useEffect(() => {
-    if (!audioReplyEnabled || isTyping || !latestAssistantId) return;
-    const latestAssistant = activeMessages.find((message) => message.id === latestAssistantId);
-    if (!latestAssistant || speakingMessageId === latestAssistantId || lastAutoSpokenMessageIdRef.current === latestAssistantId) return;
-    lastAutoSpokenMessageIdRef.current = latestAssistantId;
-    speakMessage(latestAssistant);
-  }, [activeMessages, audioReplyEnabled, isTyping, latestAssistantId, speakMessage, speakingMessageId]);
 
   const historyList = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -804,10 +754,6 @@ export default function Luna() {
 
   useEffect(() => {
     return () => {
-      if (typeof window !== "undefined" && window.speechSynthesis) {
-        window.speechSynthesis.cancel();
-      }
-
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
         mediaRecorderRef.current.stop();
       }
@@ -816,24 +762,6 @@ export default function Luna() {
       clearVoiceSilenceMonitor();
     };
   }, [clearVoiceSilenceMonitor, stopMediaStreamTracks]);
-
-  useEffect(() => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
-      setSpeechSupported(false);
-      setAvailableVoices([]);
-      return undefined;
-    }
-
-    const syncVoices = () => {
-      const voices = window.speechSynthesis.getVoices() || [];
-      setAvailableVoices(voices);
-      setSpeechSupported(voices.length > 0 || "speechSynthesis" in window);
-    };
-
-    syncVoices();
-    window.speechSynthesis.addEventListener?.("voiceschanged", syncVoices);
-    return () => window.speechSynthesis.removeEventListener?.("voiceschanged", syncVoices);
-  }, []);
 
   const updateSession = useCallback((sessionId, updater) => {
     setSessions((prev) =>
@@ -1596,48 +1524,6 @@ export default function Luna() {
     }
   }, [showErrorToast]);
 
-  const stopSpeech = useCallback(() => {
-    if (typeof window === "undefined" || !window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
-    speechUtteranceRef.current = null;
-    setSpeakingMessageId("");
-  }, []);
-
-  const speakMessage = useCallback((message) => {
-    if (typeof window === "undefined" || !window.speechSynthesis) {
-      showErrorToast("Audio replies are not supported in this browser.");
-      return;
-    }
-
-    const content = text(message?.content);
-    if (!content) return;
-
-    if (speakingMessageId && speakingMessageId === message.id) {
-      stopSpeech();
-      return;
-    }
-
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(content);
-    const preferredVoice = pickPreferredSpeechVoice(availableVoices);
-    if (preferredVoice) utterance.voice = preferredVoice;
-    utterance.rate = 1;
-    utterance.pitch = 1.15;
-    utterance.volume = 1;
-    utterance.onend = () => {
-      speechUtteranceRef.current = null;
-      setSpeakingMessageId("");
-    };
-    utterance.onerror = () => {
-      speechUtteranceRef.current = null;
-      setSpeakingMessageId("");
-      showErrorToast("Audio reply failed.");
-    };
-    speechUtteranceRef.current = utterance;
-    setSpeakingMessageId(message.id);
-    window.speechSynthesis.speak(utterance);
-  }, [availableVoices, showErrorToast, speakingMessageId, stopSpeech]);
-
   const handleRetry = useCallback(async () => {
     if (!lastRetryPayload) return;
 
@@ -1888,6 +1774,16 @@ export default function Luna() {
           50% { transform: scaleY(1); opacity: 1; }
         }
         .luna-wave { animation: lunaWave 0.8s ease-in-out infinite; transform-origin: bottom; }
+        @keyframes lunaFadeLift {
+          0% { opacity: 0; transform: translateY(12px) scale(0.985); }
+          100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes lunaPanelFloat {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-3px); }
+        }
+        .luna-fade-lift { animation: lunaFadeLift 0.42s cubic-bezier(0.22, 1, 0.36, 1); }
+        .luna-panel-float { animation: lunaPanelFloat 5.6s ease-in-out infinite; }
       `}</style>
 
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_18%,rgba(71,120,112,0.25),transparent_28%),radial-gradient(circle_at_85%_15%,rgba(225,186,109,0.12),transparent_24%),radial-gradient(circle_at_50%_45%,rgba(18,47,51,0.65),transparent_58%)]" />
@@ -1933,7 +1829,7 @@ export default function Luna() {
                   <button
                     type="button"
                     onClick={() => setIsSidebarOpen(false)}
-                    className="rounded-xl border border-[#274149] bg-[#0f1f24] p-1.5 text-[#cbe0dc]"
+                    className="rounded-xl border border-[#274149] bg-[#0f1f24] p-1.5 text-[#cbe0dc] transition duration-300 hover:-translate-y-0.5 hover:border-[#4f7c75]"
                     title="Collapse"
                   >
                     <ChevronRight className="h-4 w-4" />
@@ -1942,7 +1838,7 @@ export default function Luna() {
                   <button
                     type="button"
                     onClick={() => setIsSidebarOpen(true)}
-                    className="mx-auto rounded-xl border border-[#274149] bg-[#0f1f24] p-1.5 text-[#cbe0dc]"
+                    className="mx-auto rounded-xl border border-[#274149] bg-[#0f1f24] p-1.5 text-[#cbe0dc] transition duration-300 hover:-translate-y-0.5 hover:border-[#4f7c75]"
                     title="Expand"
                   >
                     <ChevronDown className="h-4 w-4" />
@@ -2078,9 +1974,9 @@ export default function Luna() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm md:hidden"
-              onClick={() => setMobileSidebarOpen(false)}
-            >
+                className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm md:hidden"
+                onClick={() => setMobileSidebarOpen(false)}
+              >
               <motion.div
                 initial={{ x: -22, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
@@ -2098,7 +1994,7 @@ export default function Luna() {
                   <button
                     type="button"
                     onClick={() => setMobileSidebarOpen(false)}
-                    className="rounded-xl border border-[#274149] bg-[#0f1f24] p-1.5"
+                    className="rounded-xl border border-[#274149] bg-[#0f1f24] p-1.5 transition duration-300 hover:-translate-y-0.5 hover:border-[#4f7c75]"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -2150,7 +2046,7 @@ export default function Luna() {
               <button
                 type="button"
                 onClick={() => setMobileSidebarOpen(true)}
-                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-[#274149] bg-[#0f1f24] text-[#d2e7e2]"
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-[#274149] bg-[#0f1f24] text-[#d2e7e2] transition duration-300 hover:-translate-y-0.5 hover:border-[#4f7c75] hover:bg-[#102126]"
                 aria-label="Open navigation"
               >
                 <Menu className="h-4 w-4" />
@@ -2163,28 +2059,10 @@ export default function Luna() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {speechSupported ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (audioReplyEnabled) stopSpeech();
-                    setAudioReplyEnabled((prev) => !prev);
-                  }}
-                  className={`inline-flex h-10 min-w-[44px] items-center justify-center rounded-2xl border px-3 text-xs ${
-                    audioReplyEnabled
-                      ? "border-[#4f7c75] bg-[#102126] text-[#d7ece7]"
-                      : "border-[#274149] bg-[#0f1f24] text-[#9db6b1]"
-                  }`}
-                  aria-label="Toggle audio replies"
-                  title="Toggle audio replies"
-                >
-                  {audioReplyEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-                </button>
-              ) : null}
               <button
                 type="button"
                 onClick={() => createFreshSession()}
-                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-[#274149] bg-[#0f1f24] text-[#d2e7e2]"
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-[#274149] bg-[#0f1f24] text-[#d2e7e2] transition duration-300 hover:-translate-y-0.5 hover:border-[#4f7c75] hover:bg-[#102126]"
                 aria-label="Start a new chat"
               >
                 <Plus className="h-4 w-4" />
@@ -2206,29 +2084,13 @@ export default function Luna() {
               </div>
               <div className="hidden lg:flex items-center gap-2">
                 {modePills.map((pill) => (
-                  <span key={pill} className="rounded-full border border-[#274149] bg-[#0f1f24] px-3 py-1 text-xs text-[#d0e2de]">
+                  <span key={pill} className="rounded-full border border-[#274149] bg-[#0f1f24] px-3 py-1 text-xs text-[#d0e2de] transition duration-300 hover:-translate-y-0.5 hover:border-[#4f7c75] hover:bg-[#102126]">
                     {pill}
                   </span>
                 ))}
               </div>
             </div>
             <div className="flex items-center gap-3">
-              {speechSupported ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (audioReplyEnabled) stopSpeech();
-                    setAudioReplyEnabled((prev) => !prev);
-                  }}
-                  className={`rounded-full border px-3 py-1.5 text-xs ${
-                    audioReplyEnabled
-                      ? "border-[#4f7c75] bg-[#102126] text-[#e7f4f1]"
-                      : "border-[#274149] bg-[#0f1f24] text-[#8fb0aa]"
-                  }`}
-                >
-                  {audioReplyEnabled ? "Voice replies on" : "Voice replies off"}
-                </button>
-              ) : null}
               <div className="rounded-full border border-[#274149] bg-[#0f1f24] px-3 py-1.5 text-xs text-[#8fb0aa]">
                 {formatDateLabel()}
               </div>
@@ -2253,7 +2115,7 @@ export default function Luna() {
                   className="flex h-full flex-col items-center justify-center py-6 md:py-10"
                 >
                   <div className="mx-auto flex w-full max-w-4xl flex-col items-center justify-center">
-                    <div className="w-full rounded-[36px] border border-[#1f3135] bg-[linear-gradient(180deg,rgba(9,16,19,0.92),rgba(7,12,14,0.98))] px-5 py-8 shadow-[0_30px_80px_rgba(0,0,0,0.24)] md:px-10 md:py-12">
+                    <div className="luna-fade-lift w-full rounded-[36px] border border-[#1f3135] bg-[linear-gradient(180deg,rgba(9,16,19,0.92),rgba(7,12,14,0.98))] px-5 py-8 shadow-[0_30px_80px_rgba(0,0,0,0.24)] md:px-10 md:py-12">
                       <motion.p
                         initial={{ opacity: 0, y: 16 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -2328,7 +2190,7 @@ export default function Luna() {
                   className="luna-scrollbar h-full overflow-y-auto pr-1"
                 >
                   <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 pb-6 pt-3 md:pb-8">
-                    <div className="sticky top-0 z-10 mb-2 rounded-[28px] border border-[#1f3135] bg-[linear-gradient(180deg,rgba(9,16,19,0.95),rgba(7,12,14,0.9))] px-4 py-4 backdrop-blur">
+                    <div className="luna-fade-lift sticky top-0 z-10 mb-2 rounded-[28px] border border-[#1f3135] bg-[linear-gradient(180deg,rgba(9,16,19,0.95),rgba(7,12,14,0.9))] px-4 py-4 backdrop-blur">
                       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                         <div className="min-w-0">
                           <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -2350,7 +2212,7 @@ export default function Luna() {
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
                           {modePills.map((pill) => (
-                            <span key={pill} className="rounded-full border border-[#274149] bg-[#0f1f24] px-3 py-1.5 text-xs text-[#d4e6e2]">
+                            <span key={pill} className="rounded-full border border-[#274149] bg-[#0f1f24] px-3 py-1.5 text-xs text-[#d4e6e2] transition duration-300 hover:-translate-y-0.5 hover:border-[#4f7c75] hover:bg-[#102126]">
                               {pill}
                             </span>
                           ))}
@@ -2370,8 +2232,6 @@ export default function Luna() {
                         showLunaHeader={message.role === "assistant"}
                         isLatestAssistant={message.id === latestAssistantId}
                         onCopy={copyMessage}
-                        onSpeak={speakMessage}
-                        isSpeaking={speakingMessageId === message.id}
                         onRegenerate={regenerateLatest}
                       />
                     ))}
