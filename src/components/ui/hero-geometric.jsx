@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { easeInOut, motion } from "framer-motion";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, BrainCircuit, Search, Sparkles, Wand2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import Orb from "@/components/ui/orb";
@@ -76,8 +76,69 @@ const fadeUpVariants = {
   }),
 };
 
+const FLOATING_PANELS = [
+  {
+    title: "Reasoning",
+    body: "Structured thinking with multi-step answers.",
+    icon: BrainCircuit,
+    accent: "from-cyan-300/40 via-sky-400/18 to-transparent",
+    className: "left-[4%] top-[20%] sm:left-[10%] sm:top-[26%]",
+    rotate: -10,
+    delay: 0.15,
+  },
+  {
+    title: "Live Search",
+    body: "Current web context when precision matters.",
+    icon: Search,
+    accent: "from-violet-300/40 via-fuchsia-400/20 to-transparent",
+    className: "right-[2%] top-[18%] sm:right-[8%] sm:top-[22%]",
+    rotate: 12,
+    delay: 0.25,
+  },
+  {
+    title: "Creative Ops",
+    body: "Content, ideas, and production-ready drafting.",
+    icon: Wand2,
+    accent: "from-amber-300/40 via-orange-300/18 to-transparent",
+    className: "bottom-[16%] left-[10%] sm:bottom-[14%] sm:left-[18%]",
+    rotate: -8,
+    delay: 0.35,
+  },
+];
+
+function FloatingPanel({ title, body, icon: Icon, className, rotate = 0, delay = 0, accent = "" }) {
+  return (
+    <Motion.div
+      initial={{ opacity: 0, y: 20, scale: 0.96, rotateX: -8, rotateY: rotate * 0.5 }}
+      animate={{ opacity: 1, y: 0, scale: 1, rotateX: 0, rotateY: rotate * 0.22 }}
+      transition={{ duration: 0.9, delay, ease: [0.22, 1, 0.36, 1] }}
+      className={cn("hero-3d-card absolute z-20 hidden w-[190px] lg:block", className)}
+      style={{ rotate: `${rotate}deg` }}
+    >
+      <div className="relative overflow-hidden rounded-[26px] border border-white/14 bg-[linear-gradient(180deg,rgba(12,16,30,0.88),rgba(8,10,18,0.8))] p-4 shadow-[0_18px_60px_rgba(0,0,0,0.34)] backdrop-blur-2xl">
+        <div className={cn("pointer-events-none absolute inset-0 bg-gradient-to-br opacity-80", accent)} />
+        <div className="pointer-events-none absolute inset-[1px] rounded-[24px] border border-white/8" />
+        <div className="relative">
+          <div className="mb-3 flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/12 bg-white/10 text-white">
+              <Icon className="h-4 w-4" />
+            </span>
+            <div>
+              <p className="text-sm font-semibold text-white">{title}</p>
+              <p className="text-[11px] uppercase tracking-[0.18em] text-zinc-400">Luna Hub</p>
+            </div>
+          </div>
+          <p className="max-w-[20ch] text-sm leading-6 text-zinc-300">{body}</p>
+        </div>
+      </div>
+    </Motion.div>
+  );
+}
+
 export default function HeroGeometric({ mobileLanding = false }) {
   const [isSignedIn, setIsSignedIn] = useState(false);
+  const [pointer, setPointer] = useState({ x: 0, y: 0 });
+  const [reduceMotion, setReduceMotion] = useState(false);
 
   useEffect(() => {
     const syncAuth = () => {
@@ -99,12 +160,57 @@ export default function HeroGeometric({ mobileLanding = false }) {
     };
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const syncMotionPreference = () => setReduceMotion(mediaQuery.matches);
+    syncMotionPreference();
+    mediaQuery.addEventListener?.("change", syncMotionPreference);
+    return () => mediaQuery.removeEventListener?.("change", syncMotionPreference);
+  }, []);
+
   const primaryHref = isSignedIn ? "/chat" : "/signin";
   const primaryLabel = isSignedIn ? "Start Chat" : "Get Started";
+  const panelConfigs = useMemo(
+    () =>
+      FLOATING_PANELS.map((panel) => ({
+        ...panel,
+        className: mobileLanding
+          ? `${panel.className} hidden`
+          : panel.className,
+      })),
+    [mobileLanding],
+  );
+  const stageTilt = reduceMotion
+    ? {}
+    : {
+        rotateX: pointer.y * -4.5,
+        rotateY: pointer.x * 5.5,
+        x: pointer.x * 8,
+        y: pointer.y * 6,
+      };
+  const orbDrift = reduceMotion
+    ? {}
+    : {
+        x: pointer.x * -18,
+        y: pointer.y * -12,
+        rotateZ: pointer.x * 4,
+      };
 
   return (
-    <section className={`relative flex w-full items-center justify-center overflow-hidden bg-[#07070d] ${mobileLanding ? "min-h-[calc(100vh-132px)]" : "min-h-[calc(100vh-70px)]"}`}>
+    <section
+      className={`relative flex w-full items-center justify-center overflow-hidden bg-[#07070d] ${mobileLanding ? "min-h-[calc(100vh-132px)]" : "min-h-[calc(100vh-70px)]"}`}
+      onMouseMove={(event) => {
+        if (reduceMotion) return;
+        const bounds = event.currentTarget.getBoundingClientRect();
+        const nextX = ((event.clientX - bounds.left) / bounds.width - 0.5) * 2;
+        const nextY = ((event.clientY - bounds.top) / bounds.height - 0.5) * 2;
+        setPointer({ x: nextX, y: nextY });
+      }}
+      onMouseLeave={() => setPointer({ x: 0, y: 0 })}
+    >
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_24%_20%,rgba(82,39,255,0.1),transparent_40%),radial-gradient(circle_at_84%_18%,rgba(177,158,239,0.08),transparent_34%),linear-gradient(180deg,#06070c,#080910)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent_15%,rgba(125,211,252,0.05)_35%,transparent_52%,rgba(196,181,253,0.05)_74%,transparent_86%)] opacity-80" />
 
       <div className="absolute inset-0 overflow-hidden">
         <ElegantShape
@@ -153,11 +259,40 @@ export default function HeroGeometric({ mobileLanding = false }) {
         />
       </div>
 
-      <div className={`pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 ${mobileLanding ? "h-[308px] w-[308px]" : "h-[430px] w-[430px] sm:h-[540px] sm:w-[540px]"}`}>
-        <div
+      <Motion.div
+        className={`pointer-events-none absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 ${mobileLanding ? "h-[308px] w-[308px]" : "h-[430px] w-[430px] sm:h-[540px] sm:w-[540px]"}`}
+        animate={stageTilt}
+        transition={{ type: "spring", stiffness: 80, damping: 20, mass: 0.7 }}
+        style={{ transformStyle: "preserve-3d" }}
+      >
+        {panelConfigs.map((panel) => (
+          <FloatingPanel key={panel.title} {...panel} />
+        ))}
+
+        <Motion.div
           className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 ${mobileLanding ? "scale-[0.285]" : "scale-[0.38] sm:scale-[0.52]"}`}
-          style={{ width: "1080px", height: "1080px", position: "relative" }}
+          animate={orbDrift}
+          transition={{ type: "spring", stiffness: 65, damping: 18, mass: 0.9 }}
+          style={{ width: "1080px", height: "1080px", position: "relative", transformStyle: "preserve-3d" }}
         >
+          <Motion.div
+            animate={reduceMotion ? {} : { rotate: 360 }}
+            transition={{ duration: 26, ease: "linear", repeat: Number.POSITIVE_INFINITY }}
+            className="absolute inset-[6%] rounded-full border border-white/8 opacity-60"
+            style={{
+              WebkitMaskImage: "radial-gradient(circle, transparent 63%, #000 64%)",
+              maskImage: "radial-gradient(circle, transparent 63%, #000 64%)",
+            }}
+          />
+          <Motion.div
+            animate={reduceMotion ? {} : { rotate: -360 }}
+            transition={{ duration: 34, ease: "linear", repeat: Number.POSITIVE_INFINITY }}
+            className="absolute inset-[17%] rounded-full border border-cyan-200/10 opacity-70"
+            style={{
+              WebkitMaskImage: "radial-gradient(circle, transparent 69%, #000 70%)",
+              maskImage: "radial-gradient(circle, transparent 69%, #000 70%)",
+            }}
+          />
           <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_50%_50%,rgba(124,58,237,0.12),transparent_56%)] blur-2xl" />
           <div className="absolute inset-[10%] rounded-full bg-[radial-gradient(circle_at_50%_50%,rgba(79,70,229,0.12),transparent_62%)] opacity-65 blur-lg" />
           <div
@@ -167,6 +302,11 @@ export default function HeroGeometric({ mobileLanding = false }) {
               maskImage: "radial-gradient(circle, transparent 66%, #000 67%)",
             }}
           />
+          <Motion.div
+            animate={reduceMotion ? {} : { scale: [1, 1.05, 1], opacity: [0.45, 0.7, 0.45] }}
+            transition={{ duration: 7.5, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+            className="absolute inset-[24%] rounded-full border border-violet-300/15 blur-[1px]"
+          />
           <Orb
             hue={248}
             hoverIntensity={1.1}
@@ -174,8 +314,8 @@ export default function HeroGeometric({ mobileLanding = false }) {
             forceHoverState={false}
             backgroundColor="#07070d"
           />
-        </div>
-      </div>
+        </Motion.div>
+      </Motion.div>
 
       <div className={`relative z-10 mx-auto w-full ${mobileLanding ? "max-w-[420px] px-4" : "max-w-6xl px-4 md:px-6"}`}>
         <div className={`mx-auto text-center ${mobileLanding ? "max-w-[340px] pt-8" : "max-w-3xl"}`}>
@@ -215,7 +355,7 @@ export default function HeroGeometric({ mobileLanding = false }) {
             animate="visible"
           >
             <p className={`mx-auto leading-relaxed text-zinc-400 ${mobileLanding ? "mb-7 max-w-[260px] px-2 text-sm" : "mb-10 max-w-2xl px-4 text-base sm:text-lg md:text-xl"}`}>
-              One interface. Multiple AI minds. Meet Luna.
+              One interface. Multiple AI minds. A more refined AI hub for research, writing, and execution.
             </p>
           </Motion.div>
 
@@ -226,25 +366,29 @@ export default function HeroGeometric({ mobileLanding = false }) {
             animate="visible"
             className={`flex flex-col justify-center gap-4 ${mobileLanding ? "" : "sm:flex-row"}`}
           >
-            <Button
-              asChild
-              size="lg"
-              className="rounded-full border border-violet-300/25 bg-gradient-to-r from-violet-500 to-fuchsia-400 px-7 text-white shadow-md shadow-violet-900/30 hover:from-violet-400 hover:to-fuchsia-300"
-            >
-              <Link to={primaryHref}>
-                {primaryLabel}
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
+            <Motion.div whileHover={{ y: -3, scale: 1.02 }} whileTap={{ scale: 0.985 }}>
+              <Button
+                asChild
+                size="lg"
+                className="rounded-full border border-violet-300/25 bg-gradient-to-r from-violet-500 to-fuchsia-400 px-7 text-white shadow-md shadow-violet-900/30 hover:from-violet-400 hover:to-fuchsia-300"
+              >
+                <Link to={primaryHref}>
+                  {primaryLabel}
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            </Motion.div>
 
-            <Button
-              asChild
-              size="lg"
-              variant="outline"
-              className="rounded-full border border-white/10 bg-white/5 text-zinc-100 backdrop-blur-md transition-colors hover:border-white/30 hover:bg-white/10"
-            >
-              <a href="#features">View Features</a>
-            </Button>
+            <Motion.div whileHover={{ y: -3, scale: 1.02 }} whileTap={{ scale: 0.985 }}>
+              <Button
+                asChild
+                size="lg"
+                variant="outline"
+                className="rounded-full border border-white/10 bg-white/5 text-zinc-100 backdrop-blur-md transition-colors hover:border-white/30 hover:bg-white/10"
+              >
+                <a href="#features">View Features</a>
+              </Button>
+            </Motion.div>
           </Motion.div>
         </div>
       </div>

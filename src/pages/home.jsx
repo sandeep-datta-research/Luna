@@ -83,6 +83,11 @@ const fadeInUp = {
   transition: { duration: 0.55, ease: "easeOut" },
 };
 
+const hoverFloat = {
+  whileHover: { y: -6, scale: 1.01 },
+  transition: { type: "spring", stiffness: 240, damping: 22 },
+};
+
 function normalizeEmail(value) {
   return typeof value === "string" ? value.trim().toLowerCase() : "";
 }
@@ -105,14 +110,16 @@ function getSignedInSnapshot() {
 function MobileNavbar({ ctaHref, onOpenMenu }) {
   return (
     <header className="relative z-20 flex h-14 items-center justify-between px-4">
-      <button
+      <motion.button
         type="button"
         onClick={onOpenMenu}
         className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-white backdrop-blur-md"
         aria-label="Open menu"
+        whileHover={{ y: -2, scale: 1.04 }}
+        whileTap={{ scale: 0.96 }}
       >
         <Menu className="h-5 w-5" />
-      </button>
+      </motion.button>
 
       <div className="absolute left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 backdrop-blur-md">
         <span className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-white/10">
@@ -121,12 +128,14 @@ function MobileNavbar({ ctaHref, onOpenMenu }) {
         <span className="text-sm font-semibold tracking-[0.02em] text-white">Luna</span>
       </div>
 
-      <Link
-        to={ctaHref}
-        className="rounded-full border border-violet-300/25 bg-gradient-to-r from-violet-500/45 to-fuchsia-400/30 px-4 py-2 text-xs font-semibold text-white shadow-[0_0_22px_rgba(124,92,255,0.28)] backdrop-blur-md"
-      >
-        Start Chat
-      </Link>
+      <motion.div whileHover={{ y: -2, scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+        <Link
+          to={ctaHref}
+          className="rounded-full border border-violet-300/25 bg-gradient-to-r from-violet-500/45 to-fuchsia-400/30 px-4 py-2 text-xs font-semibold text-white shadow-[0_0_22px_rgba(124,92,255,0.28)] backdrop-blur-md"
+        >
+          Start Chat
+        </Link>
+      </motion.div>
     </header>
   );
 }
@@ -134,10 +143,11 @@ function MobileNavbar({ ctaHref, onOpenMenu }) {
 function MobileInputPreview({ ctaHref }) {
   return (
     <div className="relative z-20 px-4 pb-5">
-      <Link
-        to={ctaHref}
-        className="flex h-16 items-center gap-3 rounded-full border border-white/10 bg-white/5 px-4 backdrop-blur-md shadow-[0_0_32px_rgba(124,92,255,0.14)]"
-      >
+      <motion.div whileHover={{ y: -3, scale: 1.01 }} whileTap={{ scale: 0.985 }}>
+        <Link
+          to={ctaHref}
+          className="flex h-16 items-center gap-3 rounded-full border border-white/10 bg-white/5 px-4 backdrop-blur-md shadow-[0_0_32px_rgba(124,92,255,0.14)]"
+        >
         <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white/80">
           <Mic className="h-4 w-4" />
         </div>
@@ -145,7 +155,8 @@ function MobileInputPreview({ ctaHref }) {
         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-400 text-white shadow-[0_0_18px_rgba(124,92,255,0.38)]">
           <Send className="h-4 w-4" />
         </div>
-      </Link>
+        </Link>
+      </motion.div>
     </div>
   );
 }
@@ -155,7 +166,10 @@ function UserGrowthSection({ userMetrics, chartPoints, compact = false }) {
   const areaId = `${gradientId}-area`;
 
   return (
-    <div className={`rounded-3xl border border-indigo-300/25 bg-gradient-to-b from-[#121225] to-[#0c0c16] shadow-[0_30px_90px_-55px_rgba(91,106,245,0.7)] ${compact ? "px-4 py-5" : "px-6 py-6 sm:px-8"}`}>
+    <motion.div
+      {...(compact ? {} : hoverFloat)}
+      className={`rounded-3xl border border-indigo-300/25 bg-gradient-to-b from-[#121225] to-[#0c0c16] shadow-[0_30px_90px_-55px_rgba(91,106,245,0.7)] ${compact ? "px-4 py-5" : "px-6 py-6 sm:px-8"}`}
+    >
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <p className="text-xs uppercase tracking-[0.3em] text-indigo-200/70">User Growth</p>
@@ -197,7 +211,7 @@ function UserGrowthSection({ userMetrics, chartPoints, compact = false }) {
           />
         </svg>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -211,7 +225,10 @@ function FeedbackSection({
   compact = false,
 }) {
   return (
-    <section className={`rounded-3xl border border-zinc-800 bg-zinc-900/60 text-zinc-300 ${compact ? "px-4 py-5" : "px-6 py-6 sm:px-8"}`}>
+    <motion.section
+      {...(compact ? {} : hoverFloat)}
+      className={`rounded-3xl border border-zinc-800 bg-zinc-900/60 text-zinc-300 ${compact ? "px-4 py-5" : "px-6 py-6 sm:px-8"}`}
+    >
       <h2 className="text-lg font-semibold text-white">Feedback</h2>
       <p className="mt-2 text-sm leading-relaxed">
         Share your experience. Admin can feature selected feedback in the carousel below.
@@ -285,7 +302,7 @@ function FeedbackSection({
           className={compact ? "py-8" : "py-10 md:py-14"}
         />
       </div>
-    </section>
+    </motion.section>
   );
 }
 
@@ -321,9 +338,13 @@ function MobileLanding({
         <HeroGeometric mobileLanding />
         <MobileInputPreview ctaHref={ctaHref} />
         <div className="space-y-5 px-4 pb-10">
-          <div className="dark about-glow-shell overflow-hidden rounded-[28px] border border-cyan-300/25 bg-gradient-to-b from-zinc-900/92 to-zinc-950/95 shadow-[0_30px_90px_-55px_rgba(34,211,238,0.95)]">
+          <motion.div
+            whileHover={{ y: -6, scale: 1.01 }}
+            transition={{ type: "spring", stiffness: 220, damping: 22 }}
+            className="dark about-glow-shell overflow-hidden rounded-[28px] border border-cyan-300/25 bg-gradient-to-b from-zinc-900/92 to-zinc-950/95 shadow-[0_30px_90px_-55px_rgba(34,211,238,0.95)]"
+          >
             <AboutUs1 />
-          </div>
+          </motion.div>
           <UserGrowthSection userMetrics={userMetrics} chartPoints={chartPoints} compact />
           <FeedbackSection
             feedbackForm={feedbackForm}
@@ -362,26 +383,30 @@ function MobileLanding({
                   </span>
                   <span className="text-sm font-semibold text-white">Luna</span>
                 </div>
-                <button
+                <motion.button
                   type="button"
                   onClick={onCloseMenu}
                   className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-white"
                   aria-label="Close menu"
+                  whileHover={{ y: -2, scale: 1.04 }}
+                  whileTap={{ scale: 0.96 }}
                 >
                   <X className="h-5 w-5" />
-                </button>
+                </motion.button>
               </div>
 
               <nav className="space-y-2">
                 {menuLinks.map((item) => (
-                  <Link
+                  <motion.div key={item.label} whileHover={{ x: 4 }} transition={{ duration: 0.2 }}>
+                    <Link
                     key={item.label}
                     to={item.href}
                     onClick={onCloseMenu}
                     className="flex h-12 items-center rounded-2xl border border-white/8 bg-white/[0.04] px-4 text-sm font-medium text-zinc-100"
                   >
                     {item.label}
-                  </Link>
+                    </Link>
+                  </motion.div>
                 ))}
               </nav>
             </motion.div>
@@ -427,10 +452,14 @@ function DesktopHome({
         </div>
         <HeroGeometric />
 
-        <motion.section id="about" {...fadeInUp} className="scroll-mt-28 mx-auto mt-8 w-full max-w-6xl px-4 sm:px-6 lg:px-8">
-          <div className="dark about-glow-shell relative overflow-hidden rounded-3xl border border-cyan-300/35 bg-gradient-to-b from-zinc-900/92 to-zinc-950/95 shadow-[0_30px_90px_-55px_rgba(34,211,238,0.95)]">
+        <motion.section id="features" {...fadeInUp} className="scroll-mt-28 mx-auto mt-8 w-full max-w-6xl px-4 sm:px-6 lg:px-8">
+          <motion.div
+            whileHover={{ y: -8, scale: 1.008 }}
+            transition={{ type: "spring", stiffness: 220, damping: 22 }}
+            className="dark about-glow-shell relative overflow-hidden rounded-3xl border border-cyan-300/35 bg-gradient-to-b from-zinc-900/92 to-zinc-950/95 shadow-[0_30px_90px_-55px_rgba(34,211,238,0.95)]"
+          >
             <AboutUs1 />
-          </div>
+          </motion.div>
         </motion.section>
 
         <motion.section {...fadeInUp} className="mx-auto mt-8 w-full max-w-6xl px-4 sm:px-6 lg:px-8">
