@@ -1,16 +1,17 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { HashRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
-import AdminDashboard from "./components/mvpblocks";
-import SignInPage from "./components/mvpblocks/login-form-3";
 import Orb from "./components/ui/orb";
-import Home from "./pages/home";
-import Features from "./pages/Features";
-import Luna from "./pages/Luna";
-import Onboarding from "./pages/Onboarding";
-import Pricing from "./pages/Pricing";
-import Profile from "./pages/Profile";
 import { hydrateUser } from "./lib/api-client";
+
+const Home = lazy(() => import("./pages/home"));
+const Features = lazy(() => import("./pages/Features"));
+const Luna = lazy(() => import("./pages/Luna"));
+const Onboarding = lazy(() => import("./pages/Onboarding"));
+const Pricing = lazy(() => import("./pages/Pricing"));
+const Profile = lazy(() => import("./pages/Profile"));
+const AdminDashboard = lazy(() => import("./components/mvpblocks"));
+const SignInPage = lazy(() => import("./components/mvpblocks/login-form-3"));
 
 function PageTransition({ children }) {
   return (
@@ -26,22 +27,38 @@ function PageTransition({ children }) {
   );
 }
 
+function RouteFallback() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-[#05060d] px-6 text-zinc-200">
+      <div className="flex flex-col items-center gap-4">
+        <div className="relative h-20 w-20">
+          <div className="absolute inset-[10%] rounded-full bg-[radial-gradient(circle_at_center,rgba(79,70,229,0.18),transparent_62%)] blur-lg" />
+          <Orb hue={248} hoverIntensity={0.6} rotateOnHover={false} backgroundColor="#05060d" />
+        </div>
+        <p className="text-sm uppercase tracking-[0.3em] text-zinc-400">Loading Luna</p>
+      </div>
+    </div>
+  );
+}
+
 function AnimatedRoutes() {
   const location = useLocation();
 
   return (
     <AnimatePresence mode="wait" initial={false}>
-      <Routes location={location} key={location.pathname}>
-        <Route path="/" element={<PageTransition><Home /></PageTransition>} />
-        <Route path="/features" element={<PageTransition><Features /></PageTransition>} />
-        <Route path="/chat" element={<PageTransition><Luna /></PageTransition>} />
-        <Route path="/onboarding" element={<PageTransition><Onboarding /></PageTransition>} />
-        <Route path="/profile" element={<PageTransition><Profile /></PageTransition>} />
-        <Route path="/pricing" element={<PageTransition><Pricing /></PageTransition>} />
-        <Route path="/admin" element={<PageTransition><AdminDashboard /></PageTransition>} />
-        <Route path="/signin" element={<PageTransition><SignInPage /></PageTransition>} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <Suspense fallback={<RouteFallback />}>
+        <Routes location={location} key={location.pathname}>
+          <Route path="/" element={<PageTransition><Home /></PageTransition>} />
+          <Route path="/features" element={<PageTransition><Features /></PageTransition>} />
+          <Route path="/chat" element={<PageTransition><Luna /></PageTransition>} />
+          <Route path="/onboarding" element={<PageTransition><Onboarding /></PageTransition>} />
+          <Route path="/profile" element={<PageTransition><Profile /></PageTransition>} />
+          <Route path="/pricing" element={<PageTransition><Pricing /></PageTransition>} />
+          <Route path="/admin" element={<PageTransition><AdminDashboard /></PageTransition>} />
+          <Route path="/signin" element={<PageTransition><SignInPage /></PageTransition>} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
     </AnimatePresence>
   );
 }
