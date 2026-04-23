@@ -1,5 +1,5 @@
 import { Mesh, Program, Renderer, Triangle, Vec3 } from "ogl";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./orb.css";
 
 export default function Orb({
@@ -10,6 +10,7 @@ export default function Orb({
   backgroundColor = "#000000",
 }) {
   const ctnDom = useRef(null);
+  const [hasRenderError, setHasRenderError] = useState(false);
 
   const vert = /* glsl */ `
     precision highp float;
@@ -186,35 +187,55 @@ export default function Orb({
   useEffect(() => {
     const container = ctnDom.current;
     if (!container) return;
+    if (hasRenderError) return;
 
-    const renderer = new Renderer({ alpha: true, premultipliedAlpha: false });
-    const gl = renderer.gl;
-    gl.clearColor(0, 0, 0, 0);
-    container.appendChild(gl.canvas);
+    let renderer;
+    let gl;
+    let program;
+    let mesh;
+    let rafId;
 
-    const geometry = new Triangle(gl);
-    const program = new Program(gl, {
-      vertex: vert,
-      fragment: frag,
-      uniforms: {
-        iTime: { value: 0 },
-        iResolution: {
-          value: new Vec3(gl.canvas.width, gl.canvas.height, gl.canvas.width / gl.canvas.height),
+    try {
+      renderer = new Renderer({ alpha: true, premultipliedAlpha: false });
+      gl = renderer.gl;
+      if (!gl) {
+        throw new Error("WebGL context unavailable");
+      }
+      gl.clearColor(0, 0, 0, 0);
+      container.appendChild(gl.canvas);
+
+      const geometry = new Triangle(gl);
+      program = new Program(gl, {
+        vertex: vert,
+        fragment: frag,
+        uniforms: {
+          iTime: { value: 0 },
+          iResolution: {
+            value: new Vec3(gl.canvas.width, gl.canvas.height, gl.canvas.width / gl.canvas.height),
+          },
+          hue: { value: hue },
+          hover: { value: 0 },
+          rot: { value: 0 },
+          hoverIntensity: { value: hoverIntensity },
+          backgroundColor: { value: hexToVec3(backgroundColor) },
         },
-        hue: { value: hue },
-        hover: { value: 0 },
-        rot: { value: 0 },
-        hoverIntensity: { value: hoverIntensity },
-        backgroundColor: { value: hexToVec3(backgroundColor) },
-      },
-    });
+      });
 
-    const mesh = new Mesh(gl, { geometry, program });
+      mesh = new Mesh(gl, { geometry, program });
+    } catch (error) {
+      console.warn("Luna Orb disabled:", error);
+      if (gl?.canvas && container.contains(gl.canvas)) {
+        container.removeChild(gl.canvas);
+      }
+      setHasRenderError(true);
+      return;
+    }
 
     function resize() {
       const dpr = window.devicePixelRatio || 1;
       const width = container.clientWidth;
       const height = container.clientHeight;
+      if (!width || !height) return;
       renderer.setSize(width * dpr, height * dpr);
       gl.canvas.style.width = `${width}px`;
       gl.canvas.style.height = `${height}px`;
@@ -255,7 +276,6 @@ export default function Orb({
     container.addEventListener("mousemove", handleMouseMove);
     container.addEventListener("mouseleave", handleMouseLeave);
 
-    let rafId;
     const update = (t) => {
       rafId = requestAnimationFrame(update);
       const dt = (t - lastTime) * 0.001;
@@ -283,13 +303,21 @@ export default function Orb({
       window.removeEventListener("resize", resize);
       container.removeEventListener("mousemove", handleMouseMove);
       container.removeEventListener("mouseleave", handleMouseLeave);
-      container.removeChild(gl.canvas);
-      gl.getExtension("WEBGL_lose_context")?.loseContext();
+      if (gl?.canvas && container.contains(gl.canvas)) {
+        container.removeChild(gl.canvas);
+      }
+      gl?.getExtension("WEBGL_lose_context")?.loseContext();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hue, hoverIntensity, rotateOnHover, forceHoverState, backgroundColor]);
+  }, [backgroundColor, forceHoverState, hasRenderError, hoverIntensity, hue, rotateOnHover]);
 
-  return <div ref={ctnDom} className="orb-container" />;
+  return (
+    <div
+      ref={ctnDom}
+      className={`orb-container${hasRenderError ? " orb-container-fallback" : ""}`}
+      aria-hidden="true"
+    />
+  );
 }
 
 function hslToRgb(h, s, l) {
@@ -349,5 +377,4 @@ function hexToVec3(color) {
 
   return new Vec3(0, 0, 0);
 }
-
 

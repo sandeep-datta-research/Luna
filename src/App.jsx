@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Suspense, lazy, useEffect, useState } from "react";
+import { Component, Suspense, lazy, useEffect, useState } from "react";
 import { HashRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import Orb from "./components/ui/orb";
 import { hydrateUser } from "./lib/api-client";
@@ -12,6 +12,46 @@ const Pricing = lazy(() => import("./pages/Pricing"));
 const Profile = lazy(() => import("./pages/Profile"));
 const AdminDashboard = lazy(() => import("./components/mvpblocks"));
 const SignInPage = lazy(() => import("./components/mvpblocks/login-form-3"));
+
+class RouteErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error) {
+    console.error("Luna route render failed:", error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex min-h-screen items-center justify-center bg-[#05060d] px-6 text-zinc-200">
+          <div className="w-full max-w-xl rounded-3xl border border-white/10 bg-white/[0.04] p-8 text-center shadow-[0_32px_120px_rgba(0,0,0,0.45)] backdrop-blur-xl">
+            <p className="text-xs uppercase tracking-[0.35em] text-zinc-500">Luna</p>
+            <h1 className="mt-4 text-2xl font-semibold text-white">The page failed to load</h1>
+            <p className="mt-3 text-sm leading-6 text-zinc-400">
+              A client-side error interrupted rendering. Refresh the page to retry.
+            </p>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="mt-6 rounded-full border border-white/12 bg-white/10 px-5 py-2 text-sm font-medium text-white"
+            >
+              Reload
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 function PageTransition({ children }) {
   return (
@@ -45,21 +85,23 @@ function AnimatedRoutes() {
   const location = useLocation();
 
   return (
-    <AnimatePresence mode="wait" initial={false}>
-      <Suspense fallback={<RouteFallback />}>
-        <Routes location={location} key={location.pathname}>
-          <Route path="/" element={<PageTransition><Home /></PageTransition>} />
-          <Route path="/features" element={<PageTransition><Features /></PageTransition>} />
-          <Route path="/chat" element={<PageTransition><Luna /></PageTransition>} />
-          <Route path="/onboarding" element={<PageTransition><Onboarding /></PageTransition>} />
-          <Route path="/profile" element={<PageTransition><Profile /></PageTransition>} />
-          <Route path="/pricing" element={<PageTransition><Pricing /></PageTransition>} />
-          <Route path="/admin" element={<PageTransition><AdminDashboard /></PageTransition>} />
-          <Route path="/signin" element={<PageTransition><SignInPage /></PageTransition>} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Suspense>
-    </AnimatePresence>
+    <RouteErrorBoundary>
+      <AnimatePresence mode="wait" initial={false}>
+        <Suspense fallback={<RouteFallback />}>
+          <Routes location={location} key={location.pathname}>
+            <Route path="/" element={<PageTransition><Home /></PageTransition>} />
+            <Route path="/features" element={<PageTransition><Features /></PageTransition>} />
+            <Route path="/chat" element={<PageTransition><Luna /></PageTransition>} />
+            <Route path="/onboarding" element={<PageTransition><Onboarding /></PageTransition>} />
+            <Route path="/profile" element={<PageTransition><Profile /></PageTransition>} />
+            <Route path="/pricing" element={<PageTransition><Pricing /></PageTransition>} />
+            <Route path="/admin" element={<PageTransition><AdminDashboard /></PageTransition>} />
+            <Route path="/signin" element={<PageTransition><SignInPage /></PageTransition>} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
+      </AnimatePresence>
+    </RouteErrorBoundary>
   );
 }
 
