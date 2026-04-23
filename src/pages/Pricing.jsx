@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Shield } from "lucide-react";
 import CardNav from "@/component/CardNav";
 import SimplePricing from "@/components/mvpblocks/simple-pricing";
-import logo from "@/assets/luna.png";
+import logo from "@/assets/luna-logo.svg";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 import { getStoredUser, hydrateUser } from "@/lib/api-client";
 

@@ -35,7 +35,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { fetchApi, streamApi, getStoredUser, hydrateUser } from "@/lib/api-client";
-import lunaLogo from "@/assets/luna.png";
+import lunaLogo from "@/assets/luna-logo.svg";
 import MarkdownMessage from "@/components/ui/chat/MarkdownMessage";
 import OnboardingFlow from "@/components/onboarding/OnboardingFlow";
 import AnnouncementBanner from "@/components/AnnouncementBanner";

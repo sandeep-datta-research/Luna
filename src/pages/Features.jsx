@@ -5,7 +5,7 @@ import CardNav from "@/component/CardNav";
 import HeroGeometric from "@/components/ui/hero-geometric";
 import Earth from "@/components/ui/globe";
 import Feature1 from "@/components/mvpblocks/feature-1";
-import logo from "@/assets/luna.png";
+import logo from "@/assets/luna-logo.svg";
 import { getStoredUser, hydrateUser } from "@/lib/api-client";
 
 const ALLOWED_ADMIN_EMAILS = new Set(["seiuasatou@gmail.com", "sandeepdatta866@gmail.com"]);

@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { CheckCircle2, Crown, Megaphone, RefreshCw, Save, Shield, ShieldAlert, SlidersHorizontal, Sparkles, Users, WandSparkles, XCircle } from "lucide-react";
 import { fetchApi, getStoredUser, hydrateUser } from "@/lib/api-client";
 import CardNav from "@/component/CardNav";
-import logo from "@/assets/luna.png";
+import logo from "@/assets/luna-logo.svg";
 
 const ALLOWED_ADMIN_EMAILS = new Set([
   "seiuasatou@gmail.com",
@@ -1125,4 +1125,3 @@ export default function AdminDashboard() {
     </div>
   );
 }
-
