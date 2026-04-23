@@ -1,17 +1,20 @@
-import { useEffect, useId, useMemo, useState } from "react";
+import { Suspense, lazy, useEffect, useId, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Menu, Mic, Send, Shield, X } from "lucide-react";
 import HeroGeometric from "@/components/ui/hero-geometric";
-import AboutUs1 from "@/components/mvpblocks/about-us-1";
-import TestimonialsCarousel from "@/components/mvpblocks/testimonials-carousel";
 import { fetchApi, getStoredUser, hydrateUser } from "@/lib/api-client";
 import CardNav from "@/component/CardNav";
-import logo from "@/assets/luna.png";
-import lunaLogo from "@/assets/luna.png";
+import logo from "@/assets/luna-logo.svg";
+import lunaLogo from "@/assets/luna-logo.svg";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
-import { Analytics } from "@vercel/analytics/react";
-import { SpeedInsights } from "@vercel/speed-insights/react";
+
+const AboutUs1 = lazy(() => import("@/components/mvpblocks/about-us-1"));
+const TestimonialsCarousel = lazy(() => import("@/components/mvpblocks/testimonials-carousel"));
+const Analytics = lazy(() => import("@vercel/analytics/react").then((mod) => ({ default: mod.Analytics })));
+const SpeedInsights = lazy(() =>
+  import("@vercel/speed-insights/react").then((mod) => ({ default: mod.SpeedInsights })),
+);
 
 const ALLOWED_ADMIN_EMAILS = new Set([
   "seiuasatou@gmail.com",
@@ -87,6 +90,64 @@ const hoverFloat = {
   whileHover: { y: -6, scale: 1.01 },
   transition: { type: "spring", stiffness: 240, damping: 22 },
 };
+
+function SectionSkeleton({ className = "", compact = false }) {
+  return (
+    <div
+      className={`overflow-hidden rounded-3xl border border-white/8 bg-white/[0.04] ${compact ? "min-h-[220px]" : "min-h-[320px]"} ${className}`}
+      aria-hidden="true"
+    >
+      <div className="h-full w-full animate-pulse bg-[linear-gradient(110deg,rgba(255,255,255,0.03),rgba(255,255,255,0.08),rgba(255,255,255,0.03))]" />
+    </div>
+  );
+}
+
+function DeferredSection({ children, fallback, className = "", sectionId, rootMargin = "280px" }) {
+  const [shouldRender, setShouldRender] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    const node = document.querySelector(`[data-deferred-section="${sectionId}"]`);
+    if (!node || shouldRender) return undefined;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setShouldRender(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin },
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [rootMargin, sectionId, shouldRender]);
+
+  return (
+    <div data-deferred-section={sectionId} className={className}>
+      {shouldRender ? children : fallback}
+    </div>
+  );
+}
+
+function useIsDesktop() {
+  const [isDesktop, setIsDesktop] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia("(min-width: 768px)").matches;
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    const mediaQuery = window.matchMedia("(min-width: 768px)");
+    const update = () => setIsDesktop(mediaQuery.matches);
+    update();
+    mediaQuery.addEventListener?.("change", update);
+    return () => mediaQuery.removeEventListener?.("change", update);
+  }, []);
+
+  return isDesktop;
+}
 
 function normalizeEmail(value) {
   return typeof value === "string" ? value.trim().toLowerCase() : "";
@@ -294,13 +355,15 @@ function FeedbackSection({
       </form>
 
       <div className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-950/40">
-        <TestimonialsCarousel
-          testimonials={carouselTestimonials}
-          title="Luna Community"
-          subtitle="Featured feedback selected by admin."
-          autoplaySpeed={3600}
-          className={compact ? "py-8" : "py-10 md:py-14"}
-        />
+        <Suspense fallback={<SectionSkeleton compact={compact} className="rounded-2xl border-0 bg-transparent" />}>
+          <TestimonialsCarousel
+            testimonials={carouselTestimonials}
+            title="Luna Community"
+            subtitle="Featured feedback selected by admin."
+            autoplaySpeed={3600}
+            className={compact ? "py-8" : "py-10 md:py-14"}
+          />
+        </Suspense>
       </div>
     </motion.section>
   );
@@ -308,6 +371,7 @@ function FeedbackSection({
 
 function MobileLanding({
   ctaHref,
+  isSignedIn,
   menuOpen,
   onOpenMenu,
   onCloseMenu,
@@ -329,32 +393,49 @@ function MobileLanding({
   ];
 
   return (
-    <div className="md:hidden min-h-screen overflow-hidden bg-[#07070d] text-white">
+    <div className="min-h-screen overflow-hidden bg-[#07070d] text-white">
       <div className="relative mx-auto flex min-h-screen w-full max-w-[420px] flex-col">
         <MobileNavbar ctaHref={ctaHref} onOpenMenu={onOpenMenu} />
         <div className="px-4 pt-2">
           <AnnouncementBanner />
         </div>
-        <HeroGeometric mobileLanding />
+        <HeroGeometric mobileLanding isSignedIn={isSignedIn} />
         <MobileInputPreview ctaHref={ctaHref} />
         <div className="space-y-5 px-4 pb-10">
-          <motion.div
-            whileHover={{ y: -6, scale: 1.01 }}
-            transition={{ type: "spring", stiffness: 220, damping: 22 }}
-            className="dark about-glow-shell overflow-hidden rounded-[28px] border border-cyan-300/25 bg-gradient-to-b from-zinc-900/92 to-zinc-950/95 shadow-[0_30px_90px_-55px_rgba(34,211,238,0.95)]"
+          <DeferredSection
+            sectionId="mobile-about"
+            className="mobile-about"
+            fallback={
+              <SectionSkeleton
+                compact
+                className="rounded-[28px] border-cyan-300/25 bg-gradient-to-b from-zinc-900/92 to-zinc-950/95"
+              />
+            }
           >
-            <AboutUs1 />
-          </motion.div>
-          <UserGrowthSection userMetrics={userMetrics} chartPoints={chartPoints} compact />
-          <FeedbackSection
-            feedbackForm={feedbackForm}
-            setFeedbackForm={setFeedbackForm}
-            feedbackBusy={feedbackBusy}
-            feedbackNote={feedbackNote}
-            handleFeedbackSubmit={handleFeedbackSubmit}
-            carouselTestimonials={carouselTestimonials}
-            compact
-          />
+            <motion.div
+              whileHover={{ y: -6, scale: 1.01 }}
+              transition={{ type: "spring", stiffness: 220, damping: 22 }}
+              className="dark about-glow-shell overflow-hidden rounded-[28px] border border-cyan-300/25 bg-gradient-to-b from-zinc-900/92 to-zinc-950/95 shadow-[0_30px_90px_-55px_rgba(34,211,238,0.95)]"
+            >
+              <Suspense fallback={<SectionSkeleton compact className="rounded-[28px] border-0 bg-transparent" />}>
+                <AboutUs1 />
+              </Suspense>
+            </motion.div>
+          </DeferredSection>
+          <DeferredSection sectionId="mobile-growth" className="mobile-growth" fallback={<SectionSkeleton compact />}>
+            <UserGrowthSection userMetrics={userMetrics} chartPoints={chartPoints} compact />
+          </DeferredSection>
+          <DeferredSection sectionId="mobile-feedback" className="mobile-feedback" fallback={<SectionSkeleton compact />}>
+            <FeedbackSection
+              feedbackForm={feedbackForm}
+              setFeedbackForm={setFeedbackForm}
+              feedbackBusy={feedbackBusy}
+              feedbackNote={feedbackNote}
+              handleFeedbackSubmit={handleFeedbackSubmit}
+              carouselTestimonials={carouselTestimonials}
+              compact
+            />
+          </DeferredSection>
         </div>
       </div>
 
@@ -418,6 +499,7 @@ function MobileLanding({
 }
 
 function DesktopHome({
+  isSignedIn,
   cardNavItems,
   userMetrics,
   chartPoints,
@@ -427,9 +509,10 @@ function DesktopHome({
   feedbackNote,
   handleFeedbackSubmit,
   carouselTestimonials,
+  showAnalytics,
 }) {
   return (
-    <div className="hidden md:block dark min-h-screen overflow-x-hidden bg-[#07070d] text-zinc-100">
+    <div className="dark min-h-screen overflow-x-hidden bg-[#07070d] text-zinc-100">
       <nav className="sticky top-0 z-50 border-b border-zinc-800/80 bg-[#07070d]/85 px-4 py-3 backdrop-blur-xl sm:px-6 lg:px-8">
         <div className="mx-auto w-full max-w-6xl">
           <CardNav
@@ -450,41 +533,66 @@ function DesktopHome({
         <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8">
           <AnnouncementBanner className="mb-6" />
         </div>
-        <HeroGeometric />
+        <HeroGeometric isSignedIn={isSignedIn} />
 
-        <motion.section id="features" {...fadeInUp} className="scroll-mt-28 mx-auto mt-8 w-full max-w-6xl px-4 sm:px-6 lg:px-8">
-          <motion.div
-            whileHover={{ y: -8, scale: 1.008 }}
-            transition={{ type: "spring", stiffness: 220, damping: 22 }}
-            className="dark about-glow-shell relative overflow-hidden rounded-3xl border border-cyan-300/35 bg-gradient-to-b from-zinc-900/92 to-zinc-950/95 shadow-[0_30px_90px_-55px_rgba(34,211,238,0.95)]"
-          >
-            <AboutUs1 />
+        <DeferredSection
+          sectionId="desktop-about"
+          className="desktop-about scroll-mt-28 mx-auto mt-8 w-full max-w-6xl px-4 sm:px-6 lg:px-8"
+          fallback={<SectionSkeleton className="min-h-[420px]" />}
+        >
+          <motion.section id="features" {...fadeInUp}>
+            <motion.div
+              whileHover={{ y: -8, scale: 1.008 }}
+              transition={{ type: "spring", stiffness: 220, damping: 22 }}
+              className="dark about-glow-shell relative overflow-hidden rounded-3xl border border-cyan-300/35 bg-gradient-to-b from-zinc-900/92 to-zinc-950/95 shadow-[0_30px_90px_-55px_rgba(34,211,238,0.95)]"
+            >
+              <Suspense fallback={<SectionSkeleton className="min-h-[420px] rounded-3xl border-0 bg-transparent" />}>
+                <AboutUs1 />
+              </Suspense>
+            </motion.div>
+          </motion.section>
+        </DeferredSection>
+
+        <DeferredSection
+          sectionId="desktop-growth"
+          className="desktop-growth mx-auto mt-8 w-full max-w-6xl px-4 sm:px-6 lg:px-8"
+          fallback={<SectionSkeleton />}
+        >
+          <motion.section {...fadeInUp}>
+            <UserGrowthSection userMetrics={userMetrics} chartPoints={chartPoints} />
+          </motion.section>
+        </DeferredSection>
+
+        {showAnalytics ? (
+          <Suspense fallback={null}>
+            <Analytics />
+            <SpeedInsights />
+          </Suspense>
+        ) : null}
+
+        <DeferredSection
+          sectionId="desktop-feedback"
+          className="desktop-feedback scroll-mt-28 mx-auto mt-6 w-full max-w-6xl px-4 sm:px-6 lg:px-8"
+          fallback={<SectionSkeleton />}
+        >
+          <motion.div id="feedback" {...fadeInUp}>
+            <FeedbackSection
+              feedbackForm={feedbackForm}
+              setFeedbackForm={setFeedbackForm}
+              feedbackBusy={feedbackBusy}
+              feedbackNote={feedbackNote}
+              handleFeedbackSubmit={handleFeedbackSubmit}
+              carouselTestimonials={carouselTestimonials}
+            />
           </motion.div>
-        </motion.section>
-
-        <motion.section {...fadeInUp} className="mx-auto mt-8 w-full max-w-6xl px-4 sm:px-6 lg:px-8">
-          <UserGrowthSection userMetrics={userMetrics} chartPoints={chartPoints} />
-        </motion.section>
-
-        <Analytics />
-        <SpeedInsights />
-
-        <motion.div id="feedback" {...fadeInUp} className="scroll-mt-28 mx-auto mt-6 w-full max-w-6xl px-4 sm:px-6 lg:px-8">
-          <FeedbackSection
-            feedbackForm={feedbackForm}
-            setFeedbackForm={setFeedbackForm}
-            feedbackBusy={feedbackBusy}
-            feedbackNote={feedbackNote}
-            handleFeedbackSubmit={handleFeedbackSubmit}
-            carouselTestimonials={carouselTestimonials}
-          />
-        </motion.div>
+        </DeferredSection>
       </main>
     </div>
   );
 }
 
 export default function Home() {
+  const isDesktop = useIsDesktop();
   const [showAdmin, setShowAdmin] = useState(false);
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -493,6 +601,7 @@ export default function Home() {
   const [feedbackNote, setFeedbackNote] = useState("");
   const [featuredFeedback, setFeaturedFeedback] = useState([]);
   const [userMetrics, setUserMetrics] = useState({ total: 0, series: [], days: 14 });
+  const [showAnalytics, setShowAnalytics] = useState(false);
 
   useEffect(() => {
     const syncAdminVisibility = () => {
@@ -523,6 +632,19 @@ export default function Home() {
     };
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+
+    const loadAnalytics = () => setShowAnalytics(true);
+    if ("requestIdleCallback" in window) {
+      const idleId = window.requestIdleCallback(loadAnalytics, { timeout: 2500 });
+      return () => window.cancelIdleCallback?.(idleId);
+    }
+
+    const timeoutId = window.setTimeout(loadAnalytics, 1800);
+    return () => window.clearTimeout(timeoutId);
+  }, []);
+
   const cardNavItems = useMemo(() => {
     const items = [...BASE_CARD_NAV_ITEMS];
 
@@ -548,9 +670,22 @@ export default function Home() {
         setFeaturedFeedback(Array.isArray(result.data?.feedback) ? result.data.feedback : []);
       }
     };
-    loadFeaturedFeedback();
+    const scheduleLoad = () => {
+      void loadFeaturedFeedback();
+    };
+
+    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+      const idleId = window.requestIdleCallback(scheduleLoad, { timeout: 2500 });
+      return () => {
+        canceled = true;
+        window.cancelIdleCallback?.(idleId);
+      };
+    }
+
+    const timer = typeof window !== "undefined" ? window.setTimeout(scheduleLoad, 1200) : null;
     return () => {
       canceled = true;
+      if (timer) window.clearTimeout(timer);
     };
   }, []);
 
@@ -567,9 +702,22 @@ export default function Home() {
         });
       }
     };
-    loadUserMetrics();
+    const scheduleLoad = () => {
+      void loadUserMetrics();
+    };
+
+    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+      const idleId = window.requestIdleCallback(scheduleLoad, { timeout: 2500 });
+      return () => {
+        canceled = true;
+        window.cancelIdleCallback?.(idleId);
+      };
+    }
+
+    const timer = typeof window !== "undefined" ? window.setTimeout(scheduleLoad, 1200) : null;
     return () => {
       canceled = true;
+      if (timer) window.clearTimeout(timer);
     };
   }, []);
 
@@ -648,31 +796,37 @@ export default function Home() {
 
   return (
     <>
-      <MobileLanding
-        ctaHref={ctaHref}
-        menuOpen={mobileMenuOpen}
-        onOpenMenu={() => setMobileMenuOpen(true)}
-        onCloseMenu={() => setMobileMenuOpen(false)}
-        userMetrics={userMetrics}
-        chartPoints={chartPoints}
-        feedbackForm={feedbackForm}
-        setFeedbackForm={setFeedbackForm}
-        feedbackBusy={feedbackBusy}
-        feedbackNote={feedbackNote}
-        handleFeedbackSubmit={handleFeedbackSubmit}
-        carouselTestimonials={carouselTestimonials}
-      />
-      <DesktopHome
-        cardNavItems={cardNavItems}
-        userMetrics={userMetrics}
-        chartPoints={chartPoints}
-        feedbackForm={feedbackForm}
-        setFeedbackForm={setFeedbackForm}
-        feedbackBusy={feedbackBusy}
-        feedbackNote={feedbackNote}
-        handleFeedbackSubmit={handleFeedbackSubmit}
-        carouselTestimonials={carouselTestimonials}
-      />
+      {isDesktop ? (
+        <DesktopHome
+          isSignedIn={isSignedIn}
+          cardNavItems={cardNavItems}
+          userMetrics={userMetrics}
+          chartPoints={chartPoints}
+          feedbackForm={feedbackForm}
+          setFeedbackForm={setFeedbackForm}
+          feedbackBusy={feedbackBusy}
+          feedbackNote={feedbackNote}
+          handleFeedbackSubmit={handleFeedbackSubmit}
+          carouselTestimonials={carouselTestimonials}
+          showAnalytics={showAnalytics}
+        />
+      ) : (
+        <MobileLanding
+          ctaHref={ctaHref}
+          isSignedIn={isSignedIn}
+          menuOpen={mobileMenuOpen}
+          onOpenMenu={() => setMobileMenuOpen(true)}
+          onCloseMenu={() => setMobileMenuOpen(false)}
+          userMetrics={userMetrics}
+          chartPoints={chartPoints}
+          feedbackForm={feedbackForm}
+          setFeedbackForm={setFeedbackForm}
+          feedbackBusy={feedbackBusy}
+          feedbackNote={feedbackNote}
+          handleFeedbackSubmit={handleFeedbackSubmit}
+          carouselTestimonials={carouselTestimonials}
+        />
+      )}
     </>
   );
 }

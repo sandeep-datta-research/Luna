@@ -135,12 +135,17 @@ function FloatingPanel({ title, body, icon: Icon, className, rotate = 0, delay =
   );
 }
 
-export default function HeroGeometric({ mobileLanding = false }) {
-  const [isSignedIn, setIsSignedIn] = useState(false);
+export default function HeroGeometric({ mobileLanding = false, isSignedIn: controlledIsSignedIn }) {
+  const [isSignedIn, setIsSignedIn] = useState(() => Boolean(controlledIsSignedIn));
   const [pointer, setPointer] = useState({ x: 0, y: 0 });
   const [reduceMotion, setReduceMotion] = useState(false);
 
   useEffect(() => {
+    if (typeof controlledIsSignedIn === "boolean") {
+      setIsSignedIn(controlledIsSignedIn);
+      return undefined;
+    }
+
     const syncAuth = () => {
       if (typeof window === "undefined") return;
       const user = getStoredUser();
@@ -158,7 +163,7 @@ export default function HeroGeometric({ mobileLanding = false }) {
       window.removeEventListener("luna-auth-changed", syncAuth);
       window.removeEventListener("focus", syncAuth);
     };
-  }, []);
+  }, [controlledIsSignedIn]);
 
   useEffect(() => {
     if (typeof window === "undefined") return undefined;
