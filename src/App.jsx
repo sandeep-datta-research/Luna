@@ -106,22 +106,23 @@ function AnimatedRoutes() {
 }
 
 function App() {
-  const [showIntro, setShowIntro] = useState(false);
+  const [showIntro, setShowIntro] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const seen = window.sessionStorage.getItem("luna-tab-intro-seen");
+    if (seen) return false;
+    window.sessionStorage.setItem("luna-tab-intro-seen", "1");
+    return true;
+  });
 
   useEffect(() => {
     hydrateUser().catch(() => {});
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined") return undefined;
-    const seen = window.sessionStorage.getItem("luna-tab-intro-seen");
-    if (seen) return undefined;
-
-    window.sessionStorage.setItem("luna-tab-intro-seen", "1");
-    setShowIntro(true);
+    if (!showIntro) return undefined;
     const timeout = window.setTimeout(() => setShowIntro(false), 1450);
     return () => window.clearTimeout(timeout);
-  }, []);
+  }, [showIntro]);
 
   return (
     <>

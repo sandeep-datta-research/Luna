@@ -642,16 +642,6 @@ export default function Luna() {
     return filtered.slice(0, MAX_HISTORY_ITEMS);
   }, [searchQuery, sortedSessions]);
 
-  const sessionsByProject = useMemo(() => {
-    const map = new Map();
-    for (const session of sortedSessions) {
-      const key = text(session.projectId) || "unassigned";
-      if (!map.has(key)) map.set(key, []);
-      map.get(key).push(session);
-    }
-    return map;
-  }, [sortedSessions]);
-
   const clearVoiceSilenceMonitor = useCallback(() => {
     if (silenceIntervalRef.current) {
       window.clearInterval(silenceIntervalRef.current);
@@ -1692,18 +1682,6 @@ export default function Luna() {
   );
 
   const visibleMain = activeMessages.length > 0 || historyLoading;
-  const totalMessages = useMemo(
-    () => sessions.reduce((count, session) => count + (Array.isArray(session.messages) ? session.messages.length : 0), 0),
-    [sessions],
-  );
-  const workspaceStats = useMemo(
-    () => [
-      { label: "Chats", value: sortedSessions.length.toString().padStart(2, "0"), icon: Layers3 },
-      { label: "Messages", value: totalMessages.toString().padStart(2, "0"), icon: Bot },
-      { label: "Projects", value: projects.length.toString().padStart(2, "0"), icon: Folder },
-    ],
-    [projects.length, sortedSessions.length, totalMessages],
-  );
   const modePills = useMemo(() => {
     const pills = [];
     pills.push(webSearchMode ? "Live research" : "Knowledge mode");

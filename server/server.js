@@ -12,7 +12,6 @@ import {
   ensureConversation,
   getConversationById,
   getUserAuthByEmail,
-  getUserByEmail,
   getConversationStats,
   getUserById,
   getUserSignupStats,
@@ -2799,5 +2798,4 @@ async function startServer() {
 }
 
 startServer();
-
 

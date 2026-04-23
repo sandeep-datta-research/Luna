@@ -106,7 +106,9 @@ const FLOATING_PANELS = [
   },
 ];
 
-function FloatingPanel({ title, body, icon: Icon, className, rotate = 0, delay = 0, accent = "" }) {
+function FloatingPanel({ title, body, icon, className, rotate = 0, delay = 0, accent = "" }) {
+  const Icon = icon;
+
   return (
     <Motion.div
       initial={{ opacity: 0, y: 20, scale: 0.96, rotateX: -8, rotateY: rotate * 0.5 }}
@@ -121,7 +123,7 @@ function FloatingPanel({ title, body, icon: Icon, className, rotate = 0, delay =
         <div className="relative">
           <div className="mb-3 flex items-center gap-3">
             <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/12 bg-white/10 text-white">
-              <Icon className="h-4 w-4" />
+              {Icon ? <Icon className="h-4 w-4" /> : null}
             </span>
             <div>
               <p className="text-sm font-semibold text-white">{title}</p>
@@ -136,23 +138,26 @@ function FloatingPanel({ title, body, icon: Icon, className, rotate = 0, delay =
 }
 
 export default function HeroGeometric({ mobileLanding = false, isSignedIn: controlledIsSignedIn }) {
-  const [isSignedIn, setIsSignedIn] = useState(() => Boolean(controlledIsSignedIn));
+  const [storedIsSignedIn, setStoredIsSignedIn] = useState(() => {
+    if (typeof controlledIsSignedIn === "boolean") return controlledIsSignedIn;
+    if (typeof window === "undefined") return false;
+    const user = getStoredUser();
+    return Boolean(user?.email || user?.name);
+  });
   const [pointer, setPointer] = useState({ x: 0, y: 0 });
   const [reduceMotion, setReduceMotion] = useState(false);
+  const isSignedIn =
+    typeof controlledIsSignedIn === "boolean" ? controlledIsSignedIn : storedIsSignedIn;
 
   useEffect(() => {
-    if (typeof controlledIsSignedIn === "boolean") {
-      setIsSignedIn(controlledIsSignedIn);
-      return undefined;
-    }
+    if (typeof controlledIsSignedIn === "boolean") return undefined;
 
     const syncAuth = () => {
       if (typeof window === "undefined") return;
       const user = getStoredUser();
-      setIsSignedIn(Boolean(user?.email || user?.name));
+      setStoredIsSignedIn(Boolean(user?.email || user?.name));
     };
 
-    syncAuth();
     hydrateUser().then(syncAuth).catch(syncAuth);
     window.addEventListener("storage", syncAuth);
     window.addEventListener("luna-auth-changed", syncAuth);

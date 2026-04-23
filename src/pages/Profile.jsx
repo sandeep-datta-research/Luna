@@ -49,7 +49,8 @@ function MetricCard({ label, value, hint, icon: Icon, tone = "violet" }) {
   );
 }
 
-function ActionTile({ to, label, desc, icon: Icon, tone = "violet", onClick }) {
+function ActionTile({ to, label, desc, icon, tone = "violet", onClick }) {
+  const Icon = icon;
   const tones = {
     violet: "border-violet-400/25 bg-[linear-gradient(180deg,rgba(124,92,255,0.18),rgba(124,92,255,0.07))]",
     cyan: "border-cyan-400/25 bg-[linear-gradient(180deg,rgba(34,211,238,0.16),rgba(34,211,238,0.06))]",
@@ -62,7 +63,7 @@ function ActionTile({ to, label, desc, icon: Icon, tone = "violet", onClick }) {
     <>
       <div className="flex items-center justify-between">
         <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-black/20 text-white">
-          <Icon className="h-5 w-5" />
+          {Icon ? <Icon className="h-5 w-5" /> : null}
         </div>
         <ChevronRight className="h-4 w-4 text-white/45 transition group-hover:translate-x-0.5 group-hover:text-white/80" />
       </div>
