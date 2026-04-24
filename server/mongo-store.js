@@ -222,14 +222,35 @@ export function createMongoStore() {
   const conversations = () => db.collection("conversations");
   const feedback = () => db.collection("feedback");
 
-  async function ensureIndexes() {
+  async function ensureUserIndexes() {
+    const existingIndexes = await users().listIndexes().toArray();
+    const googleSubIndex = existingIndexes.find((item) => item.name === "googleSub_1");
+    const usesLegacySparseIndex =
+      Boolean(googleSubIndex?.sparse) && !googleSubIndex?.partialFilterExpression;
+
+    if (usesLegacySparseIndex) {
+      await users().dropIndex("googleSub_1");
+    }
+
     await Promise.all([
-      users().createIndex({ googleSub: 1 }, { unique: true, sparse: true }),
+      users().createIndex(
+        { googleSub: 1 },
+        {
+          unique: true,
+          partialFilterExpression: { googleSub: { $type: "string", $ne: "" } },
+        },
+      ),
       users().createIndex(
         { email: 1 },
         { unique: true, partialFilterExpression: { email: { $type: "string", $ne: "" } } },
       ),
       users().createIndex({ lastLoginAt: -1 }),
+    ]);
+  }
+
+  async function ensureIndexes() {
+    await Promise.all([
+      ensureUserIndexes(),
       sessions().createIndex({ token: 1 }, { unique: true }),
       sessions().createIndex({ expiresAtDate: 1 }, { expireAfterSeconds: 0 }),
       conversations().createIndex({ id: 1, userId: 1 }, { unique: true }),
