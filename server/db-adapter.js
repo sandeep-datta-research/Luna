@@ -7,6 +7,7 @@ let activeEngine = "file";
 let activeStore = null;
 let initPromise = null;
 let initWarning = "";
+const IS_PRODUCTION = (process.env.NODE_ENV || "").trim().toLowerCase() === "production";
 
 function normalizeMode(rawMode) {
   const value = typeof rawMode === "string" ? rawMode.trim().toLowerCase() : "";
@@ -32,12 +33,13 @@ function readDbConfig() {
 async function initializeDb() {
   const config = readDbConfig();
   initWarning = "";
-  const isProduction = (process.env.NODE_ENV || "").toLowerCase() === "production";
+  const requireMongo = config.mode === "mongo" || (IS_PRODUCTION && config.mode !== "file");
 
   if (!config.useMongo) {
-    if (isProduction) {
-      initWarning = "MongoDB is not configured. Falling back to file storage.";
-      console.warn(`[db] ${initWarning}`);
+    if (requireMongo) {
+      throw new Error(
+        "MongoDB is required in production unless LUNA_DB_MODE=file is set explicitly.",
+      );
     }
     activeEngine = "file";
     activeStore = null;
@@ -54,7 +56,7 @@ async function initializeDb() {
     activeStore = mongoStore;
     activeEngine = "mongo";
   } catch (error) {
-    if (config.mode === "mongo") {
+    if (requireMongo) {
       throw error;
     }
 
