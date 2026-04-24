@@ -33,7 +33,7 @@ services:
       - key: GEMINI_API_KEY
         sync: false
       - key: LUNA_ADMIN_EMAILS
-        value: seiuasatou@gmail.com,sandeepdatta866@gmail.com
+        sync: false
       - key: LUNA_FREE_DAILY_LIMIT
         value: "100"
       - key: LUNA_PRO_PRICE_INR

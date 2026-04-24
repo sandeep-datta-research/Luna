@@ -1,9 +1,9 @@
-const GITHUB_PAGES_API_FALLBACK = "https://luna-backend-yc4e.onrender.com";
-
-const IS_GITHUB_PAGES =
-  typeof window !== "undefined" && window.location.hostname.endsWith("github.io");
+const IS_BROWSER = typeof window !== "undefined";
+const IS_LOCAL_HOST =
+  IS_BROWSER &&
+  ["localhost", "127.0.0.1", "[::1]"].includes((window.location.hostname || "").toLowerCase());
 const IS_IOS =
-  typeof window !== "undefined" && /iPad|iPhone|iPod/i.test(window.navigator?.userAgent || "");
+  IS_BROWSER && /iPad|iPhone|iPod/i.test(window.navigator?.userAgent || "");
 
 function normalizeApiBase(input) {
   const value = typeof input === "string" ? input.trim() : "";
@@ -24,17 +24,11 @@ function normalizeApiBase(input) {
   return value.replace(/\/$/, "");
 }
 
-const API_BASE_URL = normalizeApiBase(
-  import.meta.env.VITE_API_URL || (IS_GITHUB_PAGES ? GITHUB_PAGES_API_FALLBACK : ""),
-);
+const API_BASE_URL = normalizeApiBase(import.meta.env.VITE_API_URL || "");
 
 const DEFAULT_BASES = [
   API_BASE_URL,
-  GITHUB_PAGES_API_FALLBACK,
-  ...(IS_GITHUB_PAGES ? [] : [""]),
-  "http://localhost:5112",
-  "http://localhost:5108",
-  "http://localhost:5000",
+  ...(IS_LOCAL_HOST ? ["", "http://localhost:5112", "http://localhost:5108", "http://localhost:5000"] : [""]),
 ].map((base) => (typeof base === "string" ? base.replace(/\/$/, "") : ""));
 
 export const API_BASE_URLS = [...new Set(DEFAULT_BASES.filter((value) => value !== null && value !== undefined))];
@@ -159,7 +153,9 @@ export async function fetchApi(path, options = {}, headerMode = { includeAuth: t
   if (lastResult.status === 0) {
     return {
       ...lastResult,
-      message: "Cannot reach backend API. Start backend with: cd server && npm start (default port 5112).",
+      message: API_BASE_URLS.some((base) => /^https?:\/\//i.test(base))
+        ? "Cannot reach backend API. Check VITE_API_URL and backend availability."
+        : "Cannot reach backend API. Start backend with: cd server && npm start (default port 5112).",
     };
   }
 

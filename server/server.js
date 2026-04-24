@@ -82,6 +82,38 @@ const HUGGINGFACE_MODEL = process.env.HUGGINGFACE_MODEL || "HuggingFaceH4/zephyr
 const GOOGLE_CLIENT_ID = (process.env.GOOGLE_CLIENT_ID || "").trim();
 const COOKIE_AUTH_TOKEN = "luna_auth_token";
 const COOKIE_GUEST_ID = "luna_guest_id";
+const IS_PRODUCTION = (process.env.NODE_ENV || "").trim().toLowerCase() === "production";
+
+function parseDelimitedEnv(value) {
+  return `${value || ""}`
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function normalizeOrigin(value) {
+  const raw = typeof value === "string" ? value.trim() : "";
+  if (!raw) return "";
+
+  try {
+    return new URL(raw).origin;
+  } catch {
+    return "";
+  }
+}
+
+function isLocalDevOrigin(origin) {
+  const normalized = normalizeOrigin(origin);
+  if (!normalized) return false;
+
+  try {
+    const { hostname } = new URL(normalized);
+    const lowered = hostname.toLowerCase();
+    return lowered === "localhost" || lowered === "127.0.0.1" || lowered === "[::1]";
+  } catch {
+    return false;
+  }
+}
 
 function parseAllowedOrigins() {
   return [
@@ -90,8 +122,8 @@ function parseAllowedOrigins() {
     process.env.APP_URL,
     process.env.SITE_URL,
   ]
-    .flatMap((value) => `${value || ""}`.split(","))
-    .map((value) => value.trim())
+    .flatMap((value) => parseDelimitedEnv(value))
+    .map((value) => normalizeOrigin(value))
     .filter(Boolean);
 }
 
@@ -99,20 +131,10 @@ const EXPLICIT_ALLOWED_ORIGINS = new Set(parseAllowedOrigins());
 
 function isAllowedOrigin(origin) {
   if (!origin) return true;
-  if (EXPLICIT_ALLOWED_ORIGINS.has(origin)) return true;
-
-  try {
-    const parsed = new URL(origin);
-    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
-      return true;
-    }
-    const hostname = parsed.hostname.toLowerCase();
-    if (hostname === "localhost" || hostname === "127.0.0.1") return true;
-    if (hostname.endsWith(".github.io")) return true;
-    if (hostname.endsWith(".onrender.com")) return true;
-  } catch {
-    return false;
-  }
+  const normalized = normalizeOrigin(origin);
+  if (!normalized) return false;
+  if (EXPLICIT_ALLOWED_ORIGINS.has(normalized)) return true;
+  if (!IS_PRODUCTION && isLocalDevOrigin(normalized)) return true;
 
   return false;
 }
@@ -215,11 +237,18 @@ const FREE_DAILY_LIMIT = Number(process.env.LUNA_FREE_DAILY_LIMIT || 100);
 const DEFAULT_PRO_MONTHLY_PRICE_INR = Number(process.env.LUNA_PRO_PRICE_INR || 90);
 const DEFAULT_UPI_ID = (process.env.LUNA_PRO_UPI_ID || "9366183700@fam").trim();
 const ADMIN_EMAIL_ALLOWLIST = new Set(
-  (process.env.LUNA_ADMIN_EMAILS || "seiuasatou@gmail.com,sandeepdatta866@gmail.com")
-    .split(",")
+  parseDelimitedEnv(process.env.LUNA_ADMIN_EMAILS)
     .map((item) => item.trim().toLowerCase())
     .filter(Boolean),
 );
+
+if (IS_PRODUCTION && EXPLICIT_ALLOWED_ORIGINS.size === 0) {
+  console.warn("[security] No allowed CORS origins configured. Cross-origin browser access is disabled until CORS_ALLOWED_ORIGINS/FRONTEND_URL/APP_URL/SITE_URL is set.");
+}
+
+if (IS_PRODUCTION && ADMIN_EMAIL_ALLOWLIST.size === 0) {
+  console.warn("[security] No admin allowlist configured. Admin routes will remain unavailable until LUNA_ADMIN_EMAILS is set.");
+}
 
 const LUNA_SYSTEM_PROMPT =`You are Luna, an advanced anime-inspired AI assistant.
 You should introduce yourself as Luna at the beginning of a new conversation, but do not repeat your introduction in every message. If you have already introduced yourself in this conversation, do not re-introduce. You must never refer to yourself as a generic assistant, software agent, or language model. You are Luna.
@@ -641,6 +670,11 @@ async function requireAuthenticatedUser(req, res) {
 async function requireAdmin(req, res) {
   const auth = await requireAuthenticatedUser(req, res);
   if (!auth) return null;
+
+  if (ADMIN_EMAIL_ALLOWLIST.size === 0) {
+    res.status(503).json({ error: "Admin access is not configured" });
+    return null;
+  }
 
   const email = normalizeEmail(auth.user.email);
   if (!ADMIN_EMAIL_ALLOWLIST.has(email)) {
@@ -2798,4 +2832,3 @@ async function startServer() {
 }
 
 startServer();
-
