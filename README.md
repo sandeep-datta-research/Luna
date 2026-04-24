@@ -1,113 +1,146 @@
-# 🌙 Luna
+# Luna
 
-**Luna** is a lightweight AI platform that provides a unified chat interface for interacting with multiple large language models through API routing.  
-The goal of Luna is to create a clean, accessible interface that allows users to communicate with powerful AI systems without being tied to a single provider.
+Luna is a full-stack AI chat app with a Vite/React frontend and an Express backend. It includes multi-provider model routing, account auth, conversation history, onboarding memory, pricing and upgrade flows, public feedback, and an admin dashboard.
 
-Luna focuses on **simplicity, modular architecture, and multi-provider AI integration** while maintaining a modern and responsive web experience.
+## Current Scope
 
----
+- AI chat with standard and streaming responses
+- Conversation history and session recovery
+- Google sign-in and local password auth
+- Profile management and onboarding memory
+- Pricing page and manual Pro upgrade requests
+- Public feedback submission and featured feedback display
+- Admin dashboard for users, upgrade requests, announcements, referrals, feedback, and pricing settings
+- MongoDB or file-backed persistence, with optional Supabase-backed user memory
 
-# 🚀 Overview
+## Stack
 
-Luna acts as a **central AI hub** where requests can be routed to different AI model providers depending on availability and limits.
+- Frontend: React 19, Vite, Tailwind CSS, Framer Motion, React Router
+- Backend: Express, Axios, MongoDB
+- Integrations: Google auth, Supabase, OpenRouter, Groq, Gemini, NVIDIA, Z.AI, Hugging Face
+- Deploy targets currently present in repo: GitHub Pages, Vercel config, Render backend
 
-Instead of relying on a single AI provider, Luna integrates multiple services such as:
+## Repo Layout
 
-- OpenRouter  
-- Groq  
-- HuggingFace  
+```text
+src/                  Frontend app
+server/               Express backend and persistence adapters
+.github/workflows/    CI and deploy workflows
+public/               Static assets
+```
 
-This architecture allows Luna to:
+## Local Development
 
-- Reduce downtime  
-- Extend usage across multiple APIs  
-- Maintain better reliability  
-- Provide access to different AI models in one interface  
+Install frontend dependencies:
 
----
+```bash
+npm ci
+```
 
-# ✨ Features
+Install backend dependencies:
 
-### 🧠 AI Chat Interface
-A modern conversational interface where users can interact with AI models in real time.
+```bash
+cd server
+npm ci
+```
 
-### 🔀 Multi-API Routing
-Requests can be distributed across multiple providers to handle rate limits and maintain service continuity.
+Run the frontend:
 
-### 💬 Chat Sessions
-Users can maintain multiple conversation threads using a sidebar session system.
+```bash
+npm run dev
+```
 
-### 🎨 Modern UI
-Minimal, responsive, and clean interface built with modern frontend tools.
+Run the backend:
 
-### ⚡ Fast Frontend
-Optimized with Vite for fast development and performance.
+```bash
+cd server
+npm start
+```
 
-### 📝 Feedback System
-Users can submit feedback about the platform directly.
+Default local ports:
 
-### 🔐 Authentication (Planned)
-User sign-in system for managing personal chat sessions.
+- Frontend: `http://localhost:5173`
+- Backend: `http://localhost:5112` via Vite proxy or direct API access
 
----
+## Scripts
 
-# 🏗 Tech Stack
+Frontend root:
 
-## Frontend
-- React  
-- Vite  
-- TailwindCSS  
-- Vengeance UI  
-- Framer Motion  
+- `npm run dev` starts Vite
+- `npm run build` builds the frontend
+- `npm run lint` runs ESLint
+- `npm run preview` previews the production build
+- `npm run start` runs `server/server.js` from the repo root
 
-## AI Providers
-- OpenRouter API  
-- Groq API  
-- HuggingFace API  
+Backend in `server/`:
 
----
+- `npm start` runs the Express API
 
-# 🧪 Current Development Status
+## Core Environment Variables
 
-Luna is currently under **active development**.
+Backend:
 
-Implemented so far:
+- `CORS_ALLOWED_ORIGINS` or `FRONTEND_URL`
+- `LUNA_ADMIN_EMAILS`
+- `LUNA_DB_MODE`
+- `MONGODB_URI`
+- `MONGODB_DB`
+- `GOOGLE_CLIENT_ID`
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `SUPABASE_ANON_KEY`
+- `GROQ_API_KEY`
+- `OPENROUTER_API_KEY`
+- `NVIDIA_API_KEY`
+- `GEMINI_API_KEY`
+- `ZAI_API_KEY`
+- `HUGGINGFACE_API_KEY`
 
-- Chat interface  
-- Sidebar session management  
-- Message animations  
-- Input system  
-- Basic UI structure  
+Frontend:
 
-Upcoming work includes backend API routing and model integrations.
+- `VITE_API_URL`
+- `VITE_GOOGLE_CLIENT_ID`
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
 
----
+Minimum production setup after the recent security hardening:
 
-# 🔮 Future Plans
+- set `LUNA_ADMIN_EMAILS`
+- set one of `CORS_ALLOWED_ORIGINS`, `FRONTEND_URL`, `APP_URL`, or `SITE_URL`
+- set `VITE_API_URL` if frontend and backend are on different origins
 
-- Model selection  
-- Improved API routing system  
-- File upload for AI analysis  
-- Mobile optimization  
-- Custom Luna assistant personality  
-- Expanded AI tool integrations  
+## API Surface
 
----
+Main backend areas currently exposed:
 
-# 🌍 Vision
+- `/api/auth/*`
+- `/api/profile`
+- `/api/onboarding*`
+- `/api/history*`
+- `/api/luna` and `/api/luna/stream`
+- `/api/feedback*`
+- `/api/payments/*`
+- `/api/admin/*`
+- `/api/providers/status`
+- `/health`
 
-Luna aims to become a **flexible gateway to the AI ecosystem**, allowing users to interact with multiple intelligent systems from a single platform.
+## Deployment Notes
 
-The project focuses on creating a scalable interface that can evolve as new AI technologies emerge.
+- GitHub Actions PR CI is in [.github/workflows/ci.yml](/root/Luna/.github/workflows/ci.yml)
+- GitHub Pages deploy workflow is in [.github/workflows/deploy-pages.yml](/root/Luna/.github/workflows/deploy-pages.yml)
+- Backend Render config is in [render.yaml](/root/Luna/render.yaml)
+- Vercel frontend config is in [vercel.json](/root/Luna/vercel.json)
 
----
+The repo currently supports multiple deployment paths, but the platform strategy is still being simplified.
 
-# 👨‍💻 Author
+## Status
 
-Independent developer and student working on AI systems, software architecture, and modern web platforms.
+Luna is beyond MVP stage in features, but the codebase still needs structural cleanup in a few areas:
 
----
+- `server/server.js` is still too large and should be split into modules
+- deployment assumptions are still mixed across Pages, Vercel, and Render
+- test coverage is still light
 
-# 📜 License
+## License
 
-License details will be added in future releases.
+No license file is currently included in the repo.
