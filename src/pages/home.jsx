@@ -1,15 +1,30 @@
 import { Suspense, lazy, useEffect, useId, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Menu, Mic, Send, Shield, X } from "lucide-react";
-import HeroGeometric from "@/components/ui/hero-geometric";
+import {
+  ArrowRight,
+  BrainCircuit,
+  Globe2,
+  Layers3,
+  Menu,
+  Mic,
+  Send,
+  Shield,
+  ShieldCheck,
+  Sparkles,
+  Workflow,
+  X,
+  Zap,
+} from "lucide-react";
 import { fetchApi, getStoredUser, hydrateUser } from "@/lib/api-client";
 import CardNav from "@/component/CardNav";
 import logo from "@/assets/luna-logo.svg";
 import lunaLogo from "@/assets/luna-logo.svg";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
+import Orb from "@/components/ui/orb";
+import Earth from "@/components/ui/globe";
+import Ribbons from "@/components/ui/ribbons";
 
-const AboutUs1 = lazy(() => import("@/components/mvpblocks/about-us-1"));
 const TestimonialsCarousel = lazy(() => import("@/components/mvpblocks/testimonials-carousel"));
 const Analytics = lazy(() => import("@vercel/analytics/react").then((mod) => ({ default: mod.Analytics })));
 const SpeedInsights = lazy(() =>
@@ -90,6 +105,54 @@ const hoverFloat = {
   whileHover: { y: -6, scale: 1.01 },
   transition: { type: "spring", stiffness: 240, damping: 22 },
 };
+
+const HERO_SIGNAL_ITEMS = [
+  { label: "Live Provider Routing", value: "06", icon: Workflow },
+  { label: "Professional Output Modes", value: "12", icon: Sparkles },
+  { label: "Secure User Flows", value: "99.9%", icon: ShieldCheck },
+];
+
+const FEATURE_PILLARS = [
+  {
+    title: "3D Workspace Presence",
+    body: "A cinematic landing surface with layered motion, spatial depth, and ambient systems that feel product-grade instead of template-grade.",
+    icon: Layers3,
+  },
+  {
+    title: "Research To Execution",
+    body: "Move from ideas to strategy memos, product critique, technical debugging, and executive writing inside one interface.",
+    icon: BrainCircuit,
+  },
+  {
+    title: "Global System View",
+    body: "Live account, provider, and workflow context organized into a clearer command surface for daily work.",
+    icon: Globe2,
+  },
+];
+
+const MOTION_STACK = [
+  {
+    title: "Reasoning Layer",
+    detail: "Structured responses with smoother decision depth",
+    icon: BrainCircuit,
+    className: "left-0 top-10 md:left-6 md:top-10",
+    accent: "from-cyan-400/30 via-sky-300/10 to-transparent",
+  },
+  {
+    title: "Live Routing",
+    detail: "Provider switching and resilient request flow",
+    icon: Workflow,
+    className: "right-0 top-24 md:right-6 md:top-16",
+    accent: "from-violet-400/30 via-fuchsia-300/10 to-transparent",
+  },
+  {
+    title: "Premium Output",
+    detail: "Client-ready drafts and strategic synthesis",
+    icon: Sparkles,
+    className: "bottom-4 left-6 md:bottom-8 md:left-20",
+    accent: "from-amber-300/30 via-orange-300/10 to-transparent",
+  },
+];
 
 function SectionSkeleton({ className = "", compact = false }) {
   return (
@@ -198,6 +261,224 @@ function MobileNavbar({ ctaHref, onOpenMenu }) {
         </Link>
       </motion.div>
     </header>
+  );
+}
+
+function SignalStat({ item }) {
+  const Icon = item.icon;
+
+  return (
+    <motion.div
+      whileHover={{ y: -4, scale: 1.01 }}
+      className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-xl"
+    >
+      <div className="flex items-center gap-3">
+        <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/10 text-white">
+          <Icon className="h-4 w-4" />
+        </span>
+        <div>
+          <p className="text-lg font-semibold text-white">{item.value}</p>
+          <p className="text-xs uppercase tracking-[0.18em] text-zinc-400">{item.label}</p>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function MotionPanel({ item, index }) {
+  const Icon = item.icon;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 24, scale: 0.94 }}
+      whileInView={{ opacity: 1, y: 0, scale: 1 }}
+      viewport={{ once: true, amount: 0.4 }}
+      transition={{ duration: 0.7, delay: 0.1 + index * 0.08, ease: "easeOut" }}
+      whileHover={{ y: -6, rotateX: 2, rotateY: -2 }}
+      className={`absolute hidden w-[200px] rounded-[28px] border border-white/10 bg-[#0c1320]/82 p-4 shadow-[0_24px_90px_rgba(0,0,0,0.35)] backdrop-blur-2xl lg:block ${item.className}`}
+      style={{ transformStyle: "preserve-3d" }}
+    >
+      <div className={`pointer-events-none absolute inset-0 rounded-[28px] bg-gradient-to-br ${item.accent}`} />
+      <div className="relative">
+        <div className="mb-3 flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/10 text-white">
+            <Icon className="h-4 w-4" />
+          </span>
+          <div>
+            <p className="text-sm font-semibold text-white">{item.title}</p>
+            <p className="text-[11px] uppercase tracking-[0.18em] text-zinc-400">Luna Stack</p>
+          </div>
+        </div>
+        <p className="text-sm leading-6 text-zinc-300">{item.detail}</p>
+      </div>
+    </motion.div>
+  );
+}
+
+function HeroExperience({ ctaHref, isSignedIn }) {
+  return (
+    <section className="relative overflow-hidden">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,rgba(88,165,255,0.18),transparent_25%),radial-gradient(circle_at_78%_18%,rgba(168,85,247,0.18),transparent_28%),radial-gradient(circle_at_50%_85%,rgba(16,185,129,0.12),transparent_34%)]" />
+      <div className="absolute inset-x-0 top-0 h-[520px] overflow-hidden">
+        <Ribbons
+          className="absolute inset-0 opacity-70"
+          colors={["#59d3ff", "#8b5cf6", "#22c55e"]}
+          baseThickness={36}
+          speedMultiplier={0.45}
+          maxAge={420}
+          enableFade
+          enableShaderEffect
+        />
+      </div>
+
+      <div className="relative mx-auto grid min-h-[calc(100vh-84px)] w-full max-w-6xl items-center gap-12 px-4 pb-16 pt-10 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:px-8 lg:pb-20 lg:pt-16">
+        <motion.div
+          initial={{ opacity: 0, y: 28 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="relative z-10"
+        >
+          <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-4 py-2 text-xs uppercase tracking-[0.28em] text-cyan-100">
+            <Zap className="h-3.5 w-3.5" />
+            Professional AI Workspace
+          </div>
+
+          <h1 className="mt-6 max-w-[12ch] text-5xl font-semibold leading-[0.94] tracking-[-0.05em] text-white sm:text-6xl lg:text-7xl">
+            Built to feel fast, spatial, and serious.
+          </h1>
+
+          <p className="mt-6 max-w-2xl text-base leading-8 text-zinc-300 sm:text-lg">
+            Luna now leads with a smoother 3D presence, clearer information hierarchy, and a more
+            polished command surface for research, writing, and daily execution.
+          </p>
+
+          <div className="mt-8 flex flex-wrap gap-4">
+            <Link
+              to={ctaHref}
+              className="inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-gradient-to-r from-cyan-400/80 to-sky-500/70 px-6 py-3 text-sm font-semibold text-slate-950 shadow-[0_18px_50px_rgba(56,189,248,0.3)]"
+            >
+              {isSignedIn ? "Open Workspace" : "Enter Luna"}
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link
+              to="/features"
+              className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.04] px-6 py-3 text-sm font-semibold text-white backdrop-blur-xl"
+            >
+              Explore Features
+            </Link>
+          </div>
+
+          <div className="mt-10 grid gap-3 sm:grid-cols-3">
+            {HERO_SIGNAL_ITEMS.map((item) => (
+              <SignalStat key={item.label} item={item} />
+            ))}
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, scale: 0.96, y: 24 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.9, ease: "easeOut", delay: 0.08 }}
+          className="relative flex min-h-[540px] items-center justify-center"
+        >
+          {MOTION_STACK.map((item, index) => (
+            <MotionPanel key={item.title} item={item} index={index} />
+          ))}
+
+          <div className="absolute inset-0 rounded-[38px] border border-white/10 bg-[linear-gradient(180deg,rgba(10,16,24,0.86),rgba(7,9,13,0.56))] shadow-[0_40px_140px_rgba(0,0,0,0.38)] backdrop-blur-2xl" />
+          <div className="absolute inset-[1px] rounded-[38px] border border-white/8" />
+
+          <motion.div
+            animate={{ y: [0, -14, 0], rotate: [0, 4, 0] }}
+            transition={{ duration: 10, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+            className="absolute left-6 top-8 h-24 w-24 rounded-full bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.34),transparent_65%)] blur-2xl"
+          />
+          <motion.div
+            animate={{ y: [0, 12, 0], x: [0, -10, 0] }}
+            transition={{ duration: 12, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+            className="absolute bottom-10 right-10 h-28 w-28 rounded-full bg-[radial-gradient(circle_at_center,rgba(168,85,247,0.32),transparent_65%)] blur-2xl"
+          />
+
+          <div className="relative z-10 flex w-full max-w-[460px] flex-col items-center px-6 py-8">
+            <div className="relative flex h-[220px] w-[220px] items-center justify-center sm:h-[250px] sm:w-[250px]">
+              <motion.div
+                animate={{ y: [0, -10, 0] }}
+                transition={{ duration: 6, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+                className="absolute inset-0"
+              >
+                <Orb hue={194} hoverIntensity={0.6} rotateOnHover={false} backgroundColor="#071018" />
+              </motion.div>
+            </div>
+
+            <div className="mt-8 grid w-full gap-4 md:grid-cols-[1.1fr_0.9fr]">
+              <motion.div
+                whileHover={{ y: -6, rotateX: 2, rotateY: -2 }}
+                className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-2xl"
+                style={{ transformStyle: "preserve-3d" }}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.24em] text-zinc-400">Response Layer</p>
+                    <p className="mt-2 text-lg font-semibold text-white">Smooth, guided, executive-grade</p>
+                  </div>
+                  <Sparkles className="h-5 w-5 text-cyan-200" />
+                </div>
+                <p className="mt-4 text-sm leading-7 text-zinc-300">
+                  Cleaner motion, calmer gradients, and better spatial cues make the homepage feel
+                  like a product surface rather than a collection of sections.
+                </p>
+              </motion.div>
+
+              <motion.div
+                whileHover={{ y: -6, rotateX: 2, rotateY: 2 }}
+                className="overflow-hidden rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(11,18,28,0.95),rgba(10,12,18,0.8))] p-4"
+                style={{ transformStyle: "preserve-3d" }}
+              >
+                <p className="px-1 text-xs uppercase tracking-[0.24em] text-zinc-400">Global Context</p>
+                <div className="mt-3 h-[180px] rounded-[22px] border border-white/8 bg-black/30">
+                  <Earth
+                    className="max-w-none scale-[1.08]"
+                    baseColor={[0.17, 0.67, 0.92]}
+                    glowColor={[0.39, 0.33, 0.97]}
+                    markerColor={[0.45, 0.96, 0.82]}
+                  />
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+function FeaturePillarSection() {
+  return (
+    <section className="mx-auto mt-8 w-full max-w-6xl px-4 sm:px-6 lg:px-8">
+      <motion.div
+        {...fadeInUp}
+        className="grid gap-5 lg:grid-cols-3"
+      >
+        {FEATURE_PILLARS.map((item, index) => {
+          const Icon = item.icon;
+          return (
+            <motion.article
+              key={item.title}
+              whileHover={{ y: -8, rotateX: 2, rotateY: index === 1 ? 0 : index === 0 ? 2 : -2 }}
+              transition={{ type: "spring", stiffness: 220, damping: 24 }}
+              className="rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(14,18,26,0.88),rgba(9,11,16,0.86))] p-6 shadow-[0_26px_100px_rgba(0,0,0,0.25)] backdrop-blur-2xl"
+              style={{ transformStyle: "preserve-3d" }}
+            >
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/10 text-white">
+                <Icon className="h-5 w-5" />
+              </div>
+              <h2 className="mt-5 text-2xl font-semibold text-white">{item.title}</h2>
+              <p className="mt-4 text-sm leading-7 text-zinc-300">{item.body}</p>
+            </motion.article>
+          );
+        })}
+      </motion.div>
+    </section>
   );
 }
 
@@ -371,7 +652,6 @@ function FeedbackSection({
 
 function MobileLanding({
   ctaHref,
-  isSignedIn,
   menuOpen,
   onOpenMenu,
   onCloseMenu,
@@ -399,28 +679,62 @@ function MobileLanding({
         <div className="px-4 pt-2">
           <AnnouncementBanner />
         </div>
-        <HeroGeometric mobileLanding isSignedIn={isSignedIn} />
+        <div className="px-4 pb-2 pt-6">
+          <div className="overflow-hidden rounded-[34px] border border-white/10 bg-[linear-gradient(180deg,rgba(10,16,24,0.94),rgba(7,9,13,0.82))]">
+            <div className="relative px-5 pb-7 pt-6">
+              <div className="pointer-events-none absolute inset-0 opacity-70">
+                <Ribbons
+                  className="absolute inset-0"
+                  colors={["#59d3ff", "#8b5cf6"]}
+                  baseThickness={22}
+                  speedMultiplier={0.45}
+                  maxAge={320}
+                  enableFade
+                  enableShaderEffect
+                />
+              </div>
+              <p className="relative text-[11px] uppercase tracking-[0.28em] text-cyan-100/80">Luna AI Hub</p>
+              <h1 className="relative mt-4 text-4xl font-semibold leading-[0.94] tracking-[-0.05em] text-white">
+                Smooth 3D motion, sharper product presence.
+              </h1>
+              <p className="relative mt-4 text-sm leading-7 text-zinc-300">
+                A cleaner command surface for chat, research, and premium output.
+              </p>
+              <div className="relative mt-6 flex h-[220px] items-center justify-center">
+                <div className="absolute inset-0 rounded-[28px] bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.16),transparent_40%),radial-gradient(circle_at_bottom,rgba(168,85,247,0.14),transparent_34%)]" />
+                <div className="relative h-[170px] w-[170px]">
+                  <Orb hue={194} hoverIntensity={0.45} rotateOnHover={false} backgroundColor="#071018" />
+                </div>
+              </div>
+              <div className="relative mt-2 grid gap-3">
+                {HERO_SIGNAL_ITEMS.map((item) => (
+                  <SignalStat key={item.label} item={item} />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
         <MobileInputPreview ctaHref={ctaHref} />
         <div className="space-y-5 px-4 pb-10">
-          <DeferredSection
-            sectionId="mobile-about"
-            className="mobile-about"
-            fallback={
-              <SectionSkeleton
-                compact
-                className="rounded-[28px] border-cyan-300/25 bg-gradient-to-b from-zinc-900/92 to-zinc-950/95"
-              />
-            }
-          >
-            <motion.div
-              whileHover={{ y: -6, scale: 1.01 }}
-              transition={{ type: "spring", stiffness: 220, damping: 22 }}
-              className="dark about-glow-shell overflow-hidden rounded-[28px] border border-cyan-300/25 bg-gradient-to-b from-zinc-900/92 to-zinc-950/95 shadow-[0_30px_90px_-55px_rgba(34,211,238,0.95)]"
-            >
-              <Suspense fallback={<SectionSkeleton compact className="rounded-[28px] border-0 bg-transparent" />}>
-                <AboutUs1 />
-              </Suspense>
-            </motion.div>
+          <DeferredSection sectionId="mobile-pillars" className="mobile-pillars" fallback={<SectionSkeleton compact />}>
+            <div className="space-y-4">
+              {FEATURE_PILLARS.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <motion.div
+                    key={item.title}
+                    whileHover={{ y: -5, scale: 1.01 }}
+                    className="rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(14,18,26,0.88),rgba(9,11,16,0.86))] p-5"
+                  >
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/10 text-white">
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <h2 className="mt-4 text-xl font-semibold text-white">{item.title}</h2>
+                    <p className="mt-3 text-sm leading-7 text-zinc-300">{item.body}</p>
+                  </motion.div>
+                );
+              })}
+            </div>
           </DeferredSection>
           <DeferredSection sectionId="mobile-growth" className="mobile-growth" fallback={<SectionSkeleton compact />}>
             <UserGrowthSection userMetrics={userMetrics} chartPoints={chartPoints} compact />
@@ -533,24 +847,14 @@ function DesktopHome({
         <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8">
           <AnnouncementBanner className="mb-6" />
         </div>
-        <HeroGeometric isSignedIn={isSignedIn} />
+        <HeroExperience ctaHref={isSignedIn ? "/chat" : "/signin"} isSignedIn={isSignedIn} />
 
         <DeferredSection
-          sectionId="desktop-about"
-          className="desktop-about scroll-mt-28 mx-auto mt-8 w-full max-w-6xl px-4 sm:px-6 lg:px-8"
-          fallback={<SectionSkeleton className="min-h-[420px]" />}
+          sectionId="desktop-pillars"
+          className="desktop-pillars scroll-mt-28"
+          fallback={<SectionSkeleton className="mx-auto mt-8 min-h-[320px] w-full max-w-6xl" />}
         >
-          <motion.section id="features" {...fadeInUp}>
-            <motion.div
-              whileHover={{ y: -8, scale: 1.008 }}
-              transition={{ type: "spring", stiffness: 220, damping: 22 }}
-              className="dark about-glow-shell relative overflow-hidden rounded-3xl border border-cyan-300/35 bg-gradient-to-b from-zinc-900/92 to-zinc-950/95 shadow-[0_30px_90px_-55px_rgba(34,211,238,0.95)]"
-            >
-              <Suspense fallback={<SectionSkeleton className="min-h-[420px] rounded-3xl border-0 bg-transparent" />}>
-                <AboutUs1 />
-              </Suspense>
-            </motion.div>
-          </motion.section>
+          <FeaturePillarSection />
         </DeferredSection>
 
         <DeferredSection
@@ -813,7 +1117,6 @@ export default function Home() {
       ) : (
         <MobileLanding
           ctaHref={ctaHref}
-          isSignedIn={isSignedIn}
           menuOpen={mobileMenuOpen}
           onOpenMenu={() => setMobileMenuOpen(true)}
           onCloseMenu={() => setMobileMenuOpen(false)}
