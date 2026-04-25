@@ -25,9 +25,14 @@ function normalizeApiBase(input) {
 }
 
 const API_BASE_URL = normalizeApiBase(import.meta.env.VITE_API_URL || "");
+const FALLBACK_API_BASE_URLS = [
+  normalizeApiBase(import.meta.env.VITE_API_FALLBACK_URL || ""),
+  normalizeApiBase("https://luna-backend-yc4e.onrender.com"),
+];
 
 const DEFAULT_BASES = [
   API_BASE_URL,
+  ...(!IS_LOCAL_HOST ? FALLBACK_API_BASE_URLS : []),
   ...(IS_LOCAL_HOST ? ["", "http://localhost:5112", "http://localhost:5108", "http://localhost:5000"] : [""]),
 ].map((base) => (typeof base === "string" ? base.replace(/\/$/, "") : ""));
 
