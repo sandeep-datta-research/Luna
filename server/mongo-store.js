@@ -236,11 +236,26 @@ export function createMongoStore() {
   async function ensureUserIndexes() {
     const existingIndexes = await listIndexesSafe(users());
     const googleSubIndex = existingIndexes.find((item) => item.name === "googleSub_1");
-    const usesLegacySparseIndex =
-      Boolean(googleSubIndex?.sparse) && !googleSubIndex?.partialFilterExpression;
+    const emailIndex = existingIndexes.find((item) => item.name === "email_1");
 
-    if (usesLegacySparseIndex) {
+    const hasSupportedPartialFilter = (index, field) =>
+      index?.partialFilterExpression &&
+      typeof index.partialFilterExpression === "object" &&
+      index.partialFilterExpression[field]?.$gt === "";
+
+    const usesLegacyGoogleSubIndex =
+      Boolean(googleSubIndex) &&
+      (!googleSubIndex.unique || !hasSupportedPartialFilter(googleSubIndex, "googleSub"));
+
+    const usesLegacyEmailIndex =
+      Boolean(emailIndex) && (!emailIndex.unique || !hasSupportedPartialFilter(emailIndex, "email"));
+
+    if (usesLegacyGoogleSubIndex) {
       await users().dropIndex("googleSub_1");
+    }
+
+    if (usesLegacyEmailIndex) {
+      await users().dropIndex("email_1");
     }
 
     await Promise.all([
