@@ -222,8 +222,19 @@ export function createMongoStore() {
   const conversations = () => db.collection("conversations");
   const feedback = () => db.collection("feedback");
 
+  async function listIndexesSafe(collection) {
+    try {
+      return await collection.listIndexes().toArray();
+    } catch (error) {
+      if (error?.code === 26 || /ns does not exist/i.test(error?.message || "")) {
+        return [];
+      }
+      throw error;
+    }
+  }
+
   async function ensureUserIndexes() {
-    const existingIndexes = await users().listIndexes().toArray();
+    const existingIndexes = await listIndexesSafe(users());
     const googleSubIndex = existingIndexes.find((item) => item.name === "googleSub_1");
     const usesLegacySparseIndex =
       Boolean(googleSubIndex?.sparse) && !googleSubIndex?.partialFilterExpression;

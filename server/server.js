@@ -1,7 +1,7 @@
+import "./load-env.js";
 import express from "express";
 import cors from "cors";
 import axios from "axios";
-import dotenv from "dotenv";
 import { randomUUID } from "crypto";
 import {
   countUserMessagesForDate,
@@ -60,7 +60,6 @@ import {
   verifyPassword,
 } from "./password-auth.js";
 import { isResetEmailConfigured, sendPasswordResetVerificationEmail } from "./reset-email.js";
-dotenv.config();
 
 const app = express();
 const PORT = Number(process.env.PORT) || 5108;

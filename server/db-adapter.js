@@ -1,3 +1,4 @@
+import "./load-env.js";
 import * as fileHistory from "./history-db.js";
 import * as fileUsers from "./user-db.js";
 import * as fileFeedback from "./feedback-db.js";
@@ -7,7 +8,10 @@ let activeEngine = "file";
 let activeStore = null;
 let initPromise = null;
 let initWarning = "";
-const IS_PRODUCTION = (process.env.NODE_ENV || "").trim().toLowerCase() === "production";
+
+function isProduction() {
+  return (process.env.NODE_ENV || "").trim().toLowerCase() === "production";
+}
 
 function normalizeMode(rawMode) {
   const value = typeof rawMode === "string" ? rawMode.trim().toLowerCase() : "";
@@ -33,7 +37,7 @@ function readDbConfig() {
 async function initializeDb() {
   const config = readDbConfig();
   initWarning = "";
-  const requireMongo = config.mode === "mongo" || (IS_PRODUCTION && config.mode !== "file");
+  const requireMongo = config.mode === "mongo" || (isProduction() && config.mode !== "file");
 
   if (!config.useMongo) {
     if (requireMongo) {
