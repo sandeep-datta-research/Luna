@@ -996,6 +996,11 @@ export default function Luna() {
     );
   }, []);
 
+  const showErrorToast = useCallback((message, retryPayload = null) => {
+    setLastRetryPayload(retryPayload);
+    setToast({ id: createId("toast"), message: text(message) || "Something went wrong." });
+  }, []);
+
   const handleSelectCharacter = useCallback((character) => {
     const nextCharacterId = normalizeCharacterId(character?.id, characterOptions);
     const targetId = activeSession?.id;
@@ -1024,11 +1029,6 @@ export default function Luna() {
       ).catch(() => null);
     }
   }, [activeSession?.backendConversationId, activeSession?.id, characterOptions, isSignedIn, membershipPlan, showErrorToast, updateSession]);
-
-  const showErrorToast = useCallback((message, retryPayload = null) => {
-    setLastRetryPayload(retryPayload);
-    setToast({ id: createId("toast"), message: text(message) || "Something went wrong." });
-  }, []);
 
   const loadConversationMessages = useCallback(
     async (sessionId, conversationId) => {
