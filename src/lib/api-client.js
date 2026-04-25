@@ -146,6 +146,7 @@ export async function fetchApi(path, options = {}, headerMode = { includeAuth: t
     lastResult = result;
 
     const shouldTryNextBase =
+      result.status === 405 ||
       result.status === 404 ||
       result.message === "Invalid API response (expected JSON)." ||
       result.message?.includes("API returned HTML instead of JSON");
