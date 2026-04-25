@@ -368,7 +368,7 @@ function ScrollProgressBar({ progress }) {
   );
 }
 
-function HeroExperience({ ctaHref, isSignedIn, scrollYProgress }) {
+function HeroExperience({ ctaHref, isSignedIn, scrollYProgress, logoSrc }) {
   const textY = useTransform(scrollYProgress, [0, 0.22], [0, -42]);
   const textOpacity = useTransform(scrollYProgress, [0, 0.22], [1, 0.82]);
   const visualY = useTransform(scrollYProgress, [0, 0.22], [0, 58]);
@@ -467,7 +467,14 @@ function HeroExperience({ ctaHref, isSignedIn, scrollYProgress }) {
                 transition={{ duration: 6, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
                 className="absolute inset-0"
               >
-                <Orb hue={194} hoverIntensity={0.6} rotateOnHover={false} backgroundColor="#071018" />
+                <Orb
+                  hue={194}
+                  hoverIntensity={0.6}
+                  rotateOnHover={false}
+                  backgroundColor="#071018"
+                  logoSrc={logoSrc}
+                  logoClassName="scale-[1.08]"
+                />
               </motion.div>
             </div>
 
@@ -889,7 +896,14 @@ function MobileLanding({
               <div className="relative mt-6 flex h-[220px] items-center justify-center">
                 <div className="absolute inset-0 rounded-[28px] bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.16),transparent_40%),radial-gradient(circle_at_bottom,rgba(168,85,247,0.14),transparent_34%)]" />
                 <div className="relative h-[170px] w-[170px]">
-                  <Orb hue={194} hoverIntensity={0.45} rotateOnHover={false} backgroundColor="#071018" />
+                  <Orb
+                    hue={194}
+                    hoverIntensity={0.45}
+                    rotateOnHover={false}
+                    backgroundColor="#071018"
+                    logoSrc={logoSrc}
+                    logoClassName="scale-[1.02]"
+                  />
                 </div>
               </div>
               <div className="relative mt-2 grid gap-3">
@@ -1056,7 +1070,7 @@ function DesktopHome({
         <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8">
           <AnnouncementBanner className="mb-6" />
         </div>
-        <HeroExperience ctaHref={isSignedIn ? "/chat" : "/signin"} isSignedIn={isSignedIn} scrollYProgress={progress} />
+        <HeroExperience ctaHref={isSignedIn ? "/chat" : "/signin"} isSignedIn={isSignedIn} scrollYProgress={progress} logoSrc={logoSrc} />
 
         <DeferredSection
           sectionId="desktop-pillars"

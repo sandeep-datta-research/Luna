@@ -5,6 +5,72 @@
   height: 100%;
 }
 
+.orb-logo-shell {
+  pointer-events: none;
+  position: absolute;
+  inset: 50%;
+  z-index: 2;
+  display: flex;
+  height: 27%;
+  width: 27%;
+  min-height: 68px;
+  min-width: 68px;
+  max-height: 148px;
+  max-width: 148px;
+  transform: translate(-50%, -50%);
+  align-items: center;
+  justify-content: center;
+}
+
+.orb-logo-glow {
+  position: absolute;
+  inset: -20%;
+  border-radius: 9999px;
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.08) 36%, rgba(56, 189, 248, 0.14) 55%, transparent 74%);
+  filter: blur(16px);
+  opacity: 0.95;
+}
+
+.orb-logo-ring {
+  position: absolute;
+  inset: -8%;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow:
+    0 0 32px rgba(125, 211, 252, 0.18),
+    inset 0 0 20px rgba(255, 255, 255, 0.1);
+}
+
+.orb-logo-core {
+  position: relative;
+  display: flex;
+  height: 100%;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background:
+    radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.94), rgba(244, 247, 255, 0.84) 32%, rgba(10, 18, 30, 0.96) 100%);
+  box-shadow:
+    0 18px 48px rgba(0, 0, 0, 0.36),
+    inset 0 1px 14px rgba(255, 255, 255, 0.24);
+  backdrop-filter: blur(14px);
+}
+
+.orb-logo-image {
+  position: relative;
+  z-index: 1;
+  height: 74%;
+  width: 74%;
+  object-fit: contain;
+  filter:
+    drop-shadow(0 0 10px rgba(255, 255, 255, 0.55))
+    drop-shadow(0 0 18px rgba(125, 211, 252, 0.22));
+}
+
 .orb-container-fallback {
   border-radius: 9999px;
   background:

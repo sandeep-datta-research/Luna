@@ -8,6 +8,9 @@ export default function Orb({
   rotateOnHover = true,
   forceHoverState = false,
   backgroundColor = "#000000",
+  logoSrc = "",
+  logoAlt = "Luna Logo",
+  logoClassName = "",
 }) {
   const ctnDom = useRef(null);
   const [hasRenderError, setHasRenderError] = useState(false);
@@ -316,7 +319,17 @@ export default function Orb({
       ref={ctnDom}
       className={`orb-container${hasRenderError ? " orb-container-fallback" : ""}`}
       aria-hidden="true"
-    />
+    >
+      {logoSrc ? (
+        <div className={`orb-logo-shell ${logoClassName}`.trim()}>
+          <div className="orb-logo-glow" />
+          <div className="orb-logo-ring" />
+          <div className="orb-logo-core">
+            <img src={logoSrc} alt={logoAlt} className="orb-logo-image" />
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -377,4 +390,3 @@ function hexToVec3(color) {
 
   return new Vec3(0, 0, 0);
 }
-

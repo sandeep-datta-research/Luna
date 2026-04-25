@@ -4,6 +4,8 @@ import { ArrowRight, BrainCircuit, Search, Sparkles, Wand2 } from "lucide-react"
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import Orb from "@/components/ui/orb";
+import logo from "@/assets/luna-logo.svg";
+import { useBrandingLogo } from "@/lib/branding";
 import { cn } from "@/lib/utils";
 import { getStoredUser, hydrateUser } from "@/lib/api-client";
 
@@ -138,6 +140,7 @@ function FloatingPanel({ title, body, icon, className, rotate = 0, delay = 0, ac
 }
 
 export default function HeroGeometric({ mobileLanding = false, isSignedIn: controlledIsSignedIn }) {
+  const brandLogo = useBrandingLogo(logo);
   const [storedIsSignedIn, setStoredIsSignedIn] = useState(() => {
     if (typeof controlledIsSignedIn === "boolean") return controlledIsSignedIn;
     if (typeof window === "undefined") return false;
@@ -323,6 +326,8 @@ export default function HeroGeometric({ mobileLanding = false, isSignedIn: contr
             rotateOnHover
             forceHoverState={false}
             backgroundColor="#07070d"
+            logoSrc={brandLogo}
+            logoClassName="scale-[1.08]"
           />
         </Motion.div>
       </Motion.div>
