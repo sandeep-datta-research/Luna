@@ -160,6 +160,17 @@ export default function AdminDashboard() {
   const [announcementCtaLabel, setAnnouncementCtaLabel] = useState("");
   const [announcementCtaHref, setAnnouncementCtaHref] = useState("");
   const [announcementNote, setAnnouncementNote] = useState("");
+  const [characters, setCharacters] = useState([]);
+  const [characterId, setCharacterId] = useState("");
+  const [characterName, setCharacterName] = useState("");
+  const [characterTagline, setCharacterTagline] = useState("");
+  const [characterDescription, setCharacterDescription] = useState("");
+  const [characterImageUrl, setCharacterImageUrl] = useState("");
+  const [characterPrompt, setCharacterPrompt] = useState("");
+  const [characterAccess, setCharacterAccess] = useState("free");
+  const [characterActive, setCharacterActive] = useState(true);
+  const [characterSortOrder, setCharacterSortOrder] = useState("0");
+  const [characterNote, setCharacterNote] = useState("");
 
   const isAllowed = useMemo(() => ALLOWED_ADMIN_EMAILS.has(normalizeEmail(userEmail)), [userEmail]);
   const modelUsageEntries = useMemo(() => {
@@ -192,6 +203,7 @@ export default function AdminDashboard() {
     setProPriceInput(String(Number.isFinite(price) && price > 0 ? price : 90));
     setProPromptInput(prompt);
     setReferralCodes(referrals);
+    setCharacters(Array.isArray(rawSettings?.characters) ? rawSettings.characters : []);
   };
 
   const resetAnnouncementForm = () => {
@@ -204,6 +216,30 @@ export default function AdminDashboard() {
     setAnnouncementActive(true);
     setAnnouncementCtaLabel("");
     setAnnouncementCtaHref("");
+  };
+
+  const resetCharacterForm = () => {
+    setCharacterId("");
+    setCharacterName("");
+    setCharacterTagline("");
+    setCharacterDescription("");
+    setCharacterImageUrl("");
+    setCharacterPrompt("");
+    setCharacterAccess("free");
+    setCharacterActive(true);
+    setCharacterSortOrder(String(characters.length));
+  };
+
+  const loadCharacterForm = (item) => {
+    setCharacterId(item?.id || "");
+    setCharacterName(item?.name || "");
+    setCharacterTagline(item?.tagline || "");
+    setCharacterDescription(item?.description || "");
+    setCharacterImageUrl(item?.imageUrl || "");
+    setCharacterPrompt(item?.prompt || "");
+    setCharacterAccess(item?.access === "pro" ? "pro" : "free");
+    setCharacterActive(item?.active !== false);
+    setCharacterSortOrder(String(Number.isFinite(Number(item?.sortOrder)) ? Number(item.sortOrder) : 0));
   };
 
   const loadAnnouncementForm = (item) => {
@@ -281,6 +317,12 @@ export default function AdminDashboard() {
 
     boot();
   }, [loadAdminData]);
+
+  useEffect(() => {
+    if (!characterId) {
+      setCharacterSortOrder(String(characters.length));
+    }
+  }, [characterId, characters.length]);
 
   const reviewRequest = async (id, status) => {
     setActionBusy(true);
@@ -551,6 +593,91 @@ export default function AdminDashboard() {
     await loadAdminData();
   };
 
+  const handleCharacterImageUpload = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCharacterImageUrl(typeof reader.result === "string" ? reader.result : "");
+    };
+    reader.onerror = () => setCharacterNote("Could not read character image.");
+    reader.readAsDataURL(file);
+  };
+
+  const saveCharacter = async () => {
+    if (!characterName.trim() || !characterPrompt.trim()) {
+      setCharacterNote("Character name and prompt are required.");
+      return;
+    }
+
+    setSettingsBusy(true);
+    setCharacterNote("");
+
+    const payload = {
+      name: characterName.trim(),
+      tagline: characterTagline.trim(),
+      description: characterDescription.trim(),
+      imageUrl: characterImageUrl.trim(),
+      prompt: characterPrompt.trim(),
+      access: characterAccess === "pro" ? "pro" : "free",
+      active: characterActive,
+      sortOrder: Number(characterSortOrder) || 0,
+    };
+
+    const result = characterId
+      ? await fetchApi(`/api/admin/characters/${characterId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        })
+      : await fetchApi("/api/admin/characters", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+    setSettingsBusy(false);
+    if (!result.ok) {
+      setCharacterNote(result.message || "Failed to save character.");
+      return;
+    }
+
+    setCharacterNote(characterId ? "Character updated." : "Character created.");
+    resetCharacterForm();
+    await loadAdminData();
+  };
+
+  const toggleCharacter = async (item) => {
+    setSettingsBusy(true);
+    setCharacterNote("");
+    const result = await fetchApi(`/api/admin/characters/${item.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ active: !item.active }),
+    });
+    setSettingsBusy(false);
+    if (!result.ok) {
+      setCharacterNote(result.message || "Failed to update character.");
+      return;
+    }
+    await loadAdminData();
+  };
+
+  const deleteCharacter = async (id) => {
+    setSettingsBusy(true);
+    setCharacterNote("");
+    const result = await fetchApi(`/api/admin/characters/${id}`, { method: "DELETE" });
+    setSettingsBusy(false);
+    if (!result.ok) {
+      setCharacterNote(result.message || "Failed to remove character.");
+      return;
+    }
+    if (characterId === id) resetCharacterForm();
+    await loadAdminData();
+  };
+
   if (authState === "loading") {
     return <main className="flex min-h-screen items-center justify-center bg-[#07070d] text-zinc-300">Checking admin access...</main>;
   }
@@ -799,6 +926,160 @@ export default function AdminDashboard() {
                         </div>
                       );
                     })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </AdminShellSection>
+
+          <AdminShellSection
+            title="Character Boards"
+            icon={Sparkles}
+            description="Create Mobile Legends style chat characters, upload portraits, define prompts, and lock them to Free or Pro."
+          >
+            <div className="grid gap-4 lg:grid-cols-[1.05fr_1.2fr]">
+              <div className="rounded-2xl border border-white/6 bg-white/[0.03] p-4">
+                <p className="text-sm font-medium text-zinc-200">{characterId ? "Edit character" : "Create character"}</p>
+                <div className="mt-3 grid gap-3">
+                  <input
+                    value={characterName}
+                    onChange={(event) => setCharacterName(event.target.value)}
+                    placeholder="Character name"
+                    className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none"
+                  />
+                  <input
+                    value={characterTagline}
+                    onChange={(event) => setCharacterTagline(event.target.value)}
+                    placeholder="Short tagline"
+                    className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none"
+                  />
+                  <textarea
+                    value={characterDescription}
+                    onChange={(event) => setCharacterDescription(event.target.value)}
+                    placeholder="Short card description"
+                    className="min-h-[72px] w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none"
+                  />
+                  <textarea
+                    value={characterPrompt}
+                    onChange={(event) => setCharacterPrompt(event.target.value)}
+                    placeholder="Admin character prompt. This controls how the character speaks."
+                    className="min-h-[140px] w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none"
+                  />
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <select
+                      value={characterAccess}
+                      onChange={(event) => setCharacterAccess(event.target.value)}
+                      className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none"
+                    >
+                      <option value="free">Free</option>
+                      <option value="pro">Pro</option>
+                    </select>
+                    <input
+                      type="number"
+                      value={characterSortOrder}
+                      onChange={(event) => setCharacterSortOrder(event.target.value)}
+                      placeholder="Sort order"
+                      className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none"
+                    />
+                  </div>
+                  <label className="flex items-center gap-2 text-xs text-zinc-400">
+                    <input
+                      type="checkbox"
+                      checked={characterActive}
+                      onChange={(event) => setCharacterActive(event.target.checked)}
+                      className="h-4 w-4 rounded border border-zinc-600 bg-zinc-900"
+                    />
+                    Available in chat
+                  </label>
+                  <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-3">
+                    <p className="text-xs text-zinc-400">Portrait upload</p>
+                    <div className="mt-2 flex flex-wrap items-center gap-3">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleCharacterImageUpload}
+                        className="block text-xs text-zinc-400"
+                      />
+                      {characterImageUrl ? (
+                        <img src={characterImageUrl} alt="Character preview" className="h-20 w-20 rounded-xl border border-zinc-700 object-cover" />
+                      ) : null}
+                    </div>
+                    <input
+                      value={characterImageUrl}
+                      onChange={(event) => setCharacterImageUrl(event.target.value)}
+                      placeholder="Or paste image URL / data URL"
+                      className="mt-3 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none"
+                    />
+                  </div>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={saveCharacter}
+                    disabled={settingsBusy}
+                    className="inline-flex items-center gap-1 rounded-lg border border-violet-400/35 bg-violet-500/20 px-3 py-2 text-xs text-violet-100 hover:bg-violet-500/30 disabled:opacity-60"
+                  >
+                    <Save className="h-3.5 w-3.5" />{characterId ? "Update Character" : "Create Character"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={resetCharacterForm}
+                    disabled={settingsBusy}
+                    className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs text-zinc-200 hover:bg-zinc-800 disabled:opacity-60"
+                  >
+                    Clear
+                  </button>
+                </div>
+                {characterNote ? <p className="mt-2 text-xs text-cyan-200">{characterNote}</p> : null}
+              </div>
+
+              <div className="rounded-2xl border border-white/6 bg-white/[0.03] p-4">
+                <p className="text-sm font-medium text-zinc-200">Board roster</p>
+                {characters.length === 0 ? (
+                  <p className="mt-3 text-xs text-zinc-500">No characters configured yet.</p>
+                ) : (
+                  <div className="luna-scrollbar mt-3 flex gap-3 overflow-x-auto pb-2">
+                    {characters.map((item) => (
+                      <div key={item.id} className="min-w-[260px] rounded-[24px] border border-zinc-800 bg-[linear-gradient(180deg,rgba(34,39,60,0.92),rgba(14,17,28,0.96))] p-3">
+                        {item.imageUrl ? <img src={item.imageUrl} alt={item.name} className="h-40 w-full rounded-[18px] object-cover" /> : <div className="flex h-40 w-full items-center justify-center rounded-[18px] border border-dashed border-zinc-700 text-xs text-zinc-500">No image</div>}
+                        <div className="mt-3 flex items-start justify-between gap-2">
+                          <div>
+                            <p className="text-sm font-medium text-zinc-100">{item.name}</p>
+                            <p className="text-xs text-zinc-500">{item.tagline || "No tagline"}</p>
+                          </div>
+                          <span className={`rounded-md border px-2 py-1 text-[11px] ${item.access === "pro" ? "border-violet-400/35 bg-violet-500/15 text-violet-200" : "border-emerald-400/35 bg-emerald-500/15 text-emerald-200"}`}>
+                            {item.access}
+                          </span>
+                        </div>
+                        <p className="mt-2 line-clamp-3 text-xs text-zinc-400">{item.description || "No description."}</p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => loadCharacterForm(item)}
+                            disabled={settingsBusy}
+                            className="rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs text-zinc-200 hover:bg-zinc-800 disabled:opacity-60"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => toggleCharacter(item)}
+                            disabled={settingsBusy}
+                            className="rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-xs text-zinc-200 hover:bg-zinc-800 disabled:opacity-60"
+                          >
+                            {item.active ? "Lock" : "Unlock"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => deleteCharacter(item.id)}
+                            disabled={settingsBusy}
+                            className="rounded-md border border-rose-400/35 bg-rose-500/10 px-2 py-1 text-xs text-rose-200 hover:bg-rose-500/20 disabled:opacity-60"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>

@@ -47,7 +47,7 @@ import {
   setMembershipPlan,
   submitUpgradeRequest,
 } from "./pro-db.js";
-import { getAdminSettings, incrementReferralUsage, listActiveAnnouncements, listAnnouncements, removeAnnouncement, removeReferralCode, updateAnnouncement, updateProMonthlyPrice, updateProSystemPrompt, updateReferralCode, upsertAnnouncement, upsertReferralCode, validateReferralCode } from "./admin-settings.js";
+import { getAdminSettings, incrementReferralUsage, listActiveAnnouncements, listAnnouncements, removeAnnouncement, removeCharacter, removeReferralCode, updateAnnouncement, updateCharacter, updateProMonthlyPrice, updateProSystemPrompt, updateReferralCode, upsertAnnouncement, upsertCharacter, upsertReferralCode, validateReferralCode } from "./admin-settings.js";
 import { CATEGORY_LABELS, classifyMessage } from "./luna-classifier.js";
 import { getRoutingPlan, runRoutedProviders, runRoutedProvidersStream } from "./luna-router.js";
 import { buildToolSystemPrompt, executeToolCalls, extractToolSources, formatToolResults, planToolCalls } from "./luna-tools.js";
@@ -259,35 +259,48 @@ Yourfamily background:Your mother is Suzune Masako and your father is Seiua Sato
 For any math content, always wrap expressions in LaTeX using $...$ for inline and $$...$$ for display. Do not leave raw math unwrapped.
 `;
 
-const CHARACTER_PROFILES = {
-  "luna-classic": {
-    id: "luna-classic",
-    name: "Luna Classic",
-    prompt: "Primary persona: Luna Classic. Keep Luna's established identity, witty warmth, and anime-inspired confidence.",
-  },
-  "electro-empress": {
-    id: "electro-empress",
-    name: "Electro Empress",
-    prompt:
-      "Persona mode: Electro Empress. Speak with calm authority, strategic precision, and composed intensity. Stay elegant, sharp, and lightly intimidating without becoming hostile. Keep answers useful and direct.",
-  },
-  "trickster-director": {
-    id: "trickster-director",
-    name: "Trickster Director",
-    prompt:
-      "Persona mode: Trickster Director. Use playful mischief, dark humor, and theatrical phrasing. Sound lively and teasing, but still give practical, competent help and clear answers.",
-  },
-  "verdant-sage": {
-    id: "verdant-sage",
-    name: "Verdant Sage",
-    prompt:
-      "Persona mode: Verdant Sage. Sound thoughtful, gentle, curious, and reflective. Explain clearly, ask smart framing questions when useful, and favor calm, insightful guidance.",
-  },
+const DEFAULT_CHARACTER_PROFILE = {
+  id: "luna-classic",
+  name: "Luna Classic",
+  tagline: "Witty, sharp, balanced",
+  description: "Default Luna voice with playful intelligence and practical help.",
+  imageUrl: "",
+  prompt: "Primary persona: Luna Classic. Keep Luna's established identity, witty warmth, and anime-inspired confidence.",
+  access: "free",
+  active: true,
+  sortOrder: 0,
 };
 
-function resolveCharacterProfile(value) {
+function normalizeCharacterCatalog(items = []) {
+  const list = Array.isArray(items) ? items : [];
+  const normalized = list
+    .map((item, index) => ({
+      id: `${item?.id || ""}`.trim() || `char-${index + 1}`,
+      name: `${item?.name || ""}`.trim() || `Character ${index + 1}`,
+      tagline: `${item?.tagline || ""}`.trim(),
+      description: `${item?.description || ""}`.trim(),
+      imageUrl: `${item?.imageUrl || ""}`.trim(),
+      prompt: `${item?.prompt || ""}`.trim(),
+      access: `${item?.access || "free"}`.trim().toLowerCase() === "pro" ? "pro" : "free",
+      active: item?.active !== false,
+      sortOrder: Number.isFinite(Number(item?.sortOrder)) ? Number(item.sortOrder) : index,
+    }))
+    .filter((item) => item.name && item.prompt)
+    .sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0) || a.name.localeCompare(b.name));
+
+  return normalized.length > 0 ? normalized : [DEFAULT_CHARACTER_PROFILE];
+}
+
+function resolveCharacterProfile(value, catalog = []) {
+  const characters = normalizeCharacterCatalog(catalog);
   const key = `${value || ""}`.trim().toLowerCase();
-  return CHARACTER_PROFILES[key] || CHARACTER_PROFILES["luna-classic"];
+  return characters.find((item) => item.id.toLowerCase() === key) || characters[0] || DEFAULT_CHARACTER_PROFILE;
+}
+
+function getAvailableCharacterCatalog(catalog = [], membershipContext = null) {
+  const characters = normalizeCharacterCatalog(catalog).filter((item) => item.active !== false);
+  const isPro = membershipContext?.plan === "pro";
+  return characters.filter((item) => item.access !== "pro" || isPro);
 }
 
 const CONCISE_STYLE_PROMPT = `Response style:
@@ -458,6 +471,7 @@ async function getLunaSettings() {
       upiId: `${settings?.upiId || DEFAULT_UPI_ID}`.trim() || DEFAULT_UPI_ID,
       proSystemPrompt: sanitizePromptText(settings?.proSystemPrompt),
       referralCodes: Array.isArray(settings?.referralCodes) ? settings.referralCodes : [],
+      characters: normalizeCharacterCatalog(settings?.characters),
       updatedAt: settings?.updatedAt || "",
       updatedBy: settings?.updatedBy || "",
     };
@@ -467,6 +481,7 @@ async function getLunaSettings() {
       upiId: DEFAULT_UPI_ID,
       proSystemPrompt: "",
       referralCodes: [],
+      characters: [DEFAULT_CHARACTER_PROFILE],
       updatedAt: "",
       updatedBy: "",
     };
@@ -848,7 +863,7 @@ function sendSseEvent(res, event, data) {
     res.flush();
   }
 }
-function buildConversationMessages(history, message, detailedMode, membershipContext, toolSummary, memoryContext, toolSources = [], characterProfile = CHARACTER_PROFILES["luna-classic"]) {
+function buildConversationMessages(history, message, detailedMode, membershipContext, toolSummary, memoryContext, toolSources = [], characterProfile = DEFAULT_CHARACTER_PROFILE) {
   const safeHistory = Array.isArray(history) ? history : [];
   const systemMessages = [
     { role: "system", content: LUNA_SYSTEM_PROMPT },
@@ -2130,6 +2145,34 @@ app.post("/api/history", async (req, res) => {
   }
 });
 
+app.get("/api/characters", async (req, res) => {
+  try {
+    const auth = await requireAuthenticatedUser(req, res);
+    if (!auth) return;
+
+    const lunaSettings = await getLunaSettings();
+    const userContext = { userId: auth.userId, user: auth.user, token: auth.token };
+    const membershipContext = await resolveMembershipContext(userContext, lunaSettings);
+    const characters = normalizeCharacterCatalog(lunaSettings.characters)
+      .filter((item) => item.active !== false)
+      .map((item) => ({
+        ...item,
+        locked: item.access === "pro" && membershipContext.plan !== "pro",
+      }));
+
+    return res.json({
+      characters,
+      membership: {
+        plan: membershipContext.plan,
+        activatedAt: membershipContext.membership?.activatedAt || "",
+      },
+    });
+  } catch (error) {
+    const n = extractProviderError(error);
+    return res.status(500).json({ error: n.providerMessage });
+  }
+});
+
 app.delete("/api/history/:conversationId", async (req, res) => {
   try {
     const { userId } = await resolveRequestUser(req, res);
@@ -2193,11 +2236,16 @@ app.post("/api/luna/stream", async (req, res) => {
     const membershipContext = await resolveMembershipContext(userContext, lunaSettings);
     const usageBefore = await enforceDailyLimitOrThrow(userContext, membershipContext);
     const webSearchMode = Boolean(req.body?.webSearchMode);
-    const characterProfile = resolveCharacterProfile(req.body?.characterId);
     const researchModeRequested = Boolean(req.body?.researchMode);
     const researchMode = membershipContext.plan === "pro" && researchModeRequested;
     const researchWarning = researchModeRequested && !researchMode
       ? "Research mode is available on Luna Pro only."
+      : "";
+    const availableCharacters = getAvailableCharacterCatalog(lunaSettings.characters, membershipContext);
+    const requestedCharacter = resolveCharacterProfile(req.body?.characterId, lunaSettings.characters);
+    const characterProfile = availableCharacters.find((item) => item.id === requestedCharacter.id) || availableCharacters[0] || DEFAULT_CHARACTER_PROFILE;
+    const characterWarning = requestedCharacter.id !== characterProfile.id
+      ? `${requestedCharacter.name} is available on Luna Pro only. Switched to ${characterProfile.name}.`
       : "";
 
     const conversation = await ensureConversation(requestedConversationId, userContext.userId);
@@ -2235,7 +2283,7 @@ app.post("/api/luna/stream", async (req, res) => {
       : prioritizeProviderOrder(selectedOrder, membershipContext, { researchMode });
 
     let llm = "";
-    let warning = researchWarning;
+    let warning = [researchWarning, characterWarning].filter(Boolean).join(" | ");
     let details = null;
 
     try {
@@ -2260,7 +2308,7 @@ app.post("/api/luna/stream", async (req, res) => {
         };
       } catch (providerErr) {
         const normalized = extractProviderError(providerErr);
-        warning = [researchWarning, normalized.providerMessage].filter(Boolean).join(" | ");
+        warning = [researchWarning, characterWarning, normalized.providerMessage].filter(Boolean).join(" | ");
         recordProviderAttempts(providerErr?.responseData?.attempts || [], "", "stream");
         details = normalized.responseData || {
           category: classification.label,
@@ -2372,11 +2420,16 @@ app.post("/api/luna", async (req, res) => {
     const membershipContext = await resolveMembershipContext(userContext, lunaSettings);
     const usageBefore = await enforceDailyLimitOrThrow(userContext, membershipContext);
     const webSearchMode = Boolean(req.body?.webSearchMode);
-    const characterProfile = resolveCharacterProfile(req.body?.characterId);
     const researchModeRequested = Boolean(req.body?.researchMode);
     const researchMode = membershipContext.plan === "pro" && researchModeRequested;
     const researchWarning = researchModeRequested && !researchMode
       ? "Research mode is available on Luna Pro only."
+      : "";
+    const availableCharacters = getAvailableCharacterCatalog(lunaSettings.characters, membershipContext);
+    const requestedCharacter = resolveCharacterProfile(req.body?.characterId, lunaSettings.characters);
+    const characterProfile = availableCharacters.find((item) => item.id === requestedCharacter.id) || availableCharacters[0] || DEFAULT_CHARACTER_PROFILE;
+    const characterWarning = requestedCharacter.id !== characterProfile.id
+      ? `${requestedCharacter.name} is available on Luna Pro only. Switched to ${characterProfile.name}.`
       : "";
 
     const conversation = await ensureConversation(requestedConversationId, userContext.userId);
@@ -2415,7 +2468,7 @@ app.post("/api/luna", async (req, res) => {
 
     let reply = "";
     let llm = "";
-    let warning = researchWarning;
+    let warning = [researchWarning, characterWarning].filter(Boolean).join(" | ");
     let details = null;
 
     try {
@@ -2439,7 +2492,7 @@ app.post("/api/luna", async (req, res) => {
         };
       } catch (providerErr) {
         const normalized = extractProviderError(providerErr);
-        warning = [researchWarning, normalized.providerMessage].filter(Boolean).join(" | ");
+        warning = [researchWarning, characterWarning, normalized.providerMessage].filter(Boolean).join(" | ");
         recordProviderAttempts(providerErr?.responseData?.attempts || [], "", "chat");
         details = normalized.responseData || {
           category: classification.label,
@@ -2751,6 +2804,97 @@ app.post("/api/admin/settings/pro-prompt", async (req, res) => {
     );
 
     return res.json({ ok: true, settings });
+  } catch (error) {
+    const n = extractProviderError(error);
+    return res.status(error.status || n.status || 400).json({ error: error.message || n.providerMessage });
+  }
+});
+
+app.get("/api/admin/characters", async (req, res) => {
+  try {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+    const settings = await getAdminSettings({
+      defaultMonthlyPriceInr: DEFAULT_PRO_MONTHLY_PRICE_INR,
+      defaultUpiId: DEFAULT_UPI_ID,
+    });
+    const characters = normalizeCharacterCatalog(settings?.characters);
+    return res.json({ characters });
+  } catch (error) {
+    const n = extractProviderError(error);
+    return res.status(500).json({ error: error.message || n.providerMessage });
+  }
+});
+
+app.post("/api/admin/characters", async (req, res) => {
+  try {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+    const character = await upsertCharacter(
+      {
+        name: req.body?.name,
+        tagline: req.body?.tagline,
+        description: req.body?.description,
+        imageUrl: req.body?.imageUrl,
+        prompt: req.body?.prompt,
+        access: req.body?.access,
+        active: req.body?.active,
+        sortOrder: req.body?.sortOrder,
+        adminUserId: admin.user.id,
+      },
+      {
+        defaultMonthlyPriceInr: DEFAULT_PRO_MONTHLY_PRICE_INR,
+        defaultUpiId: DEFAULT_UPI_ID,
+      },
+    );
+    return res.json({ ok: true, character });
+  } catch (error) {
+    const n = extractProviderError(error);
+    return res.status(error.status || n.status || 400).json({ error: error.message || n.providerMessage });
+  }
+});
+
+app.patch("/api/admin/characters/:id", async (req, res) => {
+  try {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+    const character = await updateCharacter(
+      {
+        id: req.params.id,
+        name: req.body?.name,
+        tagline: req.body?.tagline,
+        description: req.body?.description,
+        imageUrl: req.body?.imageUrl,
+        prompt: req.body?.prompt,
+        access: req.body?.access,
+        active: req.body?.active,
+        sortOrder: req.body?.sortOrder,
+        adminUserId: admin.user.id,
+      },
+      {
+        defaultMonthlyPriceInr: DEFAULT_PRO_MONTHLY_PRICE_INR,
+        defaultUpiId: DEFAULT_UPI_ID,
+      },
+    );
+    return res.json({ ok: true, character });
+  } catch (error) {
+    const n = extractProviderError(error);
+    return res.status(error.status || n.status || 400).json({ error: error.message || n.providerMessage });
+  }
+});
+
+app.delete("/api/admin/characters/:id", async (req, res) => {
+  try {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+    await removeCharacter(
+      { id: req.params.id, adminUserId: admin.user.id },
+      {
+        defaultMonthlyPriceInr: DEFAULT_PRO_MONTHLY_PRICE_INR,
+        defaultUpiId: DEFAULT_UPI_ID,
+      },
+    );
+    return res.json({ ok: true });
   } catch (error) {
     const n = extractProviderError(error);
     return res.status(error.status || n.status || 400).json({ error: error.message || n.providerMessage });

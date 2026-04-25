@@ -161,14 +161,37 @@ function formatHistoryTime(value) {
   }).format(date);
 }
 
-function normalizeCharacterId(value) {
+function normalizeCharacterId(value, options = CHARACTER_OPTIONS) {
   const normalized = text(value).toLowerCase();
-  return CHARACTER_OPTIONS.some((item) => item.id === normalized) ? normalized : CHARACTER_OPTIONS[0].id;
+  if (!normalized) return options[0]?.id || CHARACTER_OPTIONS[0].id;
+  return options.some((item) => item.id === normalized) ? normalized : normalized;
 }
 
-function getCharacterOption(value) {
-  const id = normalizeCharacterId(value);
-  return CHARACTER_OPTIONS.find((item) => item.id === id) || CHARACTER_OPTIONS[0];
+function getCharacterOption(value, options = CHARACTER_OPTIONS) {
+  const id = normalizeCharacterId(value, options);
+  return options.find((item) => item.id === id) || options[0] || CHARACTER_OPTIONS[0];
+}
+
+function hydrateCharacterOptions(rawList) {
+  if (!Array.isArray(rawList) || rawList.length === 0) return CHARACTER_OPTIONS;
+
+  return rawList
+    .map((item, index) => {
+      const fallback = CHARACTER_OPTIONS[index % CHARACTER_OPTIONS.length];
+      const id = text(item?.id) || fallback.id;
+      return {
+        id,
+        name: text(item?.name) || fallback.name,
+        tagline: text(item?.tagline) || fallback.tagline,
+        description: text(item?.description) || fallback.description,
+        portrait: text(item?.imageUrl) || fallback.portrait,
+        accent: fallback.accent,
+        access: text(item?.access) === "pro" ? "pro" : "free",
+        active: item?.active !== false,
+        locked: Boolean(item?.locked),
+      };
+    })
+    .filter((item) => item.active !== false);
 }
 
 function sanitizeMessage(raw) {
@@ -210,7 +233,7 @@ function createSession(projectId = "", characterId = CHARACTER_OPTIONS[0].id) {
     createdAt: nowIso(),
     updatedAt: nowIso(),
     projectId: text(projectId),
-    characterId: normalizeCharacterId(characterId),
+    characterId: normalizeCharacterId(characterId, CHARACTER_OPTIONS),
     backendConversationId: "",
   };
 }
@@ -250,7 +273,7 @@ function mapConversationSummaryToSession(summary, projectId = "") {
     createdAt,
     updatedAt,
     projectId: text(projectId),
-    characterId: normalizeCharacterId(summary?.characterId),
+    characterId: normalizeCharacterId(summary?.characterId, CHARACTER_OPTIONS),
     backendConversationId: id,
   };
 }
@@ -467,23 +490,24 @@ function MessageBubble({
   );
 }
 
-function CharacterCards({ selectedCharacterId, onSelect, compact = false }) {
+function CharacterCards({ options = CHARACTER_OPTIONS, selectedCharacterId, onSelect, compact = false, isPro = false }) {
   return (
-    <div className={`grid gap-3 ${compact ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1 xl:grid-cols-4 md:grid-cols-2"}`}>
-      {CHARACTER_OPTIONS.map((character) => {
-        const active = character.id === normalizeCharacterId(selectedCharacterId);
+    <div className={`luna-scrollbar flex gap-3 overflow-x-auto pb-1 ${compact ? "" : ""}`}>
+      {options.map((character) => {
+        const active = character.id === normalizeCharacterId(selectedCharacterId, options);
+        const locked = character.access === "pro" && !isPro;
         return (
           <motion.button
             key={character.id}
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.985 }}
             type="button"
-            onClick={() => onSelect(character.id)}
-            className={`group relative overflow-hidden rounded-[26px] border text-left transition ${
+            onClick={() => onSelect(character)}
+            className={`group relative min-w-[272px] overflow-hidden rounded-[26px] border text-left transition ${
               active
                 ? "border-[#7fc7ba]/80 bg-[#102126] shadow-[0_16px_40px_rgba(18,49,56,0.35)]"
                 : "border-[#1f3135] bg-[#0b1518] hover:border-[#35545b] hover:bg-[#0e1b1f]"
-            }`}
+            } ${locked ? "opacity-80" : ""}`}
           >
             <div className={`absolute inset-x-0 top-0 h-24 bg-gradient-to-br ${character.accent} opacity-90`} />
             <div className="relative flex items-start gap-3 p-3">
@@ -500,10 +524,19 @@ function CharacterCards({ selectedCharacterId, onSelect, compact = false }) {
                       {character.name}
                     </h3>
                   </div>
-                  <span className={`mt-0.5 h-2.5 w-2.5 rounded-full ${active ? "bg-[#7fc7ba]" : "bg-[#3a4d4d]"}`} />
+                  <span className={`mt-0.5 rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-[0.14em] ${
+                    locked
+                      ? "border-[#6f5624] bg-[#2d2413] text-[#f0d79b]"
+                      : active
+                        ? "border-[#4f7c75] bg-[#102126] text-[#dff7f1]"
+                        : "border-[#294147] bg-[#102126] text-[#84a7a0]"
+                  }`}>
+                    {locked ? "Pro" : character.access === "pro" ? "Pro" : "Free"}
+                  </span>
                 </div>
                 <p className="mt-2 text-xs font-medium text-[#d9ece7]">{character.tagline}</p>
                 <p className="mt-1 text-xs leading-5 text-[#8ba39f]">{character.description}</p>
+                {locked ? <p className="mt-2 text-[11px] text-[#f0d79b]">Upgrade to unlock this character.</p> : null}
               </div>
             </div>
           </motion.button>
@@ -771,6 +804,7 @@ export default function Luna() {
   const [searchQuery, setSearchQuery] = useState("");
   const [voiceActive, setVoiceActive] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const [characterOptions, setCharacterOptions] = useState(CHARACTER_OPTIONS);
   const [webSearchMode, setWebSearchMode] = useState(false);
   const [researchMode, setResearchMode] = useState(false);
   const [imageMode, setImageMode] = useState(false);
@@ -816,8 +850,8 @@ export default function Luna() {
     return direct || sortedSessions[0] || null;
   }, [activeSessionId, sessions, sortedSessions]);
   const activeCharacter = useMemo(
-    () => getCharacterOption(activeSession?.characterId),
-    [activeSession?.characterId],
+    () => getCharacterOption(activeSession?.characterId, characterOptions),
+    [activeSession?.characterId, characterOptions],
   );
 
   const activeMessages = useMemo(
@@ -962,11 +996,15 @@ export default function Luna() {
     );
   }, []);
 
-  const handleSelectCharacter = useCallback((characterId) => {
-    const nextCharacterId = normalizeCharacterId(characterId);
+  const handleSelectCharacter = useCallback((character) => {
+    const nextCharacterId = normalizeCharacterId(character?.id, characterOptions);
     const targetId = activeSession?.id;
     if (!targetId) return;
     const conversationId = text(activeSession?.backendConversationId || activeSession?.id);
+    if (character?.access === "pro" && membershipPlan !== "pro") {
+      showErrorToast(`${character.name} is available on Luna Pro only.`);
+      return;
+    }
 
     updateSession(targetId, (session) => ({
       ...session,
@@ -985,7 +1023,7 @@ export default function Luna() {
         { includeAuth: true, includeGuest: false },
       ).catch(() => null);
     }
-  }, [activeSession?.backendConversationId, activeSession?.id, isSignedIn, updateSession]);
+  }, [activeSession?.backendConversationId, activeSession?.id, characterOptions, isSignedIn, membershipPlan, showErrorToast, updateSession]);
 
   const showErrorToast = useCallback((message, retryPayload = null) => {
     setLastRetryPayload(retryPayload);
@@ -1250,6 +1288,28 @@ export default function Luna() {
       canceled = true;
     };
   }, [defaultProjects, isSignedIn, projects, showErrorToast, user?.email]);
+
+  useEffect(() => {
+    let canceled = false;
+
+    const loadCharacters = async () => {
+      if (!isSignedIn) {
+        setCharacterOptions(CHARACTER_OPTIONS);
+        return;
+      }
+
+      const result = await fetchApi("/api/characters", {}, { includeAuth: true, includeGuest: false });
+      if (canceled || !result.ok) return;
+
+      setCharacterOptions(hydrateCharacterOptions(result.data?.characters));
+      setMembershipPlan(result.data?.membership?.plan === "pro" ? "pro" : "free");
+    };
+
+    loadCharacters();
+    return () => {
+      canceled = true;
+    };
+  }, [isSignedIn]);
 
   const createFreshSession = useCallback(
     (projectId = "") => {
@@ -2455,8 +2515,10 @@ export default function Luna() {
                         </div>
                         <CharacterCards
                           compact
+                          options={characterOptions}
                           selectedCharacterId={activeSession?.characterId}
                           onSelect={handleSelectCharacter}
+                          isPro={membershipPlan === "pro"}
                         />
                       </div>
                       <Composer
@@ -2574,8 +2636,10 @@ export default function Luna() {
                         <span className="text-xs text-[#d7e8e5]">Current: {activeCharacter.name}</span>
                       </div>
                       <CharacterCards
+                        options={characterOptions}
                         selectedCharacterId={activeSession?.characterId}
                         onSelect={handleSelectCharacter}
+                        isPro={membershipPlan === "pro"}
                       />
                     </div>
                     {activeMessages.map((message) => (

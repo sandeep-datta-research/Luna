@@ -113,6 +113,41 @@ function sanitizeAnnouncements(rawList) {
   return rawList.map(sanitizeAnnouncement).filter(Boolean);
 }
 
+function normalizeCharacterAccess(value) {
+  const raw = normalizeText(value).toLowerCase();
+  return raw === "pro" ? "pro" : "free";
+}
+
+function sanitizeCharacter(raw) {
+  const name = normalizeText(raw?.name).slice(0, 60);
+  const prompt = normalizeText(raw?.prompt).slice(0, 5000);
+  if (!name || !prompt) return null;
+
+  return {
+    id: normalizeText(raw?.id) || `char-${randomUUID()}`,
+    name,
+    tagline: normalizeText(raw?.tagline).slice(0, 80),
+    description: normalizeText(raw?.description).slice(0, 220),
+    imageUrl: normalizeText(raw?.imageUrl).slice(0, 2_000_000),
+    prompt,
+    access: normalizeCharacterAccess(raw?.access),
+    active: raw?.active !== false,
+    sortOrder: Number.isFinite(Number(raw?.sortOrder)) ? Number(raw.sortOrder) : 0,
+    createdAt: normalizeText(raw?.createdAt) || nowIso(),
+    createdBy: normalizeText(raw?.createdBy),
+    updatedAt: normalizeText(raw?.updatedAt) || nowIso(),
+    updatedBy: normalizeText(raw?.updatedBy),
+  };
+}
+
+function sanitizeCharacters(rawList) {
+  if (!Array.isArray(rawList)) return [];
+  return rawList
+    .map((item) => sanitizeCharacter(item))
+    .filter(Boolean)
+    .sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0) || a.name.localeCompare(b.name));
+}
+
 function sanitizeSettings(raw, defaults) {
   return {
     proMonthlyPriceInr: toPositiveAmount(raw?.proMonthlyPriceInr, defaults.defaultMonthlyPriceInr),
@@ -120,6 +155,7 @@ function sanitizeSettings(raw, defaults) {
     upiId: normalizeText(raw?.upiId) || defaults.defaultUpiId,
     referralCodes: sanitizeReferralCodes(raw?.referralCodes, defaults),
     announcements: sanitizeAnnouncements(raw?.announcements),
+    characters: sanitizeCharacters(raw?.characters),
     updatedAt: normalizeText(raw?.updatedAt),
     updatedBy: normalizeText(raw?.updatedBy),
   };
@@ -209,6 +245,115 @@ export async function updateProSystemPrompt({ proSystemPrompt, adminUserId = "" 
     db.settings.updatedAt = nowIso();
     db.settings.updatedBy = normalizeText(adminUserId);
     return clone(db.settings);
+  });
+}
+
+export async function listCharacters(overrides = {}) {
+  const settings = await getAdminSettings(overrides);
+  return Array.isArray(settings?.characters) ? clone(settings.characters) : [];
+}
+
+export async function listActiveCharacters(overrides = {}) {
+  const items = await listCharacters(overrides);
+  return items.filter((item) => item.active !== false);
+}
+
+export async function upsertCharacter(
+  { id = "", name, tagline, description, imageUrl, prompt, access = "free", active = true, sortOrder = 0, adminUserId = "" },
+  overrides = {},
+) {
+  const defaults = getDefaults(overrides);
+
+  return mutate(defaults, (db) => {
+    const now = nowIso();
+    const list = Array.isArray(db.settings.characters) ? db.settings.characters : [];
+    const safeId = normalizeText(id);
+    const incoming = sanitizeCharacter({
+      id: safeId || `char-${randomUUID()}`,
+      name,
+      tagline,
+      description,
+      imageUrl,
+      prompt,
+      access,
+      active,
+      sortOrder,
+      createdAt: now,
+      createdBy: normalizeText(adminUserId),
+      updatedAt: now,
+      updatedBy: normalizeText(adminUserId),
+    });
+
+    if (!incoming) throw new Error("Character name and prompt are required");
+
+    const existingIndex = list.findIndex((item) => item.id === incoming.id);
+    if (existingIndex >= 0) {
+      list[existingIndex] = {
+        ...list[existingIndex],
+        ...incoming,
+        createdAt: list[existingIndex].createdAt || now,
+        createdBy: list[existingIndex].createdBy || normalizeText(adminUserId),
+        updatedAt: now,
+        updatedBy: normalizeText(adminUserId),
+      };
+    } else {
+      list.push(incoming);
+    }
+
+    db.settings.characters = sanitizeCharacters(list);
+    db.settings.updatedAt = now;
+    db.settings.updatedBy = normalizeText(adminUserId);
+    return clone(incoming);
+  });
+}
+
+export async function updateCharacter(
+  { id, name, tagline, description, imageUrl, prompt, access, active, sortOrder, adminUserId = "" },
+  overrides = {},
+) {
+  const defaults = getDefaults(overrides);
+  const safeId = normalizeText(id);
+  if (!safeId) throw new Error("Character id is required");
+
+  return mutate(defaults, (db) => {
+    const list = Array.isArray(db.settings.characters) ? db.settings.characters : [];
+    const existing = list.find((item) => item.id === safeId);
+    if (!existing) throw new Error("Character not found");
+
+    const now = nowIso();
+    if (name !== undefined) existing.name = normalizeText(name).slice(0, 60);
+    if (tagline !== undefined) existing.tagline = normalizeText(tagline).slice(0, 80);
+    if (description !== undefined) existing.description = normalizeText(description).slice(0, 220);
+    if (imageUrl !== undefined) existing.imageUrl = normalizeText(imageUrl).slice(0, 2_000_000);
+    if (prompt !== undefined) existing.prompt = normalizeText(prompt).slice(0, 5000);
+    if (access !== undefined) existing.access = normalizeCharacterAccess(access);
+    if (active !== undefined) existing.active = Boolean(active);
+    if (sortOrder !== undefined) existing.sortOrder = Number.isFinite(Number(sortOrder)) ? Number(sortOrder) : existing.sortOrder;
+    if (!existing.name || !existing.prompt) throw new Error("Character name and prompt are required");
+
+    existing.updatedAt = now;
+    existing.updatedBy = normalizeText(adminUserId);
+    db.settings.characters = sanitizeCharacters(list);
+    db.settings.updatedAt = now;
+    db.settings.updatedBy = normalizeText(adminUserId);
+    return clone(existing);
+  });
+}
+
+export async function removeCharacter({ id, adminUserId = "" }, overrides = {}) {
+  const defaults = getDefaults(overrides);
+  const safeId = normalizeText(id);
+  if (!safeId) throw new Error("Character id is required");
+
+  return mutate(defaults, (db) => {
+    const list = Array.isArray(db.settings.characters) ? db.settings.characters : [];
+    const nextList = list.filter((item) => item.id !== safeId);
+    if (nextList.length === list.length) throw new Error("Character not found");
+
+    db.settings.characters = sanitizeCharacters(nextList);
+    db.settings.updatedAt = nowIso();
+    db.settings.updatedBy = normalizeText(adminUserId);
+    return true;
   });
 }
 
