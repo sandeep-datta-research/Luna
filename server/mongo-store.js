@@ -248,12 +248,12 @@ export function createMongoStore() {
         { googleSub: 1 },
         {
           unique: true,
-          partialFilterExpression: { googleSub: { $type: "string", $ne: "" } },
+          partialFilterExpression: { googleSub: { $gt: "" } },
         },
       ),
       users().createIndex(
         { email: 1 },
-        { unique: true, partialFilterExpression: { email: { $type: "string", $ne: "" } } },
+        { unique: true, partialFilterExpression: { email: { $gt: "" } } },
       ),
       users().createIndex({ lastLoginAt: -1 }),
     ]);
