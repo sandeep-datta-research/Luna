@@ -79,6 +79,10 @@ const STOPWORDS = new Set([
 
 const MAX_SNIPPET = 900;
 
+function escapeRegExp(value) {
+  return `${value || ""}`.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 function truncateText(value, max = MAX_SNIPPET) {
   const text = typeof value === "string" ? value : "";
   if (text.length <= max) return text;
@@ -502,6 +506,119 @@ function stripXmlTags(value) {
   return decodeXmlEntities(value).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 }
 
+function stripHtmlTags(value) {
+  return decodeXmlEntities(`${value || ""}`)
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function decodeSearchRedirect(url) {
+  const raw = `${url || ""}`.trim();
+  if (!raw) return "";
+
+  try {
+    const parsed = new URL(raw, "https://duckduckgo.com");
+    const direct = parsed.searchParams.get("uddg");
+    return direct ? decodeURIComponent(direct) : parsed.toString();
+  } catch {
+    return raw;
+  }
+}
+
+function getSourceLabel(url) {
+  try {
+    const hostname = new URL(url).hostname.replace(/^www\./i, "");
+    return hostname || "web";
+  } catch {
+    return "web";
+  }
+}
+
+function parseDuckDuckGoResults(html, limit = 5) {
+  const source = `${html || ""}`;
+  if (!source) return [];
+
+  const blocks = [...source.matchAll(/<a[^>]+class="[^"]*result__a[^"]*"[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi)];
+  const results = [];
+
+  for (const match of blocks) {
+    const link = decodeSearchRedirect(match[1] || "");
+    const title = stripHtmlTags(match[2] || "");
+    if (!link || !title) continue;
+    if (results.some((item) => item.link === link)) continue;
+
+    const linkPattern = escapeRegExp(match[1] || "");
+    const snippetMatch = source.match(
+      new RegExp(`${linkPattern}[\\s\\S]{0,1200}?<a[\\s\\S]*?<\\/a>[\\s\\S]{0,1200}?(?:result__snippet|result-snippet)[^>]*>([\\s\\S]*?)<\\/`, "i"),
+    );
+    const snippet = truncateText(stripHtmlTags(snippetMatch?.[1] || ""), 240);
+
+    results.push({
+      title,
+      link,
+      snippet,
+      source: getSourceLabel(link),
+    });
+
+    if (results.length >= limit) break;
+  }
+
+  return results;
+}
+
+async function searchWeb(query, limit = 5) {
+  const normalizedQuery = normalizeText(query);
+  if (!normalizedQuery) {
+    throw new Error("Search query is empty.");
+  }
+
+  const serperApiKey = (process.env.SERPER_API_KEY || "").trim();
+  if (serperApiKey) {
+    const response = await axios.post(
+      "https://google.serper.dev/search",
+      { q: normalizedQuery },
+      {
+        headers: {
+          "X-API-KEY": serperApiKey,
+          "Content-Type": "application/json",
+        },
+        timeout: 10000,
+      },
+    );
+
+    const items = Array.isArray(response.data?.organic) ? response.data.organic.slice(0, limit) : [];
+    return {
+      provider: "serper",
+      results: items.map((item) => {
+        const link = item.link || "";
+        return {
+          title: item.title || "Untitled",
+          link,
+          snippet: truncateText(item.snippet || "", 240),
+          source: getSourceLabel(link),
+        };
+      }),
+    };
+  }
+
+  const response = await axios.get("https://duckduckgo.com/html/", {
+    params: { q: normalizedQuery },
+    timeout: 10000,
+    responseType: "text",
+    headers: {
+      "User-Agent": "Mozilla/5.0",
+    },
+  });
+
+  return {
+    provider: "duckduckgo",
+    results: parseDuckDuckGoResults(response.data, limit),
+  };
+}
+
 function parseRssItems(xml, limit = 5) {
   const source = `${xml || ""}`;
   const items = [...source.matchAll(/<item>([\s\S]*?)<\/item>/gi)].slice(0, limit);
@@ -570,8 +687,14 @@ function formatToolResult(result) {
       ].filter(Boolean).join("\n");
     case TOOL_NAMES.WEB_SEARCH:
       return [
-        "Web search results:",
-        ...result.output.results.map((item, index) => `${index + 1}. ${item.title} � ${item.link}`),
+        `Web search results${result.output.provider ? ` (${result.output.provider})` : ""}:`,
+        ...result.output.results.map((item, index) =>
+          [
+            `${index + 1}. ${item.title} (${item.source || "web"})`,
+            item.snippet ? `   ${item.snippet}` : "",
+            `   Source: ${item.link}`,
+          ].filter(Boolean).join("\n"),
+        ),
       ].join("\n");
     case TOOL_NAMES.NEWS:
       return [
@@ -597,11 +720,60 @@ function formatToolResult(result) {
   }
 }
 
+function normalizeSourceEntry(source, index = 0) {
+  const link = `${source?.link || source?.url || ""}`.trim();
+  if (!link) return null;
+
+  return {
+    id: `${source?.id || `src-${index + 1}`}`.trim(),
+    title: `${source?.title || source?.label || "Untitled source"}`.trim(),
+    link,
+    source: `${source?.source || getSourceLabel(link) || "web"}`.trim(),
+    snippet: truncateText(`${source?.snippet || source?.summary || ""}`.trim(), 240),
+  };
+}
+
+export function extractToolSources(results) {
+  if (!Array.isArray(results) || results.length === 0) return [];
+
+  const collected = [];
+  const seen = new Set();
+
+  for (const result of results) {
+    if (!result?.ok || !result.output) continue;
+
+    if (result.tool === TOOL_NAMES.WEB_SEARCH || result.tool === TOOL_NAMES.NEWS) {
+      const items = Array.isArray(result.output.results) ? result.output.results : [];
+      for (const item of items) {
+        const source = normalizeSourceEntry(item, collected.length);
+        if (!source || seen.has(source.link)) continue;
+        seen.add(source.link);
+        collected.push(source);
+      }
+    }
+
+    if (result.tool === TOOL_NAMES.KNOWLEDGE_LOOKUP) {
+      const source = normalizeSourceEntry({
+        title: result.output.title,
+        link: result.output.url,
+        source: "wikipedia.org",
+        snippet: result.output.summary,
+      }, collected.length);
+      if (!source || seen.has(source.link)) continue;
+      seen.add(source.link);
+      collected.push(source);
+    }
+  }
+
+  return collected.slice(0, 8).map((item, index) => ({ ...item, id: `src-${index + 1}` }));
+}
+
 export function planToolCalls(message, options = {}) {
   const calls = [];
   const raw = normalizeText(message);
   if (!raw) return calls;
   const researchMode = Boolean(options?.researchMode);
+  const webSearchMode = Boolean(options?.webSearchMode);
 
   if (shouldUseCalculator(raw)) {
     const expression = extractExpression(raw);
@@ -676,6 +848,10 @@ export function planToolCalls(message, options = {}) {
     if (!calls.find((item) => item.tool === TOOL_NAMES.NEWS)) {
       calls.push({ tool: TOOL_NAMES.NEWS, input: { query } });
     }
+  }
+
+  if (webSearchMode && !calls.find((item) => item.tool === TOOL_NAMES.WEB_SEARCH)) {
+    calls.push({ tool: TOOL_NAMES.WEB_SEARCH, input: { query: raw } });
   }
 
   return calls.slice(0, 3);
@@ -776,39 +952,16 @@ export async function executeToolCalls(toolCalls) {
           break;
         }
         case TOOL_NAMES.WEB_SEARCH: {
-          const apiKey = (process.env.SERPER_API_KEY || "").trim();
-          if (!apiKey) {
-            results.push({ tool: TOOL_NAMES.WEB_SEARCH, ok: false, input: call.input, output: null, error: "SERPER_API_KEY is not configured." });
-            break;
-          }
-          if (!call.input?.query) {
-            results.push({ tool: TOOL_NAMES.WEB_SEARCH, ok: false, input: call.input, output: null, error: "Search query is empty." });
-            break;
-          }
-          const response = await axios.post(
-            "https://google.serper.dev/search",
-            { q: call.input?.query || "" },
-            {
-              headers: {
-                "X-API-KEY": apiKey,
-                "Content-Type": "application/json",
-              },
-              timeout: 10000,
-            },
-          );
-          const items = Array.isArray(response.data?.organic) ? response.data.organic.slice(0, 5) : [];
+          const search = await searchWeb(call.input?.query || "", 5);
           results.push({
             tool: TOOL_NAMES.WEB_SEARCH,
-            ok: true,
+            ok: search.results.length > 0,
             input: call.input,
             output: {
-              results: items.map((item) => ({
-                title: item.title || "Untitled",
-                link: item.link || "",
-                snippet: item.snippet || "",
-              })),
+              provider: search.provider,
+              results: search.results,
             },
-            error: null,
+            error: search.results.length > 0 ? null : "No web search results found.",
           });
           break;
         }
@@ -924,9 +1077,22 @@ export function formatToolResults(results) {
   return blocks.join("\n\n");
 }
 
-export function buildToolSystemPrompt(toolSummary) {
+export function buildToolSystemPrompt(toolSummary, sources = []) {
   if (!toolSummary) return "";
-  return `Tool results are available. Use them to answer the user.\n\n${toolSummary}`;
+
+  const sourceBlock = Array.isArray(sources) && sources.length > 0
+    ? [
+        "When you use the source-backed tool results, cite them inline using [1], [2], etc.",
+        "Available sources:",
+        ...sources.map((item, index) => `[${index + 1}] ${item.title} - ${item.link}`),
+      ].join("\n")
+    : "";
+
+  return [
+    "Tool results are available. Use them to answer the user.",
+    sourceBlock,
+    toolSummary,
+  ].filter(Boolean).join("\n\n");
 }
 
 export { TOOL_NAMES };

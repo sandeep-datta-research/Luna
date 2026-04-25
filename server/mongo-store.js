@@ -32,6 +32,26 @@ function normalizeUserId(userId) {
   return safe || "guest";
 }
 
+function sanitizeSources(raw) {
+  if (!Array.isArray(raw)) return [];
+
+  return raw
+    .map((item, index) => {
+      const link = normalizeText(item?.link || item?.url);
+      if (!link) return null;
+
+      return {
+        id: normalizeText(item?.id) || `src-${index + 1}`,
+        title: normalizeText(item?.title) || "Untitled source",
+        link,
+        source: normalizeText(item?.source) || "",
+        snippet: normalizeText(item?.snippet || item?.summary),
+      };
+    })
+    .filter(Boolean)
+    .slice(0, 8);
+}
+
 function createId(prefix) {
   return `${prefix}-${randomUUID()}`;
 }
@@ -67,6 +87,7 @@ function sanitizeMessage(raw) {
     role,
     text,
     llm: typeof raw?.llm === "string" ? raw.llm : undefined,
+    sources: sanitizeSources(raw?.sources),
     createdAt: toIso(raw?.createdAt),
   };
 }
@@ -1006,6 +1027,7 @@ export function createMongoStore() {
     conversationId,
     userText,
     assistantText,
+    assistantSources = [],
     llm,
     userId = "guest",
   }) {
@@ -1039,6 +1061,7 @@ export function createMongoStore() {
         role: "assistant",
         text: safeAssistantText,
         llm: typeof llm === "string" ? llm : undefined,
+        sources: sanitizeSources(assistantSources),
         createdAt: nowIso(),
       });
     }

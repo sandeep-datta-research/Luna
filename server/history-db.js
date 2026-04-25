@@ -34,6 +34,26 @@ function normalizeUserId(userId) {
   return normalized || "guest";
 }
 
+function sanitizeSources(raw) {
+  if (!Array.isArray(raw)) return [];
+
+  return raw
+    .map((item, index) => {
+      const link = normalizeText(item?.link || item?.url);
+      if (!link) return null;
+
+      return {
+        id: normalizeText(item?.id) || `src-${index + 1}`,
+        title: normalizeText(item?.title) || "Untitled source",
+        link,
+        source: normalizeText(item?.source) || "",
+        snippet: normalizeText(item?.snippet || item?.summary),
+      };
+    })
+    .filter(Boolean)
+    .slice(0, 8);
+}
+
 function deriveTitle(messages) {
   const firstUserMessage = (messages || []).find(
     (item) => item.role === "user" && typeof item.text === "string" && item.text.trim().length > 0,
@@ -64,6 +84,7 @@ function sanitizeMessage(raw) {
     role,
     text,
     llm: typeof raw?.llm === "string" ? raw.llm : undefined,
+    sources: sanitizeSources(raw?.sources),
     createdAt: typeof raw?.createdAt === "string" ? raw.createdAt : nowIso(),
   };
 }
@@ -232,6 +253,7 @@ export async function saveConversationTurn({
   conversationId,
   userText,
   assistantText,
+  assistantSources = [],
   llm,
   userId = "guest",
 }) {
@@ -272,6 +294,7 @@ export async function saveConversationTurn({
         role: "assistant",
         text: safeAssistantText,
         llm: typeof llm === "string" ? llm : undefined,
+        sources: sanitizeSources(assistantSources),
         createdAt: nowIso(),
       });
     }

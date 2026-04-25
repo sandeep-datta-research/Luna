@@ -127,12 +127,29 @@ function sanitizeMessage(raw) {
   const content = text(raw?.content || raw?.text);
   if (!content) return null;
 
+  const sources = Array.isArray(raw?.sources)
+    ? raw.sources
+      .map((item, index) => {
+        const link = text(item?.link || item?.url);
+        if (!link) return null;
+        return {
+          id: text(item?.id) || `src-${index + 1}`,
+          title: text(item?.title) || "Untitled source",
+          link,
+          source: text(item?.source),
+          snippet: text(item?.snippet || item?.summary),
+        };
+      })
+      .filter(Boolean)
+    : [];
+
   return {
     id: text(raw?.id) || createId(role),
     role,
     content,
     createdAt: text(raw?.createdAt) || nowIso(),
     llm: text(raw?.llm),
+    sources,
   };
 }
 
@@ -314,6 +331,7 @@ function MessageBubble({
   onRegenerate,
 }) {
   const isUser = message.role === "user";
+  const sources = Array.isArray(message.sources) ? message.sources : [];
 
   return (
     <motion.div
@@ -365,6 +383,31 @@ function MessageBubble({
             </div>
           ) : null}
         </div>
+
+        {!isUser && sources.length > 0 ? (
+          <div className="mt-2 grid w-full gap-2">
+            {sources.map((source, index) => (
+              <a
+                key={source.id || source.link || index}
+                href={source.link}
+                target="_blank"
+                rel="noreferrer"
+                className="block rounded-2xl border border-[#21353a] bg-[#0d171a]/90 px-3 py-2 text-left transition hover:border-[#4f7c75] hover:bg-[#102126]"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-xs font-medium uppercase tracking-[0.16em] text-[#7fa69f]">
+                    [{index + 1}] {source.source || "Source"}
+                  </span>
+                  <Globe className="h-3.5 w-3.5 text-[#7fa69f]" />
+                </div>
+                <p className="mt-1 text-sm font-medium text-[#eef6f3]">{source.title}</p>
+                {source.snippet ? (
+                  <p className="mt-1 text-xs leading-5 text-[#98b0ab]">{source.snippet}</p>
+                ) : null}
+              </a>
+            ))}
+          </div>
+        ) : null}
 
         <span className="text-[11px] text-[#7f9893]">{formatTime(message.createdAt)}</span>
       </div>
@@ -501,9 +544,10 @@ function Composer({
                 ? "border-[#4f7c75] bg-[#102126] text-[#eef6f3]"
                 : "border-[#274149] bg-[#0f1f24] text-[#cde3df] hover:border-[#4f7c75]/70"
             }`}
+            title="Use live web results in this reply"
           >
             <Globe className="h-3.5 w-3.5" />
-            Search
+            Live web
           </motion.button>
 
           <motion.button
@@ -1210,6 +1254,7 @@ export default function Luna() {
           message: payloadPrompt,
           conversationId,
           llm: selectedModel,
+          webSearchMode,
           researchMode,
         }),
       });
@@ -1224,9 +1269,10 @@ export default function Luna() {
         conversationId: text(result.data?.conversationId),
         membershipPlan: result.data?.membership?.plan === "pro" ? "pro" : "free",
         warning: text(result.data?.warning),
+        sources: Array.isArray(result.data?.sources) ? result.data.sources : [],
       };
     },
-    [buildPromptPayload, isSignedIn, researchMode, selectedModel],
+    [buildPromptPayload, isSignedIn, researchMode, selectedModel, webSearchMode],
   );
 
   const requestLunaStream = useCallback(
@@ -1272,6 +1318,7 @@ export default function Luna() {
             message: payloadPrompt,
             conversationId,
             llm: selectedModel,
+            webSearchMode,
             researchMode,
           }),
           signal: handlers.signal,
@@ -1279,7 +1326,7 @@ export default function Luna() {
         handlers,
       );
     },
-    [buildPromptPayload, isSignedIn, researchMode, selectedModel],
+    [buildPromptPayload, isSignedIn, researchMode, selectedModel, webSearchMode],
   );
   const sendMessage = useCallback(
     async (manualPrompt, options = { regenerate: false, applyToggles: true, sessionId: "" }) => {
@@ -1397,6 +1444,7 @@ export default function Luna() {
             content: response.reply,
             createdAt: nowIso(),
             llm: response.llm,
+            sources: Array.isArray(response.sources) ? response.sources : [],
           };
 
           updateSession(target.id, (session) => ({
@@ -1443,6 +1491,7 @@ export default function Luna() {
       const finalReply = text(payload.reply) || streamedText || "I could not generate a reply. Please retry.";
       const llm = text(payload.llm);
       const payloadConversationId = text(payload.conversationId);
+      const payloadSources = Array.isArray(payload.sources) ? payload.sources : [];
       const payloadPlan = payload.membership?.plan === "pro" ? "pro" : "free";
       setMembershipPlan(payloadPlan);
       if (payload.warning) {
@@ -1458,11 +1507,19 @@ export default function Luna() {
 
       if (!assistantAdded) {
         ensureAssistant(finalReply);
+        updateSession(target.id, (session) => ({
+          ...session,
+          messages: session.messages.map((msg) =>
+            msg.id === assistantId ? { ...msg, sources: payloadSources } : msg,
+          ),
+          backendConversationId: payloadConversationId || session.backendConversationId,
+          updatedAt: nowIso(),
+        }));
       } else if (finalReply && finalReply !== streamedText) {
         updateSession(target.id, (session) => ({
           ...session,
           messages: session.messages.map((msg) =>
-            msg.id === assistantId ? { ...msg, content: finalReply, llm } : msg,
+            msg.id === assistantId ? { ...msg, content: finalReply, llm, sources: payloadSources } : msg,
           ),
           backendConversationId: payloadConversationId || session.backendConversationId,
           updatedAt: nowIso(),
@@ -1471,7 +1528,9 @@ export default function Luna() {
 
       updateSession(target.id, (session) => ({
         ...session,
-        messages: session.messages.map((msg) => (msg.id === assistantId ? { ...msg, llm } : msg)),
+        messages: session.messages.map((msg) => (
+          msg.id === assistantId ? { ...msg, llm, sources: payloadSources } : msg
+        )),
         backendConversationId: payloadConversationId || session.backendConversationId,
         updatedAt: nowIso(),
       }));
@@ -1500,6 +1559,7 @@ export default function Luna() {
               content: response.reply,
               createdAt: nowIso(),
               llm: response.llm,
+              sources: Array.isArray(response.sources) ? response.sources : [],
             };
 
           updateSession(target.id, (session) => ({
@@ -1815,7 +1875,7 @@ export default function Luna() {
   const visibleMain = activeMessages.length > 0 || historyLoading;
   const modePills = useMemo(() => {
     const pills = [];
-    pills.push(webSearchMode ? "Live research" : "Knowledge mode");
+    pills.push(webSearchMode ? "Live web on" : "Live web off");
     pills.push(researchMode ? "Pro research" : membershipPlan === "pro" ? "Pro ready" : "Free plan");
     pills.push(imageMode ? "Image drafting" : "Text drafting");
     if (attachments.length) pills.push(`${attachments.length} file${attachments.length > 1 ? "s" : ""} attached`);

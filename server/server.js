@@ -49,7 +49,7 @@ import {
 import { getAdminSettings, incrementReferralUsage, listActiveAnnouncements, listAnnouncements, removeAnnouncement, removeReferralCode, updateAnnouncement, updateProMonthlyPrice, updateProSystemPrompt, updateReferralCode, upsertAnnouncement, upsertReferralCode, validateReferralCode } from "./admin-settings.js";
 import { CATEGORY_LABELS, classifyMessage } from "./luna-classifier.js";
 import { getRoutingPlan, runRoutedProviders, runRoutedProvidersStream } from "./luna-router.js";
-import { buildToolSystemPrompt, executeToolCalls, formatToolResults, planToolCalls } from "./luna-tools.js";
+import { buildToolSystemPrompt, executeToolCalls, extractToolSources, formatToolResults, planToolCalls } from "./luna-tools.js";
 import { getSupabaseAdmin } from "./supabase.js";
 import { getDiagnosticsSnapshot, recordAuthFailure, recordProviderAttempts, recordToolResults, trackRequest } from "./observability.js";
 import {
@@ -816,7 +816,7 @@ function sendSseEvent(res, event, data) {
     res.flush();
   }
 }
-function buildConversationMessages(history, message, detailedMode, membershipContext, toolSummary, memoryContext) {
+function buildConversationMessages(history, message, detailedMode, membershipContext, toolSummary, memoryContext, toolSources = []) {
   const safeHistory = Array.isArray(history) ? history : [];
   const systemMessages = [
     { role: "system", content: LUNA_SYSTEM_PROMPT },
@@ -834,7 +834,7 @@ ${proPrompt}` });
     systemMessages.push({ role: "system", content: memoryPrompt });
   }
 
-  const toolPrompt = buildToolSystemPrompt(toolSummary);
+  const toolPrompt = buildToolSystemPrompt(toolSummary, toolSources);
   if (toolPrompt) {
     systemMessages.push({ role: "system", content: toolPrompt });
   }
@@ -2142,6 +2142,7 @@ app.post("/api/luna/stream", async (req, res) => {
     const userContext = { userId: auth.userId, user: auth.user, token: auth.token };
     const membershipContext = await resolveMembershipContext(userContext, lunaSettings);
     const usageBefore = await enforceDailyLimitOrThrow(userContext, membershipContext);
+    const webSearchMode = Boolean(req.body?.webSearchMode);
     const researchModeRequested = Boolean(req.body?.researchMode);
     const researchMode = membershipContext.plan === "pro" && researchModeRequested;
     const researchWarning = researchModeRequested && !researchMode
@@ -2160,10 +2161,11 @@ app.post("/api/luna/stream", async (req, res) => {
     const memoryContext = await fetchUserMemory(userContext.userId, userContext.user?.email);
     const detailedMode = wantsDetailedResponse(message, memoryContext);
     const history = toHistoryPayload(conversation, MAX_HISTORY_MESSAGES);
-    const toolPlan = forceFast ? [] : planToolCalls(message, { researchMode });
+    const toolPlan = forceFast ? [] : planToolCalls(message, { researchMode, webSearchMode });
     const toolResults = toolPlan.length ? await executeToolCalls(toolPlan) : [];
     recordToolResults(toolResults);
     const toolSummary = formatToolResults(toolResults);
+    const toolSources = extractToolSources(toolResults);
 
     const conversationMessages = buildConversationMessages(
       history,
@@ -2172,6 +2174,7 @@ app.post("/api/luna/stream", async (req, res) => {
       membershipContext,
       toolSummary,
       memoryContext,
+      toolSources,
     );
     const providerRunners = buildProviderRunners(conversationMessages, detailedMode, abortController.signal);
     const requestedModel = resolveRequestedModel(req.body?.llm, providerRunners);
@@ -2199,7 +2202,9 @@ app.post("/api/luna/stream", async (req, res) => {
           category: classification.label,
           profile: routingPlan.profile,
           tools: toolResults,
+          sources: toolSources,
           researchMode,
+          webSearchMode,
         };
       } catch (providerErr) {
         const normalized = extractProviderError(providerErr);
@@ -2209,7 +2214,9 @@ app.post("/api/luna/stream", async (req, res) => {
           category: classification.label,
           profile: routingPlan.profile,
           tools: toolResults,
+          sources: toolSources,
           researchMode,
+          webSearchMode,
         };
         if (toolSummary) {
           llm = "tool";
@@ -2238,6 +2245,7 @@ app.post("/api/luna/stream", async (req, res) => {
       conversationId: conversation.id,
       userText: message,
       assistantText: reply,
+      assistantSources: toolSources,
       llm,
       userId: userContext.userId,
     });
@@ -2270,6 +2278,8 @@ app.post("/api/luna/stream", async (req, res) => {
       warning,
       details,
       tools: toolResults,
+      sources: toolSources,
+      webSearchMode,
       conversationId: updatedConversation.id,
       conversation: updatedConversation,
       membership: {
@@ -2307,6 +2317,7 @@ app.post("/api/luna", async (req, res) => {
     const userContext = { userId: auth.userId, user: auth.user, token: auth.token };
     const membershipContext = await resolveMembershipContext(userContext, lunaSettings);
     const usageBefore = await enforceDailyLimitOrThrow(userContext, membershipContext);
+    const webSearchMode = Boolean(req.body?.webSearchMode);
     const researchModeRequested = Boolean(req.body?.researchMode);
     const researchMode = membershipContext.plan === "pro" && researchModeRequested;
     const researchWarning = researchModeRequested && !researchMode
@@ -2325,10 +2336,11 @@ app.post("/api/luna", async (req, res) => {
     const memoryContext = await fetchUserMemory(userContext.userId, userContext.user?.email);
     const detailedMode = wantsDetailedResponse(message, memoryContext);
     const history = toHistoryPayload(conversation, MAX_HISTORY_MESSAGES);
-    const toolPlan = forceFast ? [] : planToolCalls(message, { researchMode });
+    const toolPlan = forceFast ? [] : planToolCalls(message, { researchMode, webSearchMode });
     const toolResults = toolPlan.length ? await executeToolCalls(toolPlan) : [];
     recordToolResults(toolResults);
     const toolSummary = formatToolResults(toolResults);
+    const toolSources = extractToolSources(toolResults);
 
     const conversationMessages = buildConversationMessages(
       history,
@@ -2337,6 +2349,7 @@ app.post("/api/luna", async (req, res) => {
       membershipContext,
       toolSummary,
       memoryContext,
+      toolSources,
     );
     const providerRunners = buildProviderRunners(conversationMessages, detailedMode);
     const requestedModel = resolveRequestedModel(req.body?.llm, providerRunners);
@@ -2364,7 +2377,9 @@ app.post("/api/luna", async (req, res) => {
           category: classification.label,
           profile: routingPlan.profile,
           tools: toolResults,
+          sources: toolSources,
           researchMode,
+          webSearchMode,
         };
       } catch (providerErr) {
         const normalized = extractProviderError(providerErr);
@@ -2374,7 +2389,9 @@ app.post("/api/luna", async (req, res) => {
           category: classification.label,
           profile: routingPlan.profile,
           tools: toolResults,
+          sources: toolSources,
           researchMode,
+          webSearchMode,
         };
         if (toolSummary) {
           llm = "tool";
@@ -2399,6 +2416,7 @@ app.post("/api/luna", async (req, res) => {
       conversationId: conversation.id,
       userText: message,
       assistantText: reply,
+      assistantSources: toolSources,
       llm,
       userId: userContext.userId,
     });
@@ -2431,6 +2449,8 @@ app.post("/api/luna", async (req, res) => {
       warning,
       details,
       tools: toolResults,
+      sources: toolSources,
+      webSearchMode,
       conversationId: updatedConversation.id,
       conversation: updatedConversation,
       membership: {
