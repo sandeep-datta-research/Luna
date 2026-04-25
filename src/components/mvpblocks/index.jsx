@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { CheckCircle2, Crown, Megaphone, RefreshCw, Save, Shield, ShieldAlert, SlidersHorizontal, Sparkles, Users, WandSparkles, XCircle } from "lucide-react";
+import { Activity, CheckCircle2, Crown, Megaphone, RefreshCw, Save, Shield, ShieldAlert, SlidersHorizontal, Sparkles, Users, WandSparkles, XCircle } from "lucide-react";
 import { fetchApi, getStoredUser, hydrateUser } from "@/lib/api-client";
 import CardNav from "@/component/CardNav";
 import logo from "@/assets/luna-logo.svg";
@@ -134,6 +134,7 @@ export default function AdminDashboard() {
   const [actionBusy, setActionBusy] = useState(false);
   const [error, setError] = useState("");
   const [overview, setOverview] = useState(null);
+  const [diagnostics, setDiagnostics] = useState(null);
   const [users, setUsers] = useState([]);
   const [requests, setRequests] = useState([]);
   const [feedbackItems, setFeedbackItems] = useState([]);
@@ -221,13 +222,14 @@ export default function AdminDashboard() {
     setLoadingData(true);
     setError("");
 
-    const [overviewRes, usersRes, reqRes, settingsRes, feedbackRes, announcementsRes] = await Promise.all([
+    const [overviewRes, usersRes, reqRes, settingsRes, feedbackRes, announcementsRes, diagnosticsRes] = await Promise.all([
       fetchApi("/api/admin/overview"),
       fetchApi("/api/admin/users"),
       fetchApi("/api/admin/upgrade-requests"),
       fetchApi("/api/admin/settings"),
       fetchApi("/api/admin/feedback"),
       fetchApi("/api/admin/announcements"),
+      fetchApi("/api/admin/diagnostics"),
     ]);
 
     if (!overviewRes.ok) {
@@ -241,6 +243,7 @@ export default function AdminDashboard() {
     setRequests(Array.isArray(reqRes.data?.requests) ? reqRes.data.requests : []);
     setFeedbackItems(Array.isArray(feedbackRes.data?.feedback) ? feedbackRes.data.feedback : []);
     setAnnouncements(Array.isArray(announcementsRes.data?.announcements) ? announcementsRes.data.announcements : []);
+    setDiagnostics(diagnosticsRes.ok ? diagnosticsRes.data?.diagnostics || null : null);
 
     if (settingsRes.ok) {
       applySettings(settingsRes.data?.settings || {});
@@ -1006,6 +1009,88 @@ export default function AdminDashboard() {
               )}
             </div>
           </section>
+
+          <AdminShellSection
+            title="Diagnostics"
+            icon={Activity}
+            description="Live backend health, request patterns, provider outcomes, auth failures, and tool usage."
+          >
+            <div className="grid gap-4 xl:grid-cols-2">
+              <div className="rounded-2xl border border-white/6 bg-white/[0.03] p-4">
+                <p className="text-sm font-medium text-zinc-200">Service snapshot</p>
+                <div className="mt-3 grid gap-2 text-sm text-zinc-300">
+                  <p>Uptime: {diagnostics?.uptimeSeconds ?? 0}s</p>
+                  <p>DB engine: {diagnostics?.db?.engine || "-"}</p>
+                  <p>DB mode: {diagnostics?.db?.mode || "-"}</p>
+                  <p>Mongo configured: {diagnostics?.db?.mongoConfigured ? "Yes" : "No"}</p>
+                  {diagnostics?.db?.warning ? <p className="text-amber-200">DB warning: {diagnostics.db.warning}</p> : null}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/6 bg-white/[0.03] p-4">
+                <p className="text-sm font-medium text-zinc-200">Auth failures</p>
+                {diagnostics?.authFailures?.length ? (
+                  <div className="mt-3 space-y-2">
+                    {diagnostics.authFailures.map((item) => (
+                      <div key={item.type} className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-950/60 px-3 py-2 text-sm">
+                        <span className="text-zinc-200">{item.type}</span>
+                        <span className="text-zinc-400">{item.count}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-3 text-xs text-zinc-500">No auth failures recorded yet.</p>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-4 xl:grid-cols-3">
+              <div className="rounded-2xl border border-white/6 bg-white/[0.03] p-4 xl:col-span-1">
+                <p className="text-sm font-medium text-zinc-200">Top routes</p>
+                <div className="mt-3 space-y-2">
+                  {(diagnostics?.routes || []).slice(0, 8).map((route) => (
+                    <div key={route.route} className="rounded-lg border border-zinc-800 bg-zinc-950/60 px-3 py-2 text-xs text-zinc-300">
+                      <p className="truncate text-zinc-100">{route.route}</p>
+                      <p className="mt-1 text-zinc-500">{route.count} hits • avg {route.avgMs}ms • last {route.lastStatus}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/6 bg-white/[0.03] p-4 xl:col-span-1">
+                <p className="text-sm font-medium text-zinc-200">Provider outcomes</p>
+                <div className="mt-3 space-y-2">
+                  {(diagnostics?.providerStats || []).slice(0, 8).map((provider) => (
+                    <div key={provider.llm} className="rounded-lg border border-zinc-800 bg-zinc-950/60 px-3 py-2 text-xs text-zinc-300">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-zinc-100">{provider.llm}</span>
+                        <span className={provider.configured ? "text-emerald-200" : "text-rose-200"}>
+                          {provider.configured ? "Configured" : "Missing key"}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-zinc-500">Success {provider.successCount} • Errors {provider.errorCount}</p>
+                      {provider.lastError ? <p className="mt-1 truncate text-amber-200">{provider.lastError}</p> : null}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/6 bg-white/[0.03] p-4 xl:col-span-1">
+                <p className="text-sm font-medium text-zinc-200">Tool usage</p>
+                <div className="mt-3 space-y-2">
+                  {(diagnostics?.toolStats || []).slice(0, 8).map((tool) => (
+                    <div key={tool.tool} className="rounded-lg border border-zinc-800 bg-zinc-950/60 px-3 py-2 text-xs text-zinc-300">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-zinc-100">{tool.tool}</span>
+                        <span className="text-zinc-400">{tool.count} runs</span>
+                      </div>
+                      <p className="mt-1 text-zinc-500">Success {tool.successCount} • Failures {tool.failureCount}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </AdminShellSection>
 
           <section className="mt-6 grid gap-6 xl:grid-cols-[1.05fr_1fr]">
             <div className="rounded-2xl border border-zinc-800 bg-zinc-900/65 p-4">

@@ -9,6 +9,7 @@ import {
   Clock3,
   Command,
   Copy,
+  Download,
   Folder,
   FolderPlus,
   Globe,
@@ -32,6 +33,7 @@ import {
   UserCircle2,
   X,
   Zap,
+  Lock,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { fetchApi, streamApi, getStoredUser, hydrateUser } from "@/lib/api-client";
@@ -203,6 +205,22 @@ function mapConversationMessages(conversation) {
       }),
     )
     .filter(Boolean);
+}
+
+function exportSessionToMarkdown(session) {
+  const title = text(session?.title) || "Luna Chat";
+  const messages = Array.isArray(session?.messages) ? session.messages : [];
+  const lines = [`# ${title}`, "", `Exported: ${nowIso()}`, ""];
+
+  for (const message of messages) {
+    const label = message.role === "assistant" ? "Luna" : "You";
+    lines.push(`## ${label}`);
+    lines.push("");
+    lines.push(text(message.content) || "");
+    lines.push("");
+  }
+
+  return lines.join("\n");
 }
 
 function toBase64DataUrl(blob) {
@@ -389,12 +407,16 @@ function Composer({
   transcribing,
   onToggleVoice,
   webSearch,
+  researchMode,
   imageMode,
   onToggleWebSearch,
+  onToggleResearchMode,
   onToggleImageMode,
+  onExport,
   onAttach,
   attachments,
   onRemoveAttachment,
+  isPro = false,
   compact = false,
 }) {
   const [focused, setFocused] = useState(false);
@@ -487,6 +509,21 @@ function Composer({
           <motion.button
             whileTap={{ scale: 0.97 }}
             type="button"
+            onClick={onToggleResearchMode}
+            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition ${
+              researchMode
+                ? "border-[#4f7c75] bg-[#102126] text-[#eef6f3]"
+                : "border-[#274149] bg-[#0f1f24] text-[#cde3df] hover:border-[#4f7c75]/70"
+            }`}
+            title={isPro ? "Research mode" : "Luna Pro feature"}
+          >
+            {isPro ? <Sparkles className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
+            Research
+          </motion.button>
+
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            type="button"
             onClick={onToggleImageMode}
             className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition ${
               imageMode
@@ -500,6 +537,21 @@ function Composer({
         </div>
 
         <div className="flex items-center justify-end gap-2">
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            type="button"
+            onClick={onExport}
+            disabled={!isPro}
+            className={`inline-flex h-10 min-w-10 items-center justify-center rounded-full border px-2 transition ${
+              isPro
+                ? "border-[#274149] bg-[#0f1f24] text-[#cde3df] hover:border-[#4f7c75]/70"
+                : "border-[#24363a] bg-[#0f1f24]/70 text-[#68817b] opacity-80"
+            }`}
+            title={isPro ? "Export this chat" : "Luna Pro feature"}
+          >
+            {isPro ? <Download className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+          </motion.button>
+
           <motion.button
             whileTap={{ scale: 0.97 }}
             type="button"
@@ -578,8 +630,10 @@ export default function Luna() {
   const [voiceActive, setVoiceActive] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [webSearchMode, setWebSearchMode] = useState(false);
+  const [researchMode, setResearchMode] = useState(false);
   const [imageMode, setImageMode] = useState(false);
   const [attachments, setAttachments] = useState([]);
+  const [membershipPlan, setMembershipPlan] = useState("free");
   const [expandedProjectId, setExpandedProjectId] = useState("");
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
@@ -845,6 +899,33 @@ export default function Luna() {
   useEffect(() => {
     let canceled = false;
 
+    const loadMembership = async () => {
+      if (!isSignedIn) {
+        if (!canceled) {
+          setMembershipPlan("free");
+          setResearchMode(false);
+        }
+        return;
+      }
+
+      const result = await fetchApi("/api/profile");
+      if (canceled) return;
+      const plan = result.ok && result.data?.membership?.plan === "pro" ? "pro" : "free";
+      setMembershipPlan(plan);
+      if (plan !== "pro") {
+        setResearchMode(false);
+      }
+    };
+
+    loadMembership();
+    return () => {
+      canceled = true;
+    };
+  }, [isSignedIn, user?.email]);
+
+  useEffect(() => {
+    let canceled = false;
+
     const loadOnboardingStatus = async () => {
       if (typeof window === "undefined") return;
       const isGuest = !user?.email || user.email === "guest@luna.ai";
@@ -1078,6 +1159,7 @@ export default function Luna() {
 
       const context = [];
       if (webSearchMode) context.push("Web search mode is ON. Prefer current, verifiable information.");
+      if (researchMode) context.push("Research mode is ON. Prioritize source-backed findings, recent context, and explicit evidence.");
       if (imageMode) context.push("Image mode is ON. If relevant, provide image generation style prompt details.");
       if (attachments.length > 0) context.push(`Attached files: ${attachments.join(", ")}`);
 
@@ -1085,7 +1167,7 @@ export default function Luna() {
 
       return `${clean}\n\nContext:\n- ${context.join("\n- ")}`;
     },
-    [attachments, imageMode, webSearchMode],
+    [attachments, imageMode, researchMode, webSearchMode],
   );
   const requestLuna = useCallback(
     async (session, prompt, options = { applyToggles: true }) => {
@@ -1128,6 +1210,7 @@ export default function Luna() {
           message: payloadPrompt,
           conversationId,
           llm: selectedModel,
+          researchMode,
         }),
       });
 
@@ -1139,9 +1222,11 @@ export default function Luna() {
         reply: text(result.data?.reply) || "I could not generate a reply. Please retry.",
         llm: text(result.data?.llm),
         conversationId: text(result.data?.conversationId),
+        membershipPlan: result.data?.membership?.plan === "pro" ? "pro" : "free",
+        warning: text(result.data?.warning),
       };
     },
-    [buildPromptPayload, isSignedIn, selectedModel],
+    [buildPromptPayload, isSignedIn, researchMode, selectedModel],
   );
 
   const requestLunaStream = useCallback(
@@ -1187,13 +1272,14 @@ export default function Luna() {
             message: payloadPrompt,
             conversationId,
             llm: selectedModel,
+            researchMode,
           }),
           signal: handlers.signal,
         },
         handlers,
       );
     },
-    [buildPromptPayload, isSignedIn, selectedModel],
+    [buildPromptPayload, isSignedIn, researchMode, selectedModel],
   );
   const sendMessage = useCallback(
     async (manualPrompt, options = { regenerate: false, applyToggles: true, sessionId: "" }) => {
@@ -1301,6 +1387,10 @@ export default function Luna() {
       try {
         if (!supportsStreaming) {
           const response = await requestLuna(target, basePrompt, { applyToggles: options.applyToggles });
+          setMembershipPlan(response.membershipPlan === "pro" ? "pro" : "free");
+          if (response.warning) {
+            setToast({ id: createId("toast"), message: response.warning });
+          }
           const assistantMessage = {
             id: createId("assistant"),
             role: "assistant",
@@ -1353,6 +1443,11 @@ export default function Luna() {
       const finalReply = text(payload.reply) || streamedText || "I could not generate a reply. Please retry.";
       const llm = text(payload.llm);
       const payloadConversationId = text(payload.conversationId);
+      const payloadPlan = payload.membership?.plan === "pro" ? "pro" : "free";
+      setMembershipPlan(payloadPlan);
+      if (payload.warning) {
+        setToast({ id: createId("toast"), message: text(payload.warning) });
+      }
 
         if (flushFrameId && typeof window !== "undefined") {
           window.cancelAnimationFrame(flushFrameId);
@@ -1395,6 +1490,10 @@ export default function Luna() {
         if (!streamedText) {
           try {
             const response = await requestLuna(target, basePrompt, { applyToggles: options.applyToggles });
+            setMembershipPlan(response.membershipPlan === "pro" ? "pro" : "free");
+            if (response.warning) {
+              setToast({ id: createId("toast"), message: response.warning });
+            }
             const assistantMessage = {
               id: createId("assistant"),
               role: "assistant",
@@ -1534,6 +1633,38 @@ export default function Luna() {
       sessionId: lastRetryPayload.sessionId,
     });
   }, [lastRetryPayload, sendMessage]);
+
+  const handleToggleResearchMode = useCallback(() => {
+    if (membershipPlan !== "pro") {
+      showErrorToast("Research mode is available on Luna Pro only.");
+      return;
+    }
+    setResearchMode((prev) => !prev);
+  }, [membershipPlan, showErrorToast]);
+
+  const handleExportSession = useCallback(() => {
+    if (membershipPlan !== "pro") {
+      showErrorToast("Chat export is available on Luna Pro only.");
+      return;
+    }
+    if (!activeSession || activeMessages.length === 0 || typeof window === "undefined") {
+      showErrorToast("There is no chat to export yet.");
+      return;
+    }
+
+    const markdown = exportSessionToMarkdown(activeSession);
+    const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
+    const url = window.URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    const safeTitle = (text(activeSession.title) || "luna-chat").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    anchor.href = url;
+    anchor.download = `${safeTitle || "luna-chat"}.md`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    window.URL.revokeObjectURL(url);
+    setToast({ id: createId("toast"), message: "Chat exported to Markdown." });
+  }, [activeMessages.length, activeSession, membershipPlan, showErrorToast]);
 
   const handleVoiceToggle = useCallback(async () => {
     if (isTranscribing || isTyping) return;
@@ -1685,10 +1816,11 @@ export default function Luna() {
   const modePills = useMemo(() => {
     const pills = [];
     pills.push(webSearchMode ? "Live research" : "Knowledge mode");
+    pills.push(researchMode ? "Pro research" : membershipPlan === "pro" ? "Pro ready" : "Free plan");
     pills.push(imageMode ? "Image drafting" : "Text drafting");
     if (attachments.length) pills.push(`${attachments.length} file${attachments.length > 1 ? "s" : ""} attached`);
     return pills;
-  }, [attachments.length, imageMode, webSearchMode]);
+  }, [attachments.length, imageMode, membershipPlan, researchMode, webSearchMode]);
 
   if (!isSignedIn) {
     return (
@@ -2125,12 +2257,16 @@ export default function Luna() {
                         transcribing={isTranscribing}
                         onToggleVoice={handleVoiceToggle}
                         webSearch={webSearchMode}
+                        researchMode={researchMode}
                         imageMode={imageMode}
                         onToggleWebSearch={() => setWebSearchMode((prev) => !prev)}
+                        onToggleResearchMode={handleToggleResearchMode}
                         onToggleImageMode={() => setImageMode((prev) => !prev)}
+                        onExport={handleExportSession}
                         onAttach={(files) => setAttachments((prev) => [...prev, ...files])}
                         attachments={attachments}
                         onRemoveAttachment={(index) => setAttachments((prev) => prev.filter((_, i) => i !== index))}
+                        isPro={membershipPlan === "pro"}
                       />
 
                       <motion.div
@@ -2241,12 +2377,16 @@ export default function Luna() {
                   transcribing={isTranscribing}
                   onToggleVoice={handleVoiceToggle}
                   webSearch={webSearchMode}
+                  researchMode={researchMode}
                   imageMode={imageMode}
                   onToggleWebSearch={() => setWebSearchMode((prev) => !prev)}
+                  onToggleResearchMode={handleToggleResearchMode}
                   onToggleImageMode={() => setImageMode((prev) => !prev)}
+                  onExport={handleExportSession}
                   onAttach={(files) => setAttachments((prev) => [...prev, ...files])}
                   attachments={attachments}
                   onRemoveAttachment={(index) => setAttachments((prev) => prev.filter((_, i) => i !== index))}
+                  isPro={membershipPlan === "pro"}
                 />
               </div>
             </div>

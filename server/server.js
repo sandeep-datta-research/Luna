@@ -51,6 +51,7 @@ import { CATEGORY_LABELS, classifyMessage } from "./luna-classifier.js";
 import { getRoutingPlan, runRoutedProviders, runRoutedProvidersStream } from "./luna-router.js";
 import { buildToolSystemPrompt, executeToolCalls, formatToolResults, planToolCalls } from "./luna-tools.js";
 import { getSupabaseAdmin } from "./supabase.js";
+import { getDiagnosticsSnapshot, recordAuthFailure, recordProviderAttempts, recordToolResults, trackRequest } from "./observability.js";
 import {
   createPasswordResetEmailCode,
   createPasswordResetToken,
@@ -458,6 +459,10 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json());
+app.use((req, res, next) => {
+  trackRequest(req, res);
+  next();
+});
 
 app.get("/", (_req, res) => {
   return res.status(200).json({ ok: true, service: "luna-backend" });
@@ -653,12 +658,14 @@ function sanitizeRequestStatus(raw) {
 async function requireAuthenticatedUser(req, res) {
   const token = readBearerToken(req) || readCookie(req, COOKIE_AUTH_TOKEN);
   if (!token) {
+    recordAuthFailure("missing_token", req);
     res.status(401).json({ error: "Unauthorized" });
     return null;
   }
 
   const auth = await validateSessionToken(token);
   if (!auth?.user?.id) {
+    recordAuthFailure("invalid_session", req);
     res.status(401).json({ error: "Unauthorized" });
     return null;
   }
@@ -671,12 +678,14 @@ async function requireAdmin(req, res) {
   if (!auth) return null;
 
   if (ADMIN_EMAIL_ALLOWLIST.size === 0) {
+    recordAuthFailure("admin_not_configured", req);
     res.status(503).json({ error: "Admin access is not configured" });
     return null;
   }
 
   const email = normalizeEmail(auth.user.email);
   if (!ADMIN_EMAIL_ALLOWLIST.has(email)) {
+    recordAuthFailure("admin_denied", req, email);
     res.status(403).json({ error: "Admin access required" });
     return null;
   }
@@ -835,6 +844,21 @@ ${proPrompt}` });
     ...safeHistory,
     { role: "user", content: message },
   ];
+}
+
+function prioritizeProviderOrder(order, membershipContext, options = {}) {
+  const baseOrder = Array.isArray(order) ? order.filter(Boolean) : [];
+  if (baseOrder.length === 0) return baseOrder;
+
+  const isPro = membershipContext?.plan === "pro";
+  const researchMode = Boolean(options?.researchMode);
+  if (!isPro && !researchMode) return baseOrder;
+
+  const priority = researchMode
+    ? ["gpt", "gemini", "glm45air", "glm43", "nvidia"]
+    : ["gpt", "gemini", "glm45air"];
+
+  return [...new Set([...priority, ...baseOrder])];
 }
 
 function generateLocalFallbackReply(message) {
@@ -2118,6 +2142,11 @@ app.post("/api/luna/stream", async (req, res) => {
     const userContext = { userId: auth.userId, user: auth.user, token: auth.token };
     const membershipContext = await resolveMembershipContext(userContext, lunaSettings);
     const usageBefore = await enforceDailyLimitOrThrow(userContext, membershipContext);
+    const researchModeRequested = Boolean(req.body?.researchMode);
+    const researchMode = membershipContext.plan === "pro" && researchModeRequested;
+    const researchWarning = researchModeRequested && !researchMode
+      ? "Research mode is available on Luna Pro only."
+      : "";
 
     const conversation = await ensureConversation(requestedConversationId, userContext.userId);
     const classification = classifyMessage(message);
@@ -2131,8 +2160,9 @@ app.post("/api/luna/stream", async (req, res) => {
     const memoryContext = await fetchUserMemory(userContext.userId, userContext.user?.email);
     const detailedMode = wantsDetailedResponse(message, memoryContext);
     const history = toHistoryPayload(conversation, MAX_HISTORY_MESSAGES);
-    const toolPlan = forceFast ? [] : planToolCalls(message);
+    const toolPlan = forceFast ? [] : planToolCalls(message, { researchMode });
     const toolResults = toolPlan.length ? await executeToolCalls(toolPlan) : [];
+    recordToolResults(toolResults);
     const toolSummary = formatToolResults(toolResults);
 
     const conversationMessages = buildConversationMessages(
@@ -2145,10 +2175,12 @@ app.post("/api/luna/stream", async (req, res) => {
     );
     const providerRunners = buildProviderRunners(conversationMessages, detailedMode, abortController.signal);
     const requestedModel = resolveRequestedModel(req.body?.llm, providerRunners);
-    const effectiveOrder = requestedModel ? [requestedModel] : selectedOrder;
+    const effectiveOrder = requestedModel
+      ? [requestedModel]
+      : prioritizeProviderOrder(selectedOrder, membershipContext, { researchMode });
 
     let llm = "";
-    let warning = "";
+    let warning = researchWarning;
     let details = null;
 
     try {
@@ -2161,19 +2193,23 @@ app.post("/api/luna/stream", async (req, res) => {
         });
         llm = routed.llm;
         reply = routed.rawReply || reply;
+        recordProviderAttempts(routed.attempts, routed.llm, "stream");
         details = {
           attempts: routed.attempts,
           category: classification.label,
           profile: routingPlan.profile,
           tools: toolResults,
+          researchMode,
         };
       } catch (providerErr) {
         const normalized = extractProviderError(providerErr);
-        warning = normalized.providerMessage;
+        warning = [researchWarning, normalized.providerMessage].filter(Boolean).join(" | ");
+        recordProviderAttempts(providerErr?.responseData?.attempts || [], "", "stream");
         details = normalized.responseData || {
           category: classification.label,
           profile: routingPlan.profile,
           tools: toolResults,
+          researchMode,
         };
         if (toolSummary) {
           llm = "tool";
@@ -2228,7 +2264,7 @@ app.post("/api/luna/stream", async (req, res) => {
       category: classification.label,
       routing: {
         profile: routingPlan.profile,
-        order: routingPlan.order,
+        order: effectiveOrder,
       },
       selectedBy: llm === "local-fallback" ? "fallback" : "auto",
       warning,
@@ -2271,6 +2307,11 @@ app.post("/api/luna", async (req, res) => {
     const userContext = { userId: auth.userId, user: auth.user, token: auth.token };
     const membershipContext = await resolveMembershipContext(userContext, lunaSettings);
     const usageBefore = await enforceDailyLimitOrThrow(userContext, membershipContext);
+    const researchModeRequested = Boolean(req.body?.researchMode);
+    const researchMode = membershipContext.plan === "pro" && researchModeRequested;
+    const researchWarning = researchModeRequested && !researchMode
+      ? "Research mode is available on Luna Pro only."
+      : "";
 
     const conversation = await ensureConversation(requestedConversationId, userContext.userId);
     const classification = classifyMessage(message);
@@ -2284,8 +2325,9 @@ app.post("/api/luna", async (req, res) => {
     const memoryContext = await fetchUserMemory(userContext.userId, userContext.user?.email);
     const detailedMode = wantsDetailedResponse(message, memoryContext);
     const history = toHistoryPayload(conversation, MAX_HISTORY_MESSAGES);
-    const toolPlan = forceFast ? [] : planToolCalls(message);
+    const toolPlan = forceFast ? [] : planToolCalls(message, { researchMode });
     const toolResults = toolPlan.length ? await executeToolCalls(toolPlan) : [];
+    recordToolResults(toolResults);
     const toolSummary = formatToolResults(toolResults);
 
     const conversationMessages = buildConversationMessages(
@@ -2298,11 +2340,13 @@ app.post("/api/luna", async (req, res) => {
     );
     const providerRunners = buildProviderRunners(conversationMessages, detailedMode);
     const requestedModel = resolveRequestedModel(req.body?.llm, providerRunners);
-    const effectiveOrder = requestedModel ? [requestedModel] : selectedOrder;
+    const effectiveOrder = requestedModel
+      ? [requestedModel]
+      : prioritizeProviderOrder(selectedOrder, membershipContext, { researchMode });
 
     let reply = "";
     let llm = "";
-    let warning = "";
+    let warning = researchWarning;
     let details = null;
 
     try {
@@ -2314,19 +2358,23 @@ app.post("/api/luna", async (req, res) => {
         });
         llm = routed.llm;
         reply = clampReplyLength(routed.rawReply);
+        recordProviderAttempts(routed.attempts, routed.llm, "chat");
         details = {
           attempts: routed.attempts,
           category: classification.label,
           profile: routingPlan.profile,
           tools: toolResults,
+          researchMode,
         };
       } catch (providerErr) {
         const normalized = extractProviderError(providerErr);
-        warning = normalized.providerMessage;
+        warning = [researchWarning, normalized.providerMessage].filter(Boolean).join(" | ");
+        recordProviderAttempts(providerErr?.responseData?.attempts || [], "", "chat");
         details = normalized.responseData || {
           category: classification.label,
           profile: routingPlan.profile,
           tools: toolResults,
+          researchMode,
         };
         if (toolSummary) {
           llm = "tool";
@@ -2377,7 +2425,7 @@ app.post("/api/luna", async (req, res) => {
       category: classification.label,
       routing: {
         profile: routingPlan.profile,
-        order: routingPlan.order,
+        order: effectiveOrder,
       },
       selectedBy: llm === "local-fallback" ? "fallback" : "auto",
       warning,
@@ -2446,6 +2494,27 @@ app.get("/api/admin/overview", async (req, res) => {
           approvedUpgradeRequests: billingStats.approvedRequests,
         },
       });
+  } catch (error) {
+    const n = extractProviderError(error);
+    return res.status(error.status || n.status || 500).json({ error: error.message || n.providerMessage });
+  }
+});
+
+app.get("/api/admin/diagnostics", async (req, res) => {
+  try {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+
+    const providerStatus = buildProviders([], false).map((provider) => ({
+      llm: provider.llm,
+      configured: provider.enabled,
+    }));
+    const diagnostics = getDiagnosticsSnapshot({
+      db: getDbInfo(),
+      providerStatus,
+    });
+
+    return res.json({ ok: true, diagnostics });
   } catch (error) {
     const n = extractProviderError(error);
     return res.status(error.status || n.status || 500).json({ error: error.message || n.providerMessage });

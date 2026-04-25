@@ -4,11 +4,14 @@ import { normalizeText } from "./luna-utils.js";
 const TOOL_NAMES = {
   CALCULATOR: "calculator",
   TEXT_ANALYZER: "text_analyzer",
+  TEXT_SUMMARIZER: "text_summarizer",
+  DATA_HELPER: "data_helper",
   API_FETCH: "api_fetch",
   KNOWLEDGE_LOOKUP: "knowledge_lookup",
   WEB_SEARCH: "web_search",
   NEWS: "news",
   CLOCK: "clock",
+  TIMEZONE: "timezone",
 };
 
 const STOPWORDS = new Set([
@@ -125,6 +128,12 @@ function pickTextTarget(message) {
   return extractQuotedText(message) || extractAfterColon(message) || "";
 }
 
+function stripMarkdownFences(value) {
+  const text = `${value || ""}`.trim();
+  const fenced = text.match(/^```(?:json|csv|tsv|txt)?\n([\s\S]+?)\n```$/i);
+  return fenced?.[1]?.trim() || text;
+}
+
 function shouldUseCalculator(message) {
   const text = normalizeText(message).toLowerCase();
   if (!text) return false;
@@ -221,6 +230,108 @@ function analyzeText(payload) {
   };
 }
 
+function shouldUseTextSummarizer(message) {
+  const text = normalizeText(message).toLowerCase();
+  return /summari[sz]e|tl;dr|tldr|brief this|condense this/.test(text);
+}
+
+function summarizeText(payload) {
+  const text = normalizeText(payload);
+  if (!text) return null;
+
+  const normalized = text.replace(/\s+/g, " ").trim();
+  const sentences = normalized.match(/[^.!?]+[.!?]?/g)?.map((item) => item.trim()).filter(Boolean) || [];
+  if (sentences.length === 0) return null;
+
+  const words = normalized.toLowerCase().match(/[a-z0-9]+/g) || [];
+  const freq = new Map();
+  for (const word of words) {
+    if (!word || STOPWORDS.has(word)) continue;
+    freq.set(word, (freq.get(word) || 0) + 1);
+  }
+
+  const ranked = sentences.map((sentence, index) => {
+    const score = (sentence.toLowerCase().match(/[a-z0-9]+/g) || []).reduce(
+      (sum, word) => sum + (freq.get(word) || 0),
+      0,
+    );
+    return { sentence, index, score };
+  });
+
+  const summarySentences = ranked
+    .sort((a, b) => b.score - a.score || a.index - b.index)
+    .slice(0, Math.min(3, sentences.length))
+    .sort((a, b) => a.index - b.index)
+    .map((item) => item.sentence);
+
+  const keyTerms = [...freq.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([term]) => term);
+
+  return {
+    summary: summarySentences.join(" "),
+    sentenceCount: sentences.length,
+    keyTerms,
+  };
+}
+
+function shouldUseDataHelper(message) {
+  const text = normalizeText(message).toLowerCase();
+  return /json|csv|tsv|comma-separated|parse this data|format this data|pretty print/.test(text);
+}
+
+function extractStructuredPayload(message) {
+  return stripMarkdownFences(pickTextTarget(message));
+}
+
+function parseDelimitedRows(raw, delimiter) {
+  const lines = `${raw || ""}`.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  if (lines.length < 2) return null;
+  const rows = lines.map((line) => line.split(delimiter).map((item) => item.trim()));
+  const headerWidth = rows[0].length;
+  if (headerWidth < 2) return null;
+  return rows.every((row) => row.length === headerWidth) ? rows : null;
+}
+
+function analyzeStructuredData(payload) {
+  const raw = stripMarkdownFences(payload);
+  if (!raw) return null;
+
+  try {
+    const parsed = JSON.parse(raw);
+    const type = Array.isArray(parsed) ? "array" : typeof parsed;
+    const preview = JSON.stringify(parsed, null, 2);
+    let shape = "";
+    if (Array.isArray(parsed)) {
+      const firstItem = parsed[0];
+      shape = `Items: ${parsed.length}${firstItem && typeof firstItem === "object" ? `, fields: ${Object.keys(firstItem).slice(0, 8).join(", ")}` : ""}`;
+    } else if (parsed && typeof parsed === "object") {
+      shape = `Keys: ${Object.keys(parsed).slice(0, 12).join(", ")}`;
+    }
+    return {
+      format: "json",
+      type,
+      shape,
+      preview: truncateText(preview, 1400),
+    };
+  } catch {
+    const csvRows = parseDelimitedRows(raw, ",");
+    const tsvRows = csvRows ? null : parseDelimitedRows(raw, "\t");
+    const rows = csvRows || tsvRows;
+    if (!rows) return null;
+    const headers = rows[0];
+    const previewRows = rows.slice(1, 4).map((row) => Object.fromEntries(headers.map((header, index) => [header, row[index] || ""])));
+    return {
+      format: csvRows ? "csv" : "tsv",
+      rowCount: Math.max(0, rows.length - 1),
+      columnCount: headers.length,
+      headers,
+      preview: truncateText(JSON.stringify(previewRows, null, 2), 1400),
+    };
+  }
+}
+
 function shouldUseApiFetch(message) {
   const text = normalizeText(message).toLowerCase();
   return (text.includes("fetch") || text.includes("api") || text.includes("request")) && /https?:\/\//i.test(text);
@@ -246,6 +357,87 @@ function shouldUseClock(message) {
     text.includes("what day is it") ||
     text.includes("clock")
   );
+}
+
+function shouldUseTimezone(message) {
+  const text = normalizeText(message).toLowerCase();
+  return /time in|timezone|convert time|what time.* in|current time in/.test(text);
+}
+
+const TIMEZONE_ALIASES = {
+  ist: "Asia/Kolkata",
+  india: "Asia/Kolkata",
+  delhi: "Asia/Kolkata",
+  mumbai: "Asia/Kolkata",
+  est: "America/New_York",
+  edt: "America/New_York",
+  newyork: "America/New_York",
+  nyc: "America/New_York",
+  pst: "America/Los_Angeles",
+  pdt: "America/Los_Angeles",
+  losangeles: "America/Los_Angeles",
+  sf: "America/Los_Angeles",
+  london: "Europe/London",
+  uk: "Europe/London",
+  gmt: "Europe/London",
+  paris: "Europe/Paris",
+  berlin: "Europe/Berlin",
+  cet: "Europe/Paris",
+  tokyo: "Asia/Tokyo",
+  jst: "Asia/Tokyo",
+  singapore: "Asia/Singapore",
+  sgt: "Asia/Singapore",
+  sydney: "Australia/Sydney",
+  aedt: "Australia/Sydney",
+  utc: "UTC",
+};
+
+function normalizeTimezoneKey(value) {
+  return normalizeText(value).toLowerCase().replace(/[^a-z/_]+/g, "");
+}
+
+function resolveTimezone(value) {
+  const raw = normalizeText(value);
+  if (!raw) return "";
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: raw });
+    return raw;
+  } catch {
+    const alias = TIMEZONE_ALIASES[normalizeTimezoneKey(raw)];
+    if (!alias) return "";
+    try {
+      new Intl.DateTimeFormat("en-US", { timeZone: alias });
+      return alias;
+    } catch {
+      return "";
+    }
+  }
+}
+
+function extractTimezoneTarget(message) {
+  const direct = normalizeText(message).match(/(?:time(?:zone)?|clock)\s+(?:in|for)\s+([A-Za-z/_ ]+)/i);
+  if (direct?.[1]) return direct[1].trim();
+  const secondary = normalizeText(message).match(/what time.* in\s+([A-Za-z/_ ]+)/i);
+  return secondary?.[1]?.trim() || "";
+}
+
+function getTimezoneSnapshot(timeZone) {
+  const now = new Date();
+  return {
+    timeZone,
+    local: new Intl.DateTimeFormat("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      second: "2-digit",
+      timeZone,
+      timeZoneName: "short",
+    }).format(now),
+    iso: now.toISOString(),
+  };
 }
 
 function shouldUseKnowledgeLookup(message) {
@@ -351,6 +543,20 @@ function formatToolResult(result) {
           ? `- Top words: ${result.output.topWords.map((w) => `${w.term} (${w.count})`).join(", ")}`
           : "- Top words: n/a",
       ].join("\n");
+    case TOOL_NAMES.TEXT_SUMMARIZER:
+      return [
+        "Summary:",
+        result.output.summary,
+        result.output.keyTerms?.length ? `Key terms: ${result.output.keyTerms.join(", ")}` : "",
+      ].filter(Boolean).join("\n");
+    case TOOL_NAMES.DATA_HELPER:
+      return [
+        `Data helper (${result.output.format}):`,
+        result.output.shape || "",
+        result.output.rowCount !== undefined ? `Rows: ${result.output.rowCount}, Columns: ${result.output.columnCount}` : "",
+        result.output.headers?.length ? `Headers: ${result.output.headers.join(", ")}` : "",
+        `Preview:\n${result.output.preview}`,
+      ].filter(Boolean).join("\n");
     case TOOL_NAMES.API_FETCH:
       return [
         `API fetch (${result.output.status}):`,
@@ -380,15 +586,22 @@ function formatToolResult(result) {
         `- ISO: ${result.output.iso}`,
         `- Time zone: ${result.output.timezone}`,
       ].join("\n");
+    case TOOL_NAMES.TIMEZONE:
+      return [
+        `Time in ${result.output.timeZone}:`,
+        `- Local: ${result.output.local}`,
+        `- ISO: ${result.output.iso}`,
+      ].join("\n");
     default:
       return truncateText(JSON.stringify(result.output || {}));
   }
 }
 
-export function planToolCalls(message) {
+export function planToolCalls(message, options = {}) {
   const calls = [];
   const raw = normalizeText(message);
   if (!raw) return calls;
+  const researchMode = Boolean(options?.researchMode);
 
   if (shouldUseCalculator(raw)) {
     const expression = extractExpression(raw);
@@ -401,6 +614,20 @@ export function planToolCalls(message) {
     const textTarget = pickTextTarget(raw);
     if (textTarget) {
       calls.push({ tool: TOOL_NAMES.TEXT_ANALYZER, input: { text: textTarget } });
+    }
+  }
+
+  if (shouldUseTextSummarizer(raw)) {
+    const textTarget = pickTextTarget(raw);
+    if (textTarget) {
+      calls.push({ tool: TOOL_NAMES.TEXT_SUMMARIZER, input: { text: textTarget } });
+    }
+  }
+
+  if (shouldUseDataHelper(raw)) {
+    const payload = extractStructuredPayload(raw);
+    if (payload) {
+      calls.push({ tool: TOOL_NAMES.DATA_HELPER, input: { data: payload } });
     }
   }
 
@@ -427,10 +654,27 @@ export function planToolCalls(message) {
     calls.push({ tool: TOOL_NAMES.CLOCK, input: {} });
   }
 
+  if (shouldUseTimezone(raw)) {
+    const target = resolveTimezone(extractTimezoneTarget(raw));
+    if (target) {
+      calls.push({ tool: TOOL_NAMES.TIMEZONE, input: { timeZone: target } });
+    }
+  }
+
   if (shouldUseKnowledgeLookup(raw)) {
     const query = extractQueryAfter(raw, ["wikipedia", "wiki", "lookup"]) || "";
     if (query) {
       calls.push({ tool: TOOL_NAMES.KNOWLEDGE_LOOKUP, input: { query } });
+    }
+  }
+
+  if (researchMode) {
+    const query = raw;
+    if (!calls.find((item) => item.tool === TOOL_NAMES.WEB_SEARCH)) {
+      calls.push({ tool: TOOL_NAMES.WEB_SEARCH, input: { query } });
+    }
+    if (!calls.find((item) => item.tool === TOOL_NAMES.NEWS)) {
+      calls.push({ tool: TOOL_NAMES.NEWS, input: { query } });
     }
   }
 
@@ -465,6 +709,28 @@ export async function executeToolCalls(toolCalls) {
             input: call.input,
             output: analysis || null,
             error: analysis ? null : "No text provided for analysis.",
+          });
+          break;
+        }
+        case TOOL_NAMES.TEXT_SUMMARIZER: {
+          const summary = summarizeText(call.input?.text || "");
+          results.push({
+            tool: TOOL_NAMES.TEXT_SUMMARIZER,
+            ok: Boolean(summary),
+            input: call.input,
+            output: summary || null,
+            error: summary ? null : "No text provided for summarization.",
+          });
+          break;
+        }
+        case TOOL_NAMES.DATA_HELPER: {
+          const analysis = analyzeStructuredData(call.input?.data || "");
+          results.push({
+            tool: TOOL_NAMES.DATA_HELPER,
+            ok: Boolean(analysis),
+            input: call.input,
+            output: analysis || null,
+            error: analysis ? null : "Unsupported or empty JSON/CSV data.",
           });
           break;
         }
@@ -588,6 +854,21 @@ export async function executeToolCalls(toolCalls) {
             ok: true,
             input: call.input,
             output: getClockSnapshot(),
+            error: null,
+          });
+          break;
+        }
+        case TOOL_NAMES.TIMEZONE: {
+          const timeZone = resolveTimezone(call.input?.timeZone || "");
+          if (!timeZone) {
+            results.push({ tool: TOOL_NAMES.TIMEZONE, ok: false, input: call.input, output: null, error: "Timezone could not be resolved." });
+            break;
+          }
+          results.push({
+            tool: TOOL_NAMES.TIMEZONE,
+            ok: true,
+            input: call.input,
+            output: getTimezoneSnapshot(timeZone),
             error: null,
           });
           break;
