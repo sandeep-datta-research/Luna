@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useId, useMemo, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useScroll, useSpring, useTransform } from "framer-motion";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
@@ -315,11 +315,28 @@ function MotionPanel({ item, index }) {
   );
 }
 
-function HeroExperience({ ctaHref, isSignedIn }) {
+function ScrollProgressBar({ progress }) {
+  return (
+    <div className="pointer-events-none fixed inset-x-0 top-0 z-[70] h-1 bg-white/[0.03]">
+      <motion.div
+        className="h-full origin-left bg-[linear-gradient(90deg,#67e8f9,#60a5fa,#8b5cf6)] shadow-[0_0_28px_rgba(96,165,250,0.55)]"
+        style={{ scaleX: progress }}
+      />
+    </div>
+  );
+}
+
+function HeroExperience({ ctaHref, isSignedIn, scrollYProgress }) {
+  const textY = useTransform(scrollYProgress, [0, 0.22], [0, -42]);
+  const textOpacity = useTransform(scrollYProgress, [0, 0.22], [1, 0.82]);
+  const visualY = useTransform(scrollYProgress, [0, 0.22], [0, 58]);
+  const visualRotate = useTransform(scrollYProgress, [0, 0.22], [0, -5]);
+  const ribbonsOpacity = useTransform(scrollYProgress, [0, 0.18], [0.75, 0.18]);
+
   return (
     <section className="relative overflow-hidden">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,rgba(88,165,255,0.18),transparent_25%),radial-gradient(circle_at_78%_18%,rgba(168,85,247,0.18),transparent_28%),radial-gradient(circle_at_50%_85%,rgba(16,185,129,0.12),transparent_34%)]" />
-      <div className="absolute inset-x-0 top-0 h-[520px] overflow-hidden">
+      <motion.div className="absolute inset-x-0 top-0 h-[520px] overflow-hidden" style={{ opacity: ribbonsOpacity }}>
         <Ribbons
           className="absolute inset-0 opacity-70"
           colors={["#59d3ff", "#8b5cf6", "#22c55e"]}
@@ -329,7 +346,7 @@ function HeroExperience({ ctaHref, isSignedIn }) {
           enableFade
           enableShaderEffect
         />
-      </div>
+      </motion.div>
 
       <div className="relative mx-auto grid min-h-[calc(100vh-84px)] w-full max-w-6xl items-center gap-12 px-4 pb-16 pt-10 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:px-8 lg:pb-20 lg:pt-16">
         <motion.div
@@ -337,6 +354,7 @@ function HeroExperience({ ctaHref, isSignedIn }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
           className="relative z-10"
+          style={{ y: textY, opacity: textOpacity }}
         >
           <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-4 py-2 text-xs uppercase tracking-[0.28em] text-cyan-100">
             <Zap className="h-3.5 w-3.5" />
@@ -380,6 +398,7 @@ function HeroExperience({ ctaHref, isSignedIn }) {
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 0.9, ease: "easeOut", delay: 0.08 }}
           className="relative flex min-h-[540px] items-center justify-center"
+          style={{ y: visualY, rotateZ: visualRotate }}
         >
           {MOTION_STACK.map((item, index) => (
             <MotionPanel key={item.title} item={item} index={index} />
@@ -452,9 +471,15 @@ function HeroExperience({ ctaHref, isSignedIn }) {
   );
 }
 
-function FeaturePillarSection() {
+function FeaturePillarSection({ scrollYProgress }) {
+  const sectionY = useTransform(scrollYProgress, [0.12, 0.45], [48, -18]);
+  const sectionOpacity = useTransform(scrollYProgress, [0.04, 0.18], [0.55, 1]);
+
   return (
-    <section className="mx-auto mt-8 w-full max-w-6xl px-4 sm:px-6 lg:px-8">
+    <motion.section
+      className="mx-auto mt-8 w-full max-w-6xl px-4 sm:px-6 lg:px-8"
+      style={{ y: sectionY, opacity: sectionOpacity }}
+    >
       <motion.div
         {...fadeInUp}
         className="grid gap-5 lg:grid-cols-3"
@@ -478,7 +503,7 @@ function FeaturePillarSection() {
           );
         })}
       </motion.div>
-    </section>
+    </motion.section>
   );
 }
 
@@ -664,6 +689,10 @@ function MobileLanding({
   handleFeedbackSubmit,
   carouselTestimonials,
 }) {
+  const { scrollYProgress } = useScroll();
+  const progress = useSpring(scrollYProgress, { stiffness: 120, damping: 28, mass: 0.24 });
+  const mobileHeroY = useTransform(progress, [0, 0.3], [0, -28]);
+
   const menuLinks = [
     { label: "Home", href: "/" },
     { label: "Features", href: "/features" },
@@ -674,12 +703,13 @@ function MobileLanding({
 
   return (
     <div className="min-h-screen overflow-hidden bg-[#07070d] text-white">
+      <ScrollProgressBar progress={progress} />
       <div className="relative mx-auto flex min-h-screen w-full max-w-[420px] flex-col">
         <MobileNavbar ctaHref={ctaHref} onOpenMenu={onOpenMenu} />
         <div className="px-4 pt-2">
           <AnnouncementBanner />
         </div>
-        <div className="px-4 pb-2 pt-6">
+        <motion.div className="px-4 pb-2 pt-6" style={{ y: mobileHeroY }}>
           <div className="overflow-hidden rounded-[34px] border border-white/10 bg-[linear-gradient(180deg,rgba(10,16,24,0.94),rgba(7,9,13,0.82))]">
             <div className="relative px-5 pb-7 pt-6">
               <div className="pointer-events-none absolute inset-0 opacity-70">
@@ -713,7 +743,7 @@ function MobileLanding({
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
         <MobileInputPreview ctaHref={ctaHref} />
         <div className="space-y-5 px-4 pb-10">
           <DeferredSection sectionId="mobile-pillars" className="mobile-pillars" fallback={<SectionSkeleton compact />}>
@@ -825,8 +855,24 @@ function DesktopHome({
   carouselTestimonials,
   showAnalytics,
 }) {
+  const { scrollYProgress } = useScroll();
+  const progress = useSpring(scrollYProgress, { stiffness: 120, damping: 30, mass: 0.26 });
+  const growthY = useTransform(progress, [0.22, 0.62], [60, -24]);
+  const feedbackY = useTransform(progress, [0.36, 0.85], [72, -20]);
+  const ambientYLeft = useTransform(progress, [0, 1], [0, -160]);
+  const ambientYRight = useTransform(progress, [0, 1], [0, -100]);
+
   return (
     <div className="dark min-h-screen overflow-x-hidden bg-[#07070d] text-zinc-100">
+      <ScrollProgressBar progress={progress} />
+      <motion.div
+        className="pointer-events-none fixed left-[-8rem] top-24 z-0 h-72 w-72 rounded-full bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.14),transparent_66%)] blur-3xl"
+        style={{ y: ambientYLeft }}
+      />
+      <motion.div
+        className="pointer-events-none fixed right-[-8rem] top-[38vh] z-0 h-80 w-80 rounded-full bg-[radial-gradient(circle_at_center,rgba(168,85,247,0.14),transparent_66%)] blur-3xl"
+        style={{ y: ambientYRight }}
+      />
       <nav className="sticky top-0 z-50 border-b border-zinc-800/80 bg-[#07070d]/85 px-4 py-3 backdrop-blur-xl sm:px-6 lg:px-8">
         <div className="mx-auto w-full max-w-6xl">
           <CardNav
@@ -847,14 +893,14 @@ function DesktopHome({
         <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8">
           <AnnouncementBanner className="mb-6" />
         </div>
-        <HeroExperience ctaHref={isSignedIn ? "/chat" : "/signin"} isSignedIn={isSignedIn} />
+        <HeroExperience ctaHref={isSignedIn ? "/chat" : "/signin"} isSignedIn={isSignedIn} scrollYProgress={progress} />
 
         <DeferredSection
           sectionId="desktop-pillars"
           className="desktop-pillars scroll-mt-28"
           fallback={<SectionSkeleton className="mx-auto mt-8 min-h-[320px] w-full max-w-6xl" />}
         >
-          <FeaturePillarSection />
+          <FeaturePillarSection scrollYProgress={progress} />
         </DeferredSection>
 
         <DeferredSection
@@ -862,7 +908,7 @@ function DesktopHome({
           className="desktop-growth mx-auto mt-8 w-full max-w-6xl px-4 sm:px-6 lg:px-8"
           fallback={<SectionSkeleton />}
         >
-          <motion.section {...fadeInUp}>
+          <motion.section {...fadeInUp} style={{ y: growthY }}>
             <UserGrowthSection userMetrics={userMetrics} chartPoints={chartPoints} />
           </motion.section>
         </DeferredSection>
@@ -879,7 +925,7 @@ function DesktopHome({
           className="desktop-feedback scroll-mt-28 mx-auto mt-6 w-full max-w-6xl px-4 sm:px-6 lg:px-8"
           fallback={<SectionSkeleton />}
         >
-          <motion.div id="feedback" {...fadeInUp}>
+          <motion.div id="feedback" {...fadeInUp} style={{ y: feedbackY }}>
             <FeedbackSection
               feedbackForm={feedbackForm}
               setFeedbackForm={setFeedbackForm}
