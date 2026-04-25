@@ -129,10 +129,16 @@ function sanitizeCharacter(raw) {
     tagline: normalizeText(raw?.tagline).slice(0, 80),
     description: normalizeText(raw?.description).slice(0, 220),
     imageUrl: normalizeText(raw?.imageUrl).slice(0, 2_000_000),
+    accentStart: normalizeText(raw?.accentStart).slice(0, 32) || "#7fc7ba",
+    accentEnd: normalizeText(raw?.accentEnd).slice(0, 32) || "#0f1f24",
     prompt,
     access: normalizeCharacterAccess(raw?.access),
     active: raw?.active !== false,
     sortOrder: Number.isFinite(Number(raw?.sortOrder)) ? Number(raw.sortOrder) : 0,
+    usageCount: Number.isFinite(Number(raw?.usageCount)) ? Number(raw.usageCount) : 0,
+    usageCountFree: Number.isFinite(Number(raw?.usageCountFree)) ? Number(raw.usageCountFree) : 0,
+    usageCountPro: Number.isFinite(Number(raw?.usageCountPro)) ? Number(raw.usageCountPro) : 0,
+    lastUsedAt: normalizeText(raw?.lastUsedAt),
     createdAt: normalizeText(raw?.createdAt) || nowIso(),
     createdBy: normalizeText(raw?.createdBy),
     updatedAt: normalizeText(raw?.updatedAt) || nowIso(),
@@ -259,7 +265,7 @@ export async function listActiveCharacters(overrides = {}) {
 }
 
 export async function upsertCharacter(
-  { id = "", name, tagline, description, imageUrl, prompt, access = "free", active = true, sortOrder = 0, adminUserId = "" },
+  { id = "", name, tagline, description, imageUrl, accentStart, accentEnd, prompt, access = "free", active = true, sortOrder = 0, adminUserId = "" },
   overrides = {},
 ) {
   const defaults = getDefaults(overrides);
@@ -274,6 +280,8 @@ export async function upsertCharacter(
       tagline,
       description,
       imageUrl,
+      accentStart,
+      accentEnd,
       prompt,
       access,
       active,
@@ -308,7 +316,7 @@ export async function upsertCharacter(
 }
 
 export async function updateCharacter(
-  { id, name, tagline, description, imageUrl, prompt, access, active, sortOrder, adminUserId = "" },
+  { id, name, tagline, description, imageUrl, accentStart, accentEnd, prompt, access, active, sortOrder, adminUserId = "" },
   overrides = {},
 ) {
   const defaults = getDefaults(overrides);
@@ -325,6 +333,8 @@ export async function updateCharacter(
     if (tagline !== undefined) existing.tagline = normalizeText(tagline).slice(0, 80);
     if (description !== undefined) existing.description = normalizeText(description).slice(0, 220);
     if (imageUrl !== undefined) existing.imageUrl = normalizeText(imageUrl).slice(0, 2_000_000);
+    if (accentStart !== undefined) existing.accentStart = normalizeText(accentStart).slice(0, 32) || existing.accentStart;
+    if (accentEnd !== undefined) existing.accentEnd = normalizeText(accentEnd).slice(0, 32) || existing.accentEnd;
     if (prompt !== undefined) existing.prompt = normalizeText(prompt).slice(0, 5000);
     if (access !== undefined) existing.access = normalizeCharacterAccess(access);
     if (active !== undefined) existing.active = Boolean(active);
@@ -354,6 +364,34 @@ export async function removeCharacter({ id, adminUserId = "" }, overrides = {}) 
     db.settings.updatedAt = nowIso();
     db.settings.updatedBy = normalizeText(adminUserId);
     return true;
+  });
+}
+
+export async function incrementCharacterUsage({ id, plan = "free", adminUserId = "system" }, overrides = {}) {
+  const defaults = getDefaults(overrides);
+  const safeId = normalizeText(id);
+  if (!safeId) return null;
+
+  return mutate(defaults, (db) => {
+    const list = Array.isArray(db.settings.characters) ? db.settings.characters : [];
+    const existing = list.find((item) => item.id === safeId);
+    if (!existing) return null;
+
+    const now = nowIso();
+    existing.usageCount = Number(existing.usageCount || 0) + 1;
+    if (plan === "pro") {
+      existing.usageCountPro = Number(existing.usageCountPro || 0) + 1;
+    } else {
+      existing.usageCountFree = Number(existing.usageCountFree || 0) + 1;
+    }
+    existing.lastUsedAt = now;
+    existing.updatedAt = now;
+    existing.updatedBy = normalizeText(adminUserId) || "system";
+
+    db.settings.characters = sanitizeCharacters(list);
+    db.settings.updatedAt = now;
+    db.settings.updatedBy = normalizeText(adminUserId) || "system";
+    return clone(existing);
   });
 }
 

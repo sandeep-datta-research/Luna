@@ -166,17 +166,29 @@ export default function AdminDashboard() {
   const [characterTagline, setCharacterTagline] = useState("");
   const [characterDescription, setCharacterDescription] = useState("");
   const [characterImageUrl, setCharacterImageUrl] = useState("");
+  const [characterAccentStart, setCharacterAccentStart] = useState("#7fc7ba");
+  const [characterAccentEnd, setCharacterAccentEnd] = useState("#0f1f24");
   const [characterPrompt, setCharacterPrompt] = useState("");
   const [characterAccess, setCharacterAccess] = useState("free");
   const [characterActive, setCharacterActive] = useState(true);
   const [characterSortOrder, setCharacterSortOrder] = useState("0");
   const [characterNote, setCharacterNote] = useState("");
+  const [characterSearch, setCharacterSearch] = useState("");
 
   const isAllowed = useMemo(() => ALLOWED_ADMIN_EMAILS.has(normalizeEmail(userEmail)), [userEmail]);
   const modelUsageEntries = useMemo(() => {
     const counts = overview?.modelUsage?.counts || {};
     return Object.entries(counts).sort((a, b) => Number(b[1] || 0) - Number(a[1] || 0));
   }, [overview]);
+  const filteredCharacters = useMemo(() => {
+    const query = characterSearch.trim().toLowerCase();
+    if (!query) return characters;
+    return characters.filter((item) =>
+      [item.name, item.tagline, item.description]
+        .filter(Boolean)
+        .some((value) => value.toLowerCase().includes(query)),
+    );
+  }, [characterSearch, characters]);
   const featuredFeedbackCount = useMemo(
     () => feedbackItems.filter((item) => item.featured).length,
     [feedbackItems],
@@ -224,6 +236,8 @@ export default function AdminDashboard() {
     setCharacterTagline("");
     setCharacterDescription("");
     setCharacterImageUrl("");
+    setCharacterAccentStart("#7fc7ba");
+    setCharacterAccentEnd("#0f1f24");
     setCharacterPrompt("");
     setCharacterAccess("free");
     setCharacterActive(true);
@@ -236,6 +250,8 @@ export default function AdminDashboard() {
     setCharacterTagline(item?.tagline || "");
     setCharacterDescription(item?.description || "");
     setCharacterImageUrl(item?.imageUrl || "");
+    setCharacterAccentStart(item?.accentStart || "#7fc7ba");
+    setCharacterAccentEnd(item?.accentEnd || "#0f1f24");
     setCharacterPrompt(item?.prompt || "");
     setCharacterAccess(item?.access === "pro" ? "pro" : "free");
     setCharacterActive(item?.active !== false);
@@ -620,6 +636,8 @@ export default function AdminDashboard() {
       tagline: characterTagline.trim(),
       description: characterDescription.trim(),
       imageUrl: characterImageUrl.trim(),
+      accentStart: characterAccentStart,
+      accentEnd: characterAccentEnd,
       prompt: characterPrompt.trim(),
       access: characterAccess === "pro" ? "pro" : "free",
       active: characterActive,
@@ -1011,6 +1029,26 @@ export default function AdminDashboard() {
                       className="mt-3 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none"
                     />
                   </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="text-xs text-zinc-400">
+                      Accent start
+                      <input
+                        type="color"
+                        value={characterAccentStart}
+                        onChange={(event) => setCharacterAccentStart(event.target.value)}
+                        className="mt-2 h-10 w-full rounded-lg border border-zinc-700 bg-zinc-900"
+                      />
+                    </label>
+                    <label className="text-xs text-zinc-400">
+                      Accent end
+                      <input
+                        type="color"
+                        value={characterAccentEnd}
+                        onChange={(event) => setCharacterAccentEnd(event.target.value)}
+                        className="mt-2 h-10 w-full rounded-lg border border-zinc-700 bg-zinc-900"
+                      />
+                    </label>
+                  </div>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <button
@@ -1034,14 +1072,27 @@ export default function AdminDashboard() {
               </div>
 
               <div className="rounded-2xl border border-white/6 bg-white/[0.03] p-4">
-                <p className="text-sm font-medium text-zinc-200">Board roster</p>
-                {characters.length === 0 ? (
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-sm font-medium text-zinc-200">Board roster</p>
+                  <input
+                    value={characterSearch}
+                    onChange={(event) => setCharacterSearch(event.target.value)}
+                    placeholder="Search characters..."
+                    className="w-full max-w-[240px] rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none"
+                  />
+                </div>
+                {filteredCharacters.length === 0 ? (
                   <p className="mt-3 text-xs text-zinc-500">No characters configured yet.</p>
                 ) : (
                   <div className="luna-scrollbar mt-3 flex gap-3 overflow-x-auto pb-2">
-                    {characters.map((item) => (
+                    {filteredCharacters.map((item) => (
                       <div key={item.id} className="min-w-[260px] rounded-[24px] border border-zinc-800 bg-[linear-gradient(180deg,rgba(34,39,60,0.92),rgba(14,17,28,0.96))] p-3">
-                        {item.imageUrl ? <img src={item.imageUrl} alt={item.name} className="h-40 w-full rounded-[18px] object-cover" /> : <div className="flex h-40 w-full items-center justify-center rounded-[18px] border border-dashed border-zinc-700 text-xs text-zinc-500">No image</div>}
+                        <div
+                          className="rounded-[18px] p-1"
+                          style={{ backgroundImage: `linear-gradient(135deg, ${item.accentStart || "#7fc7ba"}, ${item.accentEnd || "#0f1f24"})` }}
+                        >
+                          {item.imageUrl ? <img src={item.imageUrl} alt={item.name} className="h-40 w-full rounded-[16px] object-cover" /> : <div className="flex h-40 w-full items-center justify-center rounded-[16px] border border-dashed border-zinc-700 bg-zinc-950/70 text-xs text-zinc-500">No image</div>}
+                        </div>
                         <div className="mt-3 flex items-start justify-between gap-2">
                           <div>
                             <p className="text-sm font-medium text-zinc-100">{item.name}</p>
@@ -1052,6 +1103,21 @@ export default function AdminDashboard() {
                           </span>
                         </div>
                         <p className="mt-2 line-clamp-3 text-xs text-zinc-400">{item.description || "No description."}</p>
+                        <div className="mt-2 grid grid-cols-3 gap-2 rounded-xl border border-zinc-800 bg-zinc-950/60 p-2 text-center">
+                          <div>
+                            <p className="text-[10px] uppercase tracking-[0.14em] text-zinc-500">Uses</p>
+                            <p className="mt-1 text-sm font-medium text-zinc-100">{item.usageCount || 0}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] uppercase tracking-[0.14em] text-zinc-500">Free</p>
+                            <p className="mt-1 text-sm font-medium text-emerald-200">{item.usageCountFree || 0}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] uppercase tracking-[0.14em] text-zinc-500">Pro</p>
+                            <p className="mt-1 text-sm font-medium text-violet-200">{item.usageCountPro || 0}</p>
+                          </div>
+                        </div>
+                        {item.lastUsedAt ? <p className="mt-2 text-[11px] text-zinc-500">Last used: {formatDate(item.lastUsedAt)}</p> : null}
                         <div className="mt-3 flex flex-wrap gap-2">
                           <button
                             type="button"

@@ -47,7 +47,7 @@ import {
   setMembershipPlan,
   submitUpgradeRequest,
 } from "./pro-db.js";
-import { getAdminSettings, incrementReferralUsage, listActiveAnnouncements, listAnnouncements, removeAnnouncement, removeCharacter, removeReferralCode, updateAnnouncement, updateCharacter, updateProMonthlyPrice, updateProSystemPrompt, updateReferralCode, upsertAnnouncement, upsertCharacter, upsertReferralCode, validateReferralCode } from "./admin-settings.js";
+import { getAdminSettings, incrementCharacterUsage, incrementReferralUsage, listActiveAnnouncements, listAnnouncements, removeAnnouncement, removeCharacter, removeReferralCode, updateAnnouncement, updateCharacter, updateProMonthlyPrice, updateProSystemPrompt, updateReferralCode, upsertAnnouncement, upsertCharacter, upsertReferralCode, validateReferralCode } from "./admin-settings.js";
 import { CATEGORY_LABELS, classifyMessage } from "./luna-classifier.js";
 import { getRoutingPlan, runRoutedProviders, runRoutedProvidersStream } from "./luna-router.js";
 import { buildToolSystemPrompt, executeToolCalls, extractToolSources, formatToolResults, planToolCalls } from "./luna-tools.js";
@@ -265,10 +265,16 @@ const DEFAULT_CHARACTER_PROFILE = {
   tagline: "Witty, sharp, balanced",
   description: "Default Luna voice with playful intelligence and practical help.",
   imageUrl: "",
+  accentStart: "#7fc7ba",
+  accentEnd: "#0f1f24",
   prompt: "Primary persona: Luna Classic. Keep Luna's established identity, witty warmth, and anime-inspired confidence.",
   access: "free",
   active: true,
   sortOrder: 0,
+  usageCount: 0,
+  usageCountFree: 0,
+  usageCountPro: 0,
+  lastUsedAt: "",
 };
 
 function normalizeCharacterCatalog(items = []) {
@@ -280,10 +286,16 @@ function normalizeCharacterCatalog(items = []) {
       tagline: `${item?.tagline || ""}`.trim(),
       description: `${item?.description || ""}`.trim(),
       imageUrl: `${item?.imageUrl || ""}`.trim(),
+      accentStart: `${item?.accentStart || DEFAULT_CHARACTER_PROFILE.accentStart}`.trim() || DEFAULT_CHARACTER_PROFILE.accentStart,
+      accentEnd: `${item?.accentEnd || DEFAULT_CHARACTER_PROFILE.accentEnd}`.trim() || DEFAULT_CHARACTER_PROFILE.accentEnd,
       prompt: `${item?.prompt || ""}`.trim(),
       access: `${item?.access || "free"}`.trim().toLowerCase() === "pro" ? "pro" : "free",
       active: item?.active !== false,
       sortOrder: Number.isFinite(Number(item?.sortOrder)) ? Number(item.sortOrder) : index,
+      usageCount: Number.isFinite(Number(item?.usageCount)) ? Number(item.usageCount) : 0,
+      usageCountFree: Number.isFinite(Number(item?.usageCountFree)) ? Number(item.usageCountFree) : 0,
+      usageCountPro: Number.isFinite(Number(item?.usageCountPro)) ? Number(item.usageCountPro) : 0,
+      lastUsedAt: `${item?.lastUsedAt || ""}`.trim(),
     }))
     .filter((item) => item.name && item.prompt)
     .sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0) || a.name.localeCompare(b.name));
@@ -505,7 +517,24 @@ app.use(cors({
   },
   credentials: true,
 }));
-app.use(express.json());
+app.use(express.json({ limit: "8mb" }));
+app.use(express.urlencoded({ extended: true, limit: "8mb" }));
+app.use((error, req, res, next) => {
+  if (!error) {
+    next();
+    return;
+  }
+
+  if (error.type === "entity.too.large") {
+    return res.status(413).json({ error: "Uploaded character image is too large. Use a smaller file or external image URL." });
+  }
+
+  if (error instanceof SyntaxError && "body" in error) {
+    return res.status(400).json({ error: "Invalid JSON request body." });
+  }
+
+  return next(error);
+});
 app.use((req, res, next) => {
   trackRequest(req, res);
   next();
@@ -2350,6 +2379,13 @@ app.post("/api/luna/stream", async (req, res) => {
       llm,
       userId: userContext.userId,
     });
+    await incrementCharacterUsage(
+      { id: characterProfile.id, plan: membershipContext.plan, adminUserId: userContext.userId },
+      {
+        defaultMonthlyPriceInr: DEFAULT_PRO_MONTHLY_PRICE_INR,
+        defaultUpiId: DEFAULT_UPI_ID,
+      },
+    ).catch(() => null);
 
     const usageAfter = membershipContext.plan === "pro"
       ? {
@@ -2530,6 +2566,13 @@ app.post("/api/luna", async (req, res) => {
       llm,
       userId: userContext.userId,
     });
+    await incrementCharacterUsage(
+      { id: characterProfile.id, plan: membershipContext.plan, adminUserId: userContext.userId },
+      {
+        defaultMonthlyPriceInr: DEFAULT_PRO_MONTHLY_PRICE_INR,
+        defaultUpiId: DEFAULT_UPI_ID,
+      },
+    ).catch(() => null);
 
     const usageAfter = membershipContext.plan === "pro"
       ? {
@@ -2836,6 +2879,8 @@ app.post("/api/admin/characters", async (req, res) => {
         tagline: req.body?.tagline,
         description: req.body?.description,
         imageUrl: req.body?.imageUrl,
+        accentStart: req.body?.accentStart,
+        accentEnd: req.body?.accentEnd,
         prompt: req.body?.prompt,
         access: req.body?.access,
         active: req.body?.active,
@@ -2865,6 +2910,8 @@ app.patch("/api/admin/characters/:id", async (req, res) => {
         tagline: req.body?.tagline,
         description: req.body?.description,
         imageUrl: req.body?.imageUrl,
+        accentStart: req.body?.accentStart,
+        accentEnd: req.body?.accentEnd,
         prompt: req.body?.prompt,
         access: req.body?.access,
         active: req.body?.active,

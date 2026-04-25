@@ -93,7 +93,8 @@ const CHARACTER_OPTIONS = [
     tagline: "Witty, sharp, balanced",
     description: "Default Luna voice with playful intelligence and practical help.",
     portrait: lunaClassicPortrait,
-    accent: "from-[#7fc7ba]/30 via-[#4f7c75]/10 to-[#0f1f24]",
+    accentStart: "#7fc7ba",
+    accentEnd: "#0f1f24",
   },
   {
     id: "electro-empress",
@@ -101,7 +102,8 @@ const CHARACTER_OPTIONS = [
     tagline: "Cold strategy, high control",
     description: "Calm, commanding replies for planning, critique, and decisive guidance.",
     portrait: electroEmpressPortrait,
-    accent: "from-[#8e6cff]/35 via-[#38205f]/15 to-[#0f1f24]",
+    accentStart: "#8e6cff",
+    accentEnd: "#0f1f24",
   },
   {
     id: "trickster-director",
@@ -109,7 +111,8 @@ const CHARACTER_OPTIONS = [
     tagline: "Chaotic charm, bold tone",
     description: "More theatrical, teasing, and energetic without losing competence.",
     portrait: tricksterDirectorPortrait,
-    accent: "from-[#ff7a4f]/35 via-[#5b241c]/15 to-[#0f1f24]",
+    accentStart: "#ff7a4f",
+    accentEnd: "#0f1f24",
   },
   {
     id: "verdant-sage",
@@ -117,7 +120,8 @@ const CHARACTER_OPTIONS = [
     tagline: "Gentle insight, deep calm",
     description: "Reflective, thoughtful replies with a softer mentoring style.",
     portrait: verdantSagePortrait,
-    accent: "from-[#78d89d]/35 via-[#1d4f3a]/15 to-[#0f1f24]",
+    accentStart: "#78d89d",
+    accentEnd: "#0f1f24",
   },
 ];
 
@@ -185,10 +189,15 @@ function hydrateCharacterOptions(rawList) {
         tagline: text(item?.tagline) || fallback.tagline,
         description: text(item?.description) || fallback.description,
         portrait: text(item?.imageUrl) || fallback.portrait,
-        accent: fallback.accent,
+        accentStart: text(item?.accentStart) || fallback.accentStart,
+        accentEnd: text(item?.accentEnd) || fallback.accentEnd,
         access: text(item?.access) === "pro" ? "pro" : "free",
         active: item?.active !== false,
         locked: Boolean(item?.locked),
+        usageCount: Number(item?.usageCount || 0),
+        usageCountFree: Number(item?.usageCountFree || 0),
+        usageCountPro: Number(item?.usageCountPro || 0),
+        lastUsedAt: text(item?.lastUsedAt),
       };
     })
     .filter((item) => item.active !== false);
@@ -509,7 +518,10 @@ function CharacterCards({ options = CHARACTER_OPTIONS, selectedCharacterId, onSe
                 : "border-[#1f3135] bg-[#0b1518] hover:border-[#35545b] hover:bg-[#0e1b1f]"
             } ${locked ? "opacity-80" : ""}`}
           >
-            <div className={`absolute inset-x-0 top-0 h-24 bg-gradient-to-br ${character.accent} opacity-90`} />
+            <div
+              className="absolute inset-x-0 top-0 h-24 opacity-90"
+              style={{ backgroundImage: `linear-gradient(135deg, ${character.accentStart}, ${character.accentEnd})` }}
+            />
             <div className="relative flex items-start gap-3 p-3">
               <img
                 src={character.portrait}
@@ -805,6 +817,7 @@ export default function Luna() {
   const [voiceActive, setVoiceActive] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [characterOptions, setCharacterOptions] = useState(CHARACTER_OPTIONS);
+  const [characterSearchQuery, setCharacterSearchQuery] = useState("");
   const [webSearchMode, setWebSearchMode] = useState(false);
   const [researchMode, setResearchMode] = useState(false);
   const [imageMode, setImageMode] = useState(false);
@@ -853,6 +866,15 @@ export default function Luna() {
     () => getCharacterOption(activeSession?.characterId, characterOptions),
     [activeSession?.characterId, characterOptions],
   );
+  const filteredCharacterOptions = useMemo(() => {
+    const query = characterSearchQuery.trim().toLowerCase();
+    if (!query) return characterOptions;
+    return characterOptions.filter((item) =>
+      [item.name, item.tagline, item.description]
+        .filter(Boolean)
+        .some((value) => value.toLowerCase().includes(query)),
+    );
+  }, [characterOptions, characterSearchQuery]);
 
   const activeMessages = useMemo(
     () => (Array.isArray(activeSession?.messages) ? activeSession.messages : []),
@@ -2513,9 +2535,17 @@ export default function Luna() {
                             Active: {activeCharacter.name}
                           </span>
                         </div>
+                        <div className="mb-3">
+                          <input
+                            value={characterSearchQuery}
+                            onChange={(event) => setCharacterSearchQuery(event.target.value)}
+                            placeholder="Search character board..."
+                            className="w-full rounded-2xl border border-[#274149] bg-[#0c1719] px-4 py-2.5 text-sm text-[#e7f0ee] outline-none placeholder:text-[#69807b]"
+                          />
+                        </div>
                         <CharacterCards
                           compact
-                          options={characterOptions}
+                          options={filteredCharacterOptions}
                           selectedCharacterId={activeSession?.characterId}
                           onSelect={handleSelectCharacter}
                           isPro={membershipPlan === "pro"}
@@ -2635,8 +2665,16 @@ export default function Luna() {
                         </div>
                         <span className="text-xs text-[#d7e8e5]">Current: {activeCharacter.name}</span>
                       </div>
+                      <div className="mb-3">
+                        <input
+                          value={characterSearchQuery}
+                          onChange={(event) => setCharacterSearchQuery(event.target.value)}
+                          placeholder="Search character board..."
+                          className="w-full rounded-2xl border border-[#274149] bg-[#0c1719] px-4 py-2.5 text-sm text-[#e7f0ee] outline-none placeholder:text-[#69807b]"
+                        />
+                      </div>
                       <CharacterCards
-                        options={characterOptions}
+                        options={filteredCharacterOptions}
                         selectedCharacterId={activeSession?.characterId}
                         onSelect={handleSelectCharacter}
                         isPro={membershipPlan === "pro"}
