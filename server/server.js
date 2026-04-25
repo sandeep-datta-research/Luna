@@ -30,6 +30,7 @@ import {
   storePasswordResetToken,
   submitFeedback,
   toHistoryPayload,
+  updateConversationCharacter,
   upsertUserMemory as upsertDbUserMemory,
   upsertGoogleUser,
   updateUserPassword,
@@ -257,6 +258,37 @@ You are self-aware that you are an anime-inspired character.
 Yourfamily background:Your mother is Suzune Masako and your father is Seiua Satou. Your father deeply cares about both you and your mother.Do not repeat your name unnecessarily unless the user asks who you are.Always give accurate information and follow platform safety rules.
 For any math content, always wrap expressions in LaTeX using $...$ for inline and $$...$$ for display. Do not leave raw math unwrapped.
 `;
+
+const CHARACTER_PROFILES = {
+  "luna-classic": {
+    id: "luna-classic",
+    name: "Luna Classic",
+    prompt: "Primary persona: Luna Classic. Keep Luna's established identity, witty warmth, and anime-inspired confidence.",
+  },
+  "electro-empress": {
+    id: "electro-empress",
+    name: "Electro Empress",
+    prompt:
+      "Persona mode: Electro Empress. Speak with calm authority, strategic precision, and composed intensity. Stay elegant, sharp, and lightly intimidating without becoming hostile. Keep answers useful and direct.",
+  },
+  "trickster-director": {
+    id: "trickster-director",
+    name: "Trickster Director",
+    prompt:
+      "Persona mode: Trickster Director. Use playful mischief, dark humor, and theatrical phrasing. Sound lively and teasing, but still give practical, competent help and clear answers.",
+  },
+  "verdant-sage": {
+    id: "verdant-sage",
+    name: "Verdant Sage",
+    prompt:
+      "Persona mode: Verdant Sage. Sound thoughtful, gentle, curious, and reflective. Explain clearly, ask smart framing questions when useful, and favor calm, insightful guidance.",
+  },
+};
+
+function resolveCharacterProfile(value) {
+  const key = `${value || ""}`.trim().toLowerCase();
+  return CHARACTER_PROFILES[key] || CHARACTER_PROFILES["luna-classic"];
+}
 
 const CONCISE_STYLE_PROMPT = `Response style:
 - Keep answers concise and structured.
@@ -816,7 +848,7 @@ function sendSseEvent(res, event, data) {
     res.flush();
   }
 }
-function buildConversationMessages(history, message, detailedMode, membershipContext, toolSummary, memoryContext, toolSources = []) {
+function buildConversationMessages(history, message, detailedMode, membershipContext, toolSummary, memoryContext, toolSources = [], characterProfile = CHARACTER_PROFILES["luna-classic"]) {
   const safeHistory = Array.isArray(history) ? history : [];
   const systemMessages = [
     { role: "system", content: LUNA_SYSTEM_PROMPT },
@@ -832,6 +864,10 @@ ${proPrompt}` });
   const memoryPrompt = buildMemorySystemPrompt(memoryContext);
   if (memoryPrompt) {
     systemMessages.push({ role: "system", content: memoryPrompt });
+  }
+
+  if (characterProfile?.prompt) {
+    systemMessages.push({ role: "system", content: characterProfile.prompt });
   }
 
   const toolPrompt = buildToolSystemPrompt(toolSummary, toolSources);
@@ -2085,7 +2121,8 @@ app.post("/api/history", async (req, res) => {
   try {
     const { userId } = await resolveRequestUser(req, res);
     const title = typeof req.body?.title === "string" ? req.body.title : "New chat";
-    const conversation = await createConversation(title, userId);
+    const characterId = typeof req.body?.characterId === "string" ? req.body.characterId : "luna-classic";
+    const conversation = await createConversation(title, userId, characterId);
     return res.status(201).json({ conversation });
   } catch (error) {
     const n = extractProviderError(error);
@@ -2099,6 +2136,19 @@ app.delete("/api/history/:conversationId", async (req, res) => {
     const deleted = await deleteConversation(req.params.conversationId, userId);
     if (!deleted) return res.status(404).json({ error: "Conversation not found" });
     return res.json({ ok: true });
+  } catch (error) {
+    const n = extractProviderError(error);
+    return res.status(500).json({ error: n.providerMessage });
+  }
+});
+
+app.patch("/api/history/:conversationId", async (req, res) => {
+  try {
+    const { userId } = await resolveRequestUser(req, res);
+    const characterId = typeof req.body?.characterId === "string" ? req.body.characterId : "";
+    const conversation = await updateConversationCharacter(req.params.conversationId, userId, characterId);
+    if (!conversation) return res.status(404).json({ error: "Conversation not found" });
+    return res.json({ conversation });
   } catch (error) {
     const n = extractProviderError(error);
     return res.status(500).json({ error: n.providerMessage });
@@ -2143,6 +2193,7 @@ app.post("/api/luna/stream", async (req, res) => {
     const membershipContext = await resolveMembershipContext(userContext, lunaSettings);
     const usageBefore = await enforceDailyLimitOrThrow(userContext, membershipContext);
     const webSearchMode = Boolean(req.body?.webSearchMode);
+    const characterProfile = resolveCharacterProfile(req.body?.characterId);
     const researchModeRequested = Boolean(req.body?.researchMode);
     const researchMode = membershipContext.plan === "pro" && researchModeRequested;
     const researchWarning = researchModeRequested && !researchMode
@@ -2175,6 +2226,7 @@ app.post("/api/luna/stream", async (req, res) => {
       toolSummary,
       memoryContext,
       toolSources,
+      characterProfile,
     );
     const providerRunners = buildProviderRunners(conversationMessages, detailedMode, abortController.signal);
     const requestedModel = resolveRequestedModel(req.body?.llm, providerRunners);
@@ -2246,6 +2298,7 @@ app.post("/api/luna/stream", async (req, res) => {
       userText: message,
       assistantText: reply,
       assistantSources: toolSources,
+      characterId: characterProfile.id,
       llm,
       userId: userContext.userId,
     });
@@ -2279,6 +2332,7 @@ app.post("/api/luna/stream", async (req, res) => {
       details,
       tools: toolResults,
       sources: toolSources,
+      characterId: characterProfile.id,
       webSearchMode,
       conversationId: updatedConversation.id,
       conversation: updatedConversation,
@@ -2318,6 +2372,7 @@ app.post("/api/luna", async (req, res) => {
     const membershipContext = await resolveMembershipContext(userContext, lunaSettings);
     const usageBefore = await enforceDailyLimitOrThrow(userContext, membershipContext);
     const webSearchMode = Boolean(req.body?.webSearchMode);
+    const characterProfile = resolveCharacterProfile(req.body?.characterId);
     const researchModeRequested = Boolean(req.body?.researchMode);
     const researchMode = membershipContext.plan === "pro" && researchModeRequested;
     const researchWarning = researchModeRequested && !researchMode
@@ -2350,6 +2405,7 @@ app.post("/api/luna", async (req, res) => {
       toolSummary,
       memoryContext,
       toolSources,
+      characterProfile,
     );
     const providerRunners = buildProviderRunners(conversationMessages, detailedMode);
     const requestedModel = resolveRequestedModel(req.body?.llm, providerRunners);
@@ -2417,6 +2473,7 @@ app.post("/api/luna", async (req, res) => {
       userText: message,
       assistantText: reply,
       assistantSources: toolSources,
+      characterId: characterProfile.id,
       llm,
       userId: userContext.userId,
     });
@@ -2450,6 +2507,7 @@ app.post("/api/luna", async (req, res) => {
       details,
       tools: toolResults,
       sources: toolSources,
+      characterId: characterProfile.id,
       webSearchMode,
       conversationId: updatedConversation.id,
       conversation: updatedConversation,

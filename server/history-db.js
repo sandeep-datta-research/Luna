@@ -34,6 +34,11 @@ function normalizeUserId(userId) {
   return normalized || "guest";
 }
 
+function normalizeCharacterId(value) {
+  const normalized = normalizeText(value);
+  return normalized || "luna-classic";
+}
+
 function sanitizeSources(raw) {
   if (!Array.isArray(raw)) return [];
 
@@ -101,6 +106,7 @@ function sanitizeConversation(raw) {
   return {
     id: typeof raw?.id === "string" ? raw.id : createId("chat"),
     userId: normalizeUserId(raw?.userId),
+    characterId: normalizeCharacterId(raw?.characterId),
     title: title || "New chat",
     createdAt,
     updatedAt,
@@ -159,6 +165,7 @@ function toConversationSummary(conversation) {
 
   return {
     id: conversation.id,
+    characterId: normalizeCharacterId(conversation.characterId),
     title: conversation.title || "New chat",
     createdAt: conversation.createdAt,
     updatedAt: conversation.updatedAt,
@@ -203,12 +210,13 @@ export async function getConversationById(conversationId, userId = "guest") {
   return conversation ? cloneConversation(conversation) : null;
 }
 
-export async function createConversation(title = "New chat", userId = "guest") {
+export async function createConversation(title = "New chat", userId = "guest", characterId = "luna-classic") {
   return runDbMutation((db) => {
     const now = nowIso();
     const conversation = {
       id: createId("chat"),
       userId: normalizeUserId(userId),
+      characterId: normalizeCharacterId(characterId),
       title: normalizeText(title) || "New chat",
       createdAt: now,
       updatedAt: now,
@@ -249,11 +257,31 @@ export async function deleteConversation(conversationId, userId = "guest") {
   });
 }
 
+export async function updateConversationCharacter(conversationId, userId = "guest", characterId = "luna-classic") {
+  if (!conversationId) return null;
+
+  const safeUserId = normalizeUserId(userId);
+  const safeCharacterId = normalizeCharacterId(characterId);
+
+  return runDbMutation((db) => {
+    const conversation = db.conversations.find(
+      (item) => item.id === conversationId && normalizeUserId(item.userId) === safeUserId,
+    );
+
+    if (!conversation) return null;
+
+    conversation.characterId = safeCharacterId;
+    conversation.updatedAt = nowIso();
+    return cloneConversation(conversation);
+  });
+}
+
 export async function saveConversationTurn({
   conversationId,
   userText,
   assistantText,
   assistantSources = [],
+  characterId = "luna-classic",
   llm,
   userId = "guest",
 }) {
@@ -271,6 +299,7 @@ export async function saveConversationTurn({
       conversation = {
         id: conversationId || createId("chat"),
         userId: safeUserId,
+        characterId: normalizeCharacterId(characterId),
         title: "New chat",
         createdAt: now,
         updatedAt: now,
@@ -278,6 +307,8 @@ export async function saveConversationTurn({
       };
       db.conversations.unshift(conversation);
     }
+
+    conversation.characterId = normalizeCharacterId(characterId || conversation.characterId);
 
     if (safeUserText) {
       conversation.messages.push({

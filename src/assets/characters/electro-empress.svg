@@ -1,0 +1,30 @@
+<svg width="512" height="640" viewBox="0 0 512 640" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="640" rx="40" fill="url(#bg)"/>
+  <circle cx="385" cy="120" r="90" fill="#D3B1FF" fill-opacity=".18"/>
+  <circle cx="118" cy="538" r="86" fill="#8B5CFF" fill-opacity=".16"/>
+  <path d="M152 491C152 406.5 220.5 338 305 338H318C402.5 338 471 406.5 471 491V560H152V491Z" fill="#1A0F29" fill-opacity=".82"/>
+  <ellipse cx="256" cy="277" rx="108" ry="128" fill="#F7D9CD"/>
+  <path d="M148 228C148 127.485 229.485 46 330 46C387.177 46 438.193 72.3836 471.549 113.654L448 118L426.5 103.5L395 100L357 79L298.5 102L255 140.5L215 157L174.5 172L148 228Z" fill="#291243"/>
+  <path d="M170 219C203.967 127.724 318.5 58.5 420 101.5C373.5 84.5 317.4 113.4 285 145C252.6 176.6 205.167 207.833 185.5 219.5L170 219Z" fill="#53317A"/>
+  <path d="M207 238C226 226 252 225 273 237" stroke="#4A2B71" stroke-width="13" stroke-linecap="round"/>
+  <path d="M304 238C323 226 349 225 370 237" stroke="#4A2B71" stroke-width="13" stroke-linecap="round"/>
+  <ellipse cx="227" cy="279" rx="14.5" ry="21" fill="#4D3C7D"/>
+  <ellipse cx="327" cy="279" rx="14.5" ry="21" fill="#4D3C7D"/>
+  <circle cx="222" cy="272" r="5" fill="white"/>
+  <circle cx="322" cy="272" r="5" fill="white"/>
+  <path d="M244 330C256 337.667 278.2 337.8 290 330" stroke="#CC748A" stroke-width="8" stroke-linecap="round"/>
+  <path d="M154 525C189.5 473.5 241.2 451.2 306 458C370.8 464.8 426 500.833 445.5 518.5V640H154V525Z" fill="url(#dress)"/>
+  <path d="M222 462L276 492L334 462L317 431H239L222 462Z" fill="#F7F2FF"/>
+  <path d="M195 152L247 113L290 107L327 66L370 115L404 140L425 200L381 184L343 171L319 148L275 172L231 188L195 152Z" fill="#7650B6" fill-opacity=".9"/>
+  <defs>
+    <linearGradient id="bg" x1="63" y1="37" x2="447" y2="597" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#27103B"/>
+      <stop offset=".55" stop-color="#190F2A"/>
+      <stop offset="1" stop-color="#122131"/>
+    </linearGradient>
+    <linearGradient id="dress" x1="183" y1="451" x2="415" y2="621" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#5E2E8A"/>
+      <stop offset="1" stop-color="#26163F"/>
+    </linearGradient>
+  </defs>
+</svg>

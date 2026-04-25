@@ -38,6 +38,10 @@ import {
 import { useNavigate } from "react-router-dom";
 import { fetchApi, streamApi, getStoredUser, hydrateUser } from "@/lib/api-client";
 import lunaLogo from "@/assets/luna-logo.svg";
+import lunaClassicPortrait from "@/assets/characters/luna-classic.svg";
+import electroEmpressPortrait from "@/assets/characters/electro-empress.svg";
+import tricksterDirectorPortrait from "@/assets/characters/trickster-director.svg";
+import verdantSagePortrait from "@/assets/characters/verdant-sage.svg";
 import MarkdownMessage from "@/components/ui/chat/MarkdownMessage";
 import OnboardingFlow from "@/components/onboarding/OnboardingFlow";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
@@ -82,6 +86,41 @@ const WORKSPACE_FEATURES = [
   },
 ];
 
+const CHARACTER_OPTIONS = [
+  {
+    id: "luna-classic",
+    name: "Luna Classic",
+    tagline: "Witty, sharp, balanced",
+    description: "Default Luna voice with playful intelligence and practical help.",
+    portrait: lunaClassicPortrait,
+    accent: "from-[#7fc7ba]/30 via-[#4f7c75]/10 to-[#0f1f24]",
+  },
+  {
+    id: "electro-empress",
+    name: "Electro Empress",
+    tagline: "Cold strategy, high control",
+    description: "Calm, commanding replies for planning, critique, and decisive guidance.",
+    portrait: electroEmpressPortrait,
+    accent: "from-[#8e6cff]/35 via-[#38205f]/15 to-[#0f1f24]",
+  },
+  {
+    id: "trickster-director",
+    name: "Trickster Director",
+    tagline: "Chaotic charm, bold tone",
+    description: "More theatrical, teasing, and energetic without losing competence.",
+    portrait: tricksterDirectorPortrait,
+    accent: "from-[#ff7a4f]/35 via-[#5b241c]/15 to-[#0f1f24]",
+  },
+  {
+    id: "verdant-sage",
+    name: "Verdant Sage",
+    tagline: "Gentle insight, deep calm",
+    description: "Reflective, thoughtful replies with a softer mentoring style.",
+    portrait: verdantSagePortrait,
+    accent: "from-[#78d89d]/35 via-[#1d4f3a]/15 to-[#0f1f24]",
+  },
+];
+
 function nowIso() {
   return new Date().toISOString();
 }
@@ -122,6 +161,16 @@ function formatHistoryTime(value) {
   }).format(date);
 }
 
+function normalizeCharacterId(value) {
+  const normalized = text(value).toLowerCase();
+  return CHARACTER_OPTIONS.some((item) => item.id === normalized) ? normalized : CHARACTER_OPTIONS[0].id;
+}
+
+function getCharacterOption(value) {
+  const id = normalizeCharacterId(value);
+  return CHARACTER_OPTIONS.find((item) => item.id === id) || CHARACTER_OPTIONS[0];
+}
+
 function sanitizeMessage(raw) {
   const role = raw?.role === "assistant" ? "assistant" : "user";
   const content = text(raw?.content || raw?.text);
@@ -153,7 +202,7 @@ function sanitizeMessage(raw) {
   };
 }
 
-function createSession(projectId = "") {
+function createSession(projectId = "", characterId = CHARACTER_OPTIONS[0].id) {
   return {
     id: createId("session"),
     title: "New chat",
@@ -161,6 +210,7 @@ function createSession(projectId = "") {
     createdAt: nowIso(),
     updatedAt: nowIso(),
     projectId: text(projectId),
+    characterId: normalizeCharacterId(characterId),
     backendConversationId: "",
   };
 }
@@ -200,6 +250,7 @@ function mapConversationSummaryToSession(summary, projectId = "") {
     createdAt,
     updatedAt,
     projectId: text(projectId),
+    characterId: normalizeCharacterId(summary?.characterId),
     backendConversationId: id,
   };
 }
@@ -226,8 +277,9 @@ function mapConversationMessages(conversation) {
 
 function exportSessionToMarkdown(session) {
   const title = text(session?.title) || "Luna Chat";
+  const character = getCharacterOption(session?.characterId);
   const messages = Array.isArray(session?.messages) ? session.messages : [];
-  const lines = [`# ${title}`, "", `Exported: ${nowIso()}`, ""];
+  const lines = [`# ${title}`, "", `Character: ${character.name}`, `Exported: ${nowIso()}`, ""];
 
   for (const message of messages) {
     const label = message.role === "assistant" ? "Luna" : "You";
@@ -412,6 +464,52 @@ function MessageBubble({
         <span className="text-[11px] text-[#7f9893]">{formatTime(message.createdAt)}</span>
       </div>
     </motion.div>
+  );
+}
+
+function CharacterCards({ selectedCharacterId, onSelect, compact = false }) {
+  return (
+    <div className={`grid gap-3 ${compact ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1 xl:grid-cols-4 md:grid-cols-2"}`}>
+      {CHARACTER_OPTIONS.map((character) => {
+        const active = character.id === normalizeCharacterId(selectedCharacterId);
+        return (
+          <motion.button
+            key={character.id}
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.985 }}
+            type="button"
+            onClick={() => onSelect(character.id)}
+            className={`group relative overflow-hidden rounded-[26px] border text-left transition ${
+              active
+                ? "border-[#7fc7ba]/80 bg-[#102126] shadow-[0_16px_40px_rgba(18,49,56,0.35)]"
+                : "border-[#1f3135] bg-[#0b1518] hover:border-[#35545b] hover:bg-[#0e1b1f]"
+            }`}
+          >
+            <div className={`absolute inset-x-0 top-0 h-24 bg-gradient-to-br ${character.accent} opacity-90`} />
+            <div className="relative flex items-start gap-3 p-3">
+              <img
+                src={character.portrait}
+                alt={character.name}
+                className="h-24 w-20 rounded-[18px] border border-white/10 object-cover shadow-[0_14px_24px_rgba(0,0,0,0.25)]"
+              />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-[#8badab]">Character</p>
+                    <h3 className="mt-1 text-base font-semibold text-[#edf5f2]" style={{ fontFamily: "'Syne', sans-serif" }}>
+                      {character.name}
+                    </h3>
+                  </div>
+                  <span className={`mt-0.5 h-2.5 w-2.5 rounded-full ${active ? "bg-[#7fc7ba]" : "bg-[#3a4d4d]"}`} />
+                </div>
+                <p className="mt-2 text-xs font-medium text-[#d9ece7]">{character.tagline}</p>
+                <p className="mt-1 text-xs leading-5 text-[#8ba39f]">{character.description}</p>
+              </div>
+            </div>
+          </motion.button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -717,6 +815,10 @@ export default function Luna() {
     const direct = sessions.find((item) => item.id === activeSessionId);
     return direct || sortedSessions[0] || null;
   }, [activeSessionId, sessions, sortedSessions]);
+  const activeCharacter = useMemo(
+    () => getCharacterOption(activeSession?.characterId),
+    [activeSession?.characterId],
+  );
 
   const activeMessages = useMemo(
     () => (Array.isArray(activeSession?.messages) ? activeSession.messages : []),
@@ -860,6 +962,31 @@ export default function Luna() {
     );
   }, []);
 
+  const handleSelectCharacter = useCallback((characterId) => {
+    const nextCharacterId = normalizeCharacterId(characterId);
+    const targetId = activeSession?.id;
+    if (!targetId) return;
+    const conversationId = text(activeSession?.backendConversationId || activeSession?.id);
+
+    updateSession(targetId, (session) => ({
+      ...session,
+      characterId: nextCharacterId,
+      updatedAt: nowIso(),
+    }));
+
+    if (isSignedIn && conversationId) {
+      fetchApi(
+        `/api/history/${conversationId}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ characterId: nextCharacterId }),
+        },
+        { includeAuth: true, includeGuest: false },
+      ).catch(() => null);
+    }
+  }, [activeSession?.backendConversationId, activeSession?.id, isSignedIn, updateSession]);
+
   const showErrorToast = useCallback((message, retryPayload = null) => {
     setLastRetryPayload(retryPayload);
     setToast({ id: createId("toast"), message: text(message) || "Something went wrong." });
@@ -897,6 +1024,7 @@ export default function Luna() {
         title: text(conversation?.title) || current.title,
         messages,
         updatedAt: text(conversation?.updatedAt) || current.updatedAt,
+        characterId: normalizeCharacterId(conversation?.characterId || current.characterId),
         backendConversationId: text(conversation?.id) || current.backendConversationId,
       }));
     },
@@ -1125,7 +1253,10 @@ export default function Luna() {
 
   const createFreshSession = useCallback(
     (projectId = "") => {
-      const next = createSession(projectId || expandedProjectId || projects[0]?.id || "");
+      const next = createSession(
+        projectId || expandedProjectId || projects[0]?.id || "",
+        activeSession?.characterId || CHARACTER_OPTIONS[0].id,
+      );
       setSessions((prev) => [next, ...prev]);
       setActiveSessionId(next.id);
       setInputValue("");
@@ -1137,7 +1268,7 @@ export default function Luna() {
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ title: "New chat" }),
+            body: JSON.stringify({ title: "New chat", characterId: next.characterId }),
           },
           { includeAuth: true, includeGuest: false },
         ).then((result) => {
@@ -1154,6 +1285,7 @@ export default function Luna() {
                       title: text(result.data.conversation.title) || session.title,
                       createdAt: text(result.data.conversation.createdAt) || session.createdAt,
                       updatedAt: text(result.data.conversation.updatedAt) || session.updatedAt,
+                      characterId: normalizeCharacterId(result.data.conversation.characterId || session.characterId),
                     }
                   : session,
               ),
@@ -1164,7 +1296,7 @@ export default function Luna() {
       }
       return next;
     },
-    [expandedProjectId, isSignedIn, projects],
+    [activeSession?.characterId, expandedProjectId, isSignedIn, projects],
   );
 
   const handleDeleteSession = useCallback(
@@ -1185,13 +1317,13 @@ export default function Luna() {
         if (remaining.length > 0) {
           setActiveSessionId(remaining[0].id);
         } else {
-          const next = createSession(projects[0]?.id || "");
+          const next = createSession(projects[0]?.id || "", activeSession?.characterId || CHARACTER_OPTIONS[0].id);
           setSessions([next]);
           setActiveSessionId(next.id);
         }
       }
     },
-    [activeSessionId, isSignedIn, projects, sessions],
+    [activeSession?.characterId, activeSessionId, isSignedIn, projects, sessions],
   );
 
   const buildPromptPayload = useCallback(
@@ -1222,7 +1354,7 @@ export default function Luna() {
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ title: "New chat" }),
+            body: JSON.stringify({ title: "New chat", characterId: session?.characterId || CHARACTER_OPTIONS[0].id }),
           },
           { includeAuth: true, includeGuest: false },
         );
@@ -1238,6 +1370,7 @@ export default function Luna() {
                     title: text(created.data.conversation.title) || item.title,
                     createdAt: text(created.data.conversation.createdAt) || item.createdAt,
                     updatedAt: text(created.data.conversation.updatedAt) || item.updatedAt,
+                    characterId: normalizeCharacterId(created.data.conversation.characterId || item.characterId),
                   }
                 : item,
             ),
@@ -1254,6 +1387,7 @@ export default function Luna() {
           message: payloadPrompt,
           conversationId,
           llm: selectedModel,
+          characterId: session?.characterId || CHARACTER_OPTIONS[0].id,
           webSearchMode,
           researchMode,
         }),
@@ -1284,7 +1418,7 @@ export default function Luna() {
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ title: "New chat" }),
+            body: JSON.stringify({ title: "New chat", characterId: session?.characterId || CHARACTER_OPTIONS[0].id }),
           },
           { includeAuth: true, includeGuest: false },
         );
@@ -1300,6 +1434,7 @@ export default function Luna() {
                     title: text(created.data.conversation.title) || item.title,
                     createdAt: text(created.data.conversation.createdAt) || item.createdAt,
                     updatedAt: text(created.data.conversation.updatedAt) || item.updatedAt,
+                    characterId: normalizeCharacterId(created.data.conversation.characterId || item.characterId),
                   }
                 : item,
             ),
@@ -1318,6 +1453,7 @@ export default function Luna() {
             message: payloadPrompt,
             conversationId,
             llm: selectedModel,
+            characterId: session?.characterId || CHARACTER_OPTIONS[0].id,
             webSearchMode,
             researchMode,
           }),
@@ -1875,12 +2011,13 @@ export default function Luna() {
   const visibleMain = activeMessages.length > 0 || historyLoading;
   const modePills = useMemo(() => {
     const pills = [];
+    pills.push(activeCharacter.name);
     pills.push(webSearchMode ? "Live web on" : "Live web off");
     pills.push(researchMode ? "Pro research" : membershipPlan === "pro" ? "Pro ready" : "Free plan");
     pills.push(imageMode ? "Image drafting" : "Text drafting");
     if (attachments.length) pills.push(`${attachments.length} file${attachments.length > 1 ? "s" : ""} attached`);
     return pills;
-  }, [attachments.length, imageMode, membershipPlan, researchMode, webSearchMode]);
+  }, [activeCharacter.name, attachments.length, imageMode, membershipPlan, researchMode, webSearchMode]);
 
   if (!isSignedIn) {
     return (
@@ -2306,6 +2443,22 @@ export default function Luna() {
                       <p className="mx-auto mb-8 max-w-2xl text-center text-sm leading-7 text-[#90a7a2] md:text-base">
                         Ask for research, writing, debugging, strategy, summaries, or image prompts. The composer stays centered so you can get straight to work.
                       </p>
+                      <div className="mb-6">
+                        <div className="mb-3 flex items-center justify-between gap-3">
+                          <div>
+                            <p className="text-[11px] uppercase tracking-[0.22em] text-[#88a7a1]">Character Mode</p>
+                            <p className="mt-1 text-sm text-[#9ab3ae]">Pick who users talk to before the thread starts.</p>
+                          </div>
+                          <span className="rounded-full border border-[#274149] bg-[#102126] px-3 py-1 text-xs text-[#d7e8e5]">
+                            Active: {activeCharacter.name}
+                          </span>
+                        </div>
+                        <CharacterCards
+                          compact
+                          selectedCharacterId={activeSession?.characterId}
+                          onSelect={handleSelectCharacter}
+                        />
+                      </div>
                       <Composer
                         compact
                         value={inputValue}
@@ -2383,6 +2536,17 @@ export default function Luna() {
                           <p className="mt-1 text-sm text-[#89a49f]">
                             Use the controls below to shift between research, drafting, and media generation without leaving the thread.
                           </p>
+                          <div className="mt-3 inline-flex items-center gap-3 rounded-full border border-[#274149] bg-[#0f1f24] py-1 pl-1 pr-4">
+                            <img
+                              src={activeCharacter.portrait}
+                              alt={activeCharacter.name}
+                              className="h-10 w-10 rounded-full border border-white/10 object-cover"
+                            />
+                            <div className="min-w-0">
+                              <p className="text-[11px] uppercase tracking-[0.16em] text-[#84a7a0]">Character</p>
+                              <p className="truncate text-sm font-medium text-[#edf5f2]">{activeCharacter.name}</p>
+                            </div>
+                          </div>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
                           {modePills.map((pill) => (
@@ -2399,6 +2563,21 @@ export default function Luna() {
                         Loading your chats...
                       </div>
                     ) : null}
+                    <div className="mb-2 rounded-[28px] border border-[#1f3135] bg-[linear-gradient(180deg,rgba(9,16,19,0.92),rgba(7,12,14,0.98))] p-4">
+                      <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+                        <div>
+                          <p className="text-[11px] uppercase tracking-[0.18em] text-[#84a7a0]">Character Switchboard</p>
+                          <p className="mt-1 text-sm text-[#97b0ab]">
+                            Each conversation keeps its own speaking style and portrait card.
+                          </p>
+                        </div>
+                        <span className="text-xs text-[#d7e8e5]">Current: {activeCharacter.name}</span>
+                      </div>
+                      <CharacterCards
+                        selectedCharacterId={activeSession?.characterId}
+                        onSelect={handleSelectCharacter}
+                      />
+                    </div>
                     {activeMessages.map((message) => (
                       <MessageBubble
                         key={message.id}

@@ -117,10 +117,10 @@ export async function getConversationById(conversationId, userId = "guest") {
   );
 }
 
-export async function createConversation(title = "New chat", userId = "guest") {
+export async function createConversation(title = "New chat", userId = "guest", characterId = "luna-classic") {
   return runWithStore(
-    () => fileHistory.createConversation(title, userId),
-    (store) => store.createConversation(title, userId),
+    () => fileHistory.createConversation(title, userId, characterId),
+    (store) => store.createConversation(title, userId, characterId),
   );
 }
 
@@ -135,6 +135,13 @@ export async function deleteConversation(conversationId, userId = "guest") {
   return runWithStore(
     () => fileHistory.deleteConversation(conversationId, userId),
     (store) => store.deleteConversation(conversationId, userId),
+  );
+}
+
+export async function updateConversationCharacter(conversationId, userId = "guest", characterId = "luna-classic") {
+  return runWithStore(
+    () => fileHistory.updateConversationCharacter(conversationId, userId, characterId),
+    (store) => store.updateConversationCharacter(conversationId, userId, characterId),
   );
 }
 

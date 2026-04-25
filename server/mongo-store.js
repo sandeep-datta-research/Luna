@@ -32,6 +32,11 @@ function normalizeUserId(userId) {
   return safe || "guest";
 }
 
+function normalizeCharacterId(value) {
+  const normalized = normalizeText(value);
+  return normalized || "luna-classic";
+}
+
 function sanitizeSources(raw) {
   if (!Array.isArray(raw)) return [];
 
@@ -100,6 +105,7 @@ function sanitizeConversation(raw) {
   return {
     id: normalizeText(raw?.id) || createId("chat"),
     userId: normalizeUserId(raw?.userId),
+    characterId: normalizeCharacterId(raw?.characterId),
     title: normalizeText(raw?.title) || deriveTitle(safeMessages),
     createdAt,
     updatedAt,
@@ -214,6 +220,7 @@ function toConversationSummary(conversation) {
 
   return {
     id: conversation.id,
+    characterId: normalizeCharacterId(conversation.characterId),
     title: conversation.title || "New chat",
     createdAt: conversation.createdAt,
     updatedAt: conversation.updatedAt,
@@ -938,13 +945,14 @@ export function createMongoStore() {
     return conversation ? sanitizeConversation(conversation) : null;
   }
 
-  async function createConversation(title = "New chat", userId = "guest") {
+  async function createConversation(title = "New chat", userId = "guest", characterId = "luna-classic") {
     await init();
     const now = nowIso();
 
     const conversation = sanitizeConversation({
       id: createId("chat"),
       userId: normalizeUserId(userId),
+      characterId: normalizeCharacterId(characterId),
       title: normalizeText(title) || "New chat",
       createdAt: now,
       updatedAt: now,
@@ -976,6 +984,28 @@ export function createMongoStore() {
     const safeUserId = normalizeUserId(userId);
     const result = await conversations().deleteOne({ id: safeConversationId, userId: safeUserId });
     return result.deletedCount > 0;
+  }
+
+  async function updateConversationCharacter(conversationId, userId = "guest", characterId = "luna-classic") {
+    await init();
+
+    const safeConversationId = normalizeText(conversationId);
+    if (!safeConversationId) return null;
+
+    const safeUserId = normalizeUserId(userId);
+    const current = await conversations().findOne({ id: safeConversationId, userId: safeUserId });
+    if (!current) return null;
+
+    const next = sanitizeConversation(current);
+    next.characterId = normalizeCharacterId(characterId || next.characterId);
+    next.updatedAt = nowIso();
+
+    await conversations().updateOne(
+      { id: safeConversationId, userId: safeUserId },
+      { $set: { characterId: next.characterId, updatedAt: next.updatedAt } },
+    );
+
+    return clone(next);
   }
 
   async function countUserMessagesForDate(userId = "guest", dateKey = "") {
@@ -1028,6 +1058,7 @@ export function createMongoStore() {
     userText,
     assistantText,
     assistantSources = [],
+    characterId = "luna-classic",
     llm,
     userId = "guest",
   }) {
@@ -1045,6 +1076,7 @@ export function createMongoStore() {
       : sanitizeConversation({
           id: targetId,
           userId: safeUserId,
+          characterId: normalizeCharacterId(characterId),
           title: "New chat",
           createdAt: now,
           updatedAt: now,
@@ -1066,6 +1098,8 @@ export function createMongoStore() {
       });
     }
 
+    next.characterId = normalizeCharacterId(characterId || next.characterId);
+
     if (next.messages.length > MAX_MESSAGES_PER_CONVERSATION) {
       next.messages = next.messages.slice(-MAX_MESSAGES_PER_CONVERSATION);
     }
@@ -1079,6 +1113,7 @@ export function createMongoStore() {
         $set: {
           id: next.id,
           userId: next.userId,
+          characterId: next.characterId,
           title: next.title,
           createdAt: next.createdAt,
           updatedAt: next.updatedAt,
@@ -1125,6 +1160,7 @@ export function createMongoStore() {
     createConversation,
     ensureConversation,
     deleteConversation,
+    updateConversationCharacter,
     countUserMessagesForDate,
     getConversationStats,
     saveConversationTurn,
