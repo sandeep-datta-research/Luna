@@ -37,6 +37,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { fetchApi, streamApi, getStoredUser, hydrateUser } from "@/lib/api-client";
+import { useBrandingLogo } from "@/lib/branding";
 import lunaLogo from "@/assets/luna-logo.svg";
 import lunaClassicPortrait from "@/assets/characters/luna-classic.svg";
 import electroEmpressPortrait from "@/assets/characters/electro-empress.svg";
@@ -314,7 +315,7 @@ function exportSessionToMarkdown(session) {
   const lines = [`# ${title}`, "", `Character: ${character.name}`, `Exported: ${nowIso()}`, ""];
 
   for (const message of messages) {
-    const label = message.role === "assistant" ? "Luna" : "You";
+    const label = message.role === "assistant" ? character.name : "You";
     lines.push(`## ${label}`);
     lines.push("");
     lines.push(text(message.content) || "");
@@ -413,9 +414,11 @@ function MessageBubble({
   isLatestAssistant,
   onCopy,
   onRegenerate,
+  character,
 }) {
   const isUser = message.role === "user";
   const sources = Array.isArray(message.sources) ? message.sources : [];
+  const assistantCharacter = character || CHARACTER_OPTIONS[0];
 
   return (
     <motion.div
@@ -429,9 +432,9 @@ function MessageBubble({
         {!isUser && showLunaHeader ? (
           <div className="mb-1 flex items-center gap-2 text-xs text-[#9aa2c7]">
             <span className="inline-flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border border-white/20 bg-white/5">
-              <img src={lunaLogo} alt="Luna" className="h-full w-full object-cover rounded-[inherit]" />
+              <img src={assistantCharacter.portrait || lunaLogo} alt={assistantCharacter.name} className="h-full w-full rounded-[inherit] object-cover" />
             </span>
-            <span className="font-medium">Luna</span>
+            <span className="font-medium">{assistantCharacter.name}</span>
           </div>
         ) : null}
 
@@ -558,7 +561,8 @@ function CharacterCards({ options = CHARACTER_OPTIONS, selectedCharacterId, onSe
   );
 }
 
-function TypingIndicator() {
+function TypingIndicator({ character }) {
+  const assistantCharacter = character || CHARACTER_OPTIONS[0];
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -568,9 +572,9 @@ function TypingIndicator() {
       <div className="rounded-[18px] rounded-bl-[4px] border border-[#21353a] bg-[linear-gradient(180deg,rgba(14,22,25,0.96),rgba(8,14,17,0.98))] px-4 py-3 text-[#d7e9e5]">
         <div className="mb-2 flex items-center gap-2 text-xs text-[#86a49d]">
           <span className="inline-flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border border-white/20 bg-white/5">
-            <img src={lunaLogo} alt="Luna" className="h-full w-full object-cover rounded-[inherit]" />
+            <img src={assistantCharacter.portrait || lunaLogo} alt={assistantCharacter.name} className="h-full w-full rounded-[inherit] object-cover" />
           </span>
-          <span>Luna</span>
+          <span>{assistantCharacter.name}</span>
         </div>
 
         <div className="flex items-center gap-1.5">
@@ -791,6 +795,7 @@ function Composer({
   );
 }
 export default function Luna() {
+  const brandLogo = useBrandingLogo(lunaLogo);
   const navigate = useNavigate();
 
   const initialUser = useMemo(() => loadUser(), []);
@@ -2107,7 +2112,7 @@ export default function Luna() {
         <div className="mx-auto flex min-h-screen w-full max-w-4xl items-center justify-center px-6 py-12">
           <div className="w-full rounded-[32px] border border-[#1f3135] bg-[linear-gradient(180deg,rgba(9,16,19,0.96),rgba(7,12,14,0.98))] p-8 text-center shadow-[0_25px_90px_rgba(0,0,0,0.55)]">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-[#5c857d]/30 bg-[#143038]">
-              <img src={lunaLogo} alt="Luna Logo" className="h-10 w-10 object-contain" />
+              <img src={brandLogo} alt="Luna Logo" className="h-10 w-10 object-contain" />
             </div>
             <h1 className="mt-4 text-2xl font-semibold text-white">Sign in to access the Luna workspace</h1>
             <p className="mt-2 text-sm text-[#8ca19d]">
@@ -2205,7 +2210,7 @@ export default function Luna() {
                     transition={{ repeat: Infinity, duration: 2.4, ease: "easeInOut" }}
                     className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-[#0f2124]"
                   >
-                    <img src={lunaLogo} alt="Luna logo" className="h-full w-full object-cover rounded-[inherit] drop-shadow-[0_0_8px_rgba(255,255,255,0.45)]" />
+                    <img src={brandLogo} alt="Luna logo" className="h-full w-full object-cover rounded-[inherit] drop-shadow-[0_0_8px_rgba(255,255,255,0.45)]" />
                   </motion.div>
                   {isSidebarOpen ? (
                     <h1 className="text-xl font-semibold tracking-tight" style={{ fontFamily: "'Syne', sans-serif" }}>
@@ -2376,7 +2381,7 @@ export default function Luna() {
                 <div className="flex h-14 items-center justify-between border-b border-white/6 px-3">
                   <div className="flex items-center gap-2">
                     <span className="inline-flex h-7 w-7 items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-[#0f2124]">
-                      <img src={lunaLogo} alt="Luna logo" className="h-full w-full object-cover rounded-[inherit]" />
+                      <img src={brandLogo} alt="Luna logo" className="h-full w-full object-cover rounded-[inherit]" />
                     </span>
                     <h2 style={{ fontFamily: "'Syne', sans-serif" }} className="text-lg">Luna</h2>
                   </div>
@@ -2503,8 +2508,8 @@ export default function Luna() {
                   transition={{ duration: 0.35 }}
                   className="flex h-full flex-col items-center justify-center py-6 md:py-10"
                 >
-                  <div className="mx-auto flex w-full max-w-4xl flex-col items-center justify-center">
-                    <div className="luna-fade-lift w-full rounded-[36px] border border-[#1f3135] bg-[linear-gradient(180deg,rgba(9,16,19,0.92),rgba(7,12,14,0.98))] px-5 py-8 shadow-[0_30px_80px_rgba(0,0,0,0.24)] md:px-10 md:py-12">
+                  <div className="mx-auto flex w-full max-w-5xl flex-col items-center justify-center xl:max-w-6xl">
+                    <div className="luna-fade-lift w-full rounded-[36px] border border-[#1f3135] bg-[linear-gradient(180deg,rgba(9,16,19,0.92),rgba(7,12,14,0.98))] px-5 py-8 shadow-[0_30px_80px_rgba(0,0,0,0.24)] md:px-10 md:py-12 xl:px-12">
                       <motion.p
                         initial={{ opacity: 0, y: 16 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -2520,7 +2525,7 @@ export default function Luna() {
                         className="mx-auto mb-3 max-w-[18ch] text-center text-[2rem] font-semibold leading-tight text-[#f5f8f7] sm:text-[2.4rem] md:text-[3rem]"
                         style={{ fontFamily: "'Syne', sans-serif" }}
                       >
-                        Hi {user?.name ? user.name.split(" ")[0] : "there"}, what should Luna help you with?
+                        Hi {user?.name ? user.name.split(" ")[0] : "there"}, what should {activeCharacter.name} help you with?
                       </motion.h2>
                       <p className="mx-auto mb-8 max-w-2xl text-center text-sm leading-7 text-[#90a7a2] md:text-base">
                         Ask for research, writing, debugging, strategy, summaries, or image prompts. The composer stays centered so you can get straight to work.
@@ -2608,8 +2613,9 @@ export default function Luna() {
                   transition={{ duration: 0.25 }}
                   className="luna-scrollbar h-full overflow-y-auto pr-1"
                 >
-                  <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 pb-6 pt-3 md:pb-8">
-                    <div className="luna-fade-lift sticky top-0 z-10 mb-2 rounded-[28px] border border-[#1f3135] bg-[linear-gradient(180deg,rgba(9,16,19,0.95),rgba(7,12,14,0.9))] px-4 py-4 backdrop-blur">
+                  <div className="mx-auto grid w-full max-w-7xl gap-4 pb-6 pt-3 xl:grid-cols-[minmax(0,1.65fr)_360px] xl:items-start md:pb-8">
+                    <div className="min-w-0">
+                    <div className="luna-fade-lift sticky top-0 z-10 mb-2 rounded-[28px] border border-[#1f3135] bg-[linear-gradient(180deg,rgba(9,16,19,0.95),rgba(7,12,14,0.9))] px-4 py-4 backdrop-blur xl:px-5">
                       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                         <div className="min-w-0">
                           <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -2655,7 +2661,7 @@ export default function Luna() {
                         Loading your chats...
                       </div>
                     ) : null}
-                    <div className="mb-2 rounded-[28px] border border-[#1f3135] bg-[linear-gradient(180deg,rgba(9,16,19,0.92),rgba(7,12,14,0.98))] p-4">
+                    <div className="mb-2 rounded-[28px] border border-[#1f3135] bg-[linear-gradient(180deg,rgba(9,16,19,0.92),rgba(7,12,14,0.98))] p-4 xl:hidden">
                       <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
                         <div>
                           <p className="text-[11px] uppercase tracking-[0.18em] text-[#84a7a0]">Character Switchboard</p>
@@ -2688,11 +2694,53 @@ export default function Luna() {
                         isLatestAssistant={message.id === latestAssistantId}
                         onCopy={copyMessage}
                         onRegenerate={regenerateLatest}
+                        character={activeCharacter}
                       />
                     ))}
 
-                    {showTyping ? <TypingIndicator /> : null}
+                    {showTyping ? <TypingIndicator character={activeCharacter} /> : null}
                     <div ref={listEndRef} />
+                    </div>
+                    <aside className="hidden xl:block">
+                      <div className="sticky top-3 space-y-4">
+                        <div className="rounded-[28px] border border-[#1f3135] bg-[linear-gradient(180deg,rgba(9,16,19,0.95),rgba(7,12,14,0.98))] p-4">
+                          <p className="text-[11px] uppercase tracking-[0.18em] text-[#84a7a0]">Character Switchboard</p>
+                          <p className="mt-1 text-sm text-[#97b0ab]">
+                            This thread speaks as {activeCharacter.name}. Switch styles without leaving desktop chat.
+                          </p>
+                          <div className="mt-3 rounded-[24px] border border-[#274149] bg-[#0f1f24] p-3">
+                            <div className="flex items-center gap-3">
+                              <img
+                                src={activeCharacter.portrait}
+                                alt={activeCharacter.name}
+                                className="h-16 w-14 rounded-[16px] border border-white/10 object-cover"
+                              />
+                              <div className="min-w-0">
+                                <p className="text-[11px] uppercase tracking-[0.16em] text-[#84a7a0]">Active character</p>
+                                <p className="truncate text-base font-semibold text-[#edf5f2]">{activeCharacter.name}</p>
+                                <p className="mt-1 text-xs text-[#9ab3ae]">{activeCharacter.tagline}</p>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="mt-3">
+                            <input
+                              value={characterSearchQuery}
+                              onChange={(event) => setCharacterSearchQuery(event.target.value)}
+                              placeholder="Search character board..."
+                              className="w-full rounded-2xl border border-[#274149] bg-[#0c1719] px-4 py-2.5 text-sm text-[#e7f0ee] outline-none placeholder:text-[#69807b]"
+                            />
+                          </div>
+                          <div className="mt-3">
+                            <CharacterCards
+                              options={filteredCharacterOptions}
+                              selectedCharacterId={activeSession?.characterId}
+                              onSelect={handleSelectCharacter}
+                              isPro={membershipPlan === "pro"}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </aside>
                   </div>
                 </motion.div>
               )}
@@ -2701,9 +2749,9 @@ export default function Luna() {
 
           {visibleMain ? (
             <div className="border-t border-white/6 bg-[#071013]/92 px-3 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:px-6">
-              <div className="mx-auto max-w-4xl">
+              <div className="mx-auto max-w-5xl xl:max-w-7xl">
                 <div className="mb-3 hidden text-center md:block">
-                  <p className="text-[11px] uppercase tracking-[0.2em] text-[#6f8682]">Luna chat</p>
+                  <p className="text-[11px] uppercase tracking-[0.2em] text-[#6f8682]">{activeCharacter.name} chat</p>
                   <p className="mt-1 text-lg font-semibold text-[#edf5f2]" style={{ fontFamily: "'Syne', sans-serif" }}>
                     {activeMessages.length ? "Keep the thread moving." : "Start with one clear prompt."}
                   </p>

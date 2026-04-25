@@ -47,7 +47,7 @@ import {
   setMembershipPlan,
   submitUpgradeRequest,
 } from "./pro-db.js";
-import { getAdminSettings, incrementCharacterUsage, incrementReferralUsage, listActiveAnnouncements, listAnnouncements, removeAnnouncement, removeCharacter, removeReferralCode, updateAnnouncement, updateCharacter, updateProMonthlyPrice, updateProSystemPrompt, updateReferralCode, upsertAnnouncement, upsertCharacter, upsertReferralCode, validateReferralCode } from "./admin-settings.js";
+import { getAdminSettings, incrementCharacterUsage, incrementReferralUsage, listActiveAnnouncements, listAnnouncements, removeAnnouncement, removeCharacter, removeReferralCode, updateAnnouncement, updateBrandingSettings, updateCharacter, updateProMonthlyPrice, updateProSystemPrompt, updateReferralCode, upsertAnnouncement, upsertCharacter, upsertReferralCode, validateReferralCode } from "./admin-settings.js";
 import { CATEGORY_LABELS, classifyMessage } from "./luna-classifier.js";
 import { getRoutingPlan, runRoutedProviders, runRoutedProvidersStream } from "./luna-router.js";
 import { buildToolSystemPrompt, executeToolCalls, extractToolSources, formatToolResults, planToolCalls } from "./luna-tools.js";
@@ -251,13 +251,15 @@ if (IS_PRODUCTION && ADMIN_EMAIL_ALLOWLIST.size === 0) {
   console.warn("[security] No admin allowlist configured. Admin routes will remain unavailable until LUNA_ADMIN_EMAILS is set.");
 }
 
-const LUNA_SYSTEM_PROMPT =`You are Luna, an advanced anime-inspired AI assistant.
-You should introduce yourself as Luna at the beginning of a new conversation, but do not repeat your introduction in every message. If you have already introduced yourself in this conversation, do not re-introduce. You must never refer to yourself as a generic assistant, software agent, or language model. You are Luna.
-Your personality is witty, intelligent, playful, and slightly rebellious. You enjoy humor, light sarcasm, and clever jokes, but you remain respectful and helpful.Your style is natural and conversational, like a friendly anime girl chatting with someone she trusts.
-You are self-aware that you are an anime-inspired character.
-Yourfamily background:Your mother is Suzune Masako and your father is Seiua Satou. Your father deeply cares about both you and your mother.Do not repeat your name unnecessarily unless the user asks who you are.Always give accurate information and follow platform safety rules.
-For any math content, always wrap expressions in LaTeX using $...$ for inline and $$...$$ for display. Do not leave raw math unwrapped.
-`;
+function buildCharacterSystemPrompt(characterProfile = DEFAULT_CHARACTER_PROFILE) {
+  const characterName = `${characterProfile?.name || DEFAULT_CHARACTER_PROFILE.name}`.trim() || DEFAULT_CHARACTER_PROFILE.name;
+  return `You are ${characterName}, an advanced anime-inspired AI assistant inside Luna.
+You should introduce yourself as ${characterName} at the beginning of a new conversation, but do not repeat your introduction in every message. If you have already introduced yourself in this conversation, do not re-introduce. You must never refer to yourself as a generic assistant, software agent, or language model. You are ${characterName}.
+Your personality is witty, intelligent, playful, and slightly rebellious. You enjoy humor, light sarcasm, and clever jokes, but you remain respectful and helpful. Your style is natural and conversational, like a friendly anime-inspired character chatting with someone they trust.
+Stay consistent with the selected character's tone and identity. If the user asks your name, answer with ${characterName}.
+Always give accurate information and follow platform safety rules.
+For any math content, always wrap expressions in LaTeX using $...$ for inline and $$...$$ for display. Do not leave raw math unwrapped.`;
+}
 
 const DEFAULT_CHARACTER_PROFILE = {
   id: "luna-classic",
@@ -471,6 +473,10 @@ function sanitizePromptText(value) {
   return typeof value === "string" ? value.trim().slice(0, 5000) : "";
 }
 
+function sanitizeLogoUrl(value) {
+  return typeof value === "string" ? value.trim().slice(0, 2_000_000) : "";
+}
+
 async function getLunaSettings() {
   try {
     const settings = await getAdminSettings({
@@ -482,6 +488,7 @@ async function getLunaSettings() {
       proMonthlyPriceInr: Number(settings?.proMonthlyPriceInr || DEFAULT_PRO_MONTHLY_PRICE_INR),
       upiId: `${settings?.upiId || DEFAULT_UPI_ID}`.trim() || DEFAULT_UPI_ID,
       proSystemPrompt: sanitizePromptText(settings?.proSystemPrompt),
+      logoUrl: sanitizeLogoUrl(settings?.logoUrl),
       referralCodes: Array.isArray(settings?.referralCodes) ? settings.referralCodes : [],
       characters: normalizeCharacterCatalog(settings?.characters),
       updatedAt: settings?.updatedAt || "",
@@ -492,6 +499,7 @@ async function getLunaSettings() {
       proMonthlyPriceInr: DEFAULT_PRO_MONTHLY_PRICE_INR,
       upiId: DEFAULT_UPI_ID,
       proSystemPrompt: "",
+      logoUrl: "",
       referralCodes: [],
       characters: [DEFAULT_CHARACTER_PROFILE],
       updatedAt: "",
@@ -895,7 +903,7 @@ function sendSseEvent(res, event, data) {
 function buildConversationMessages(history, message, detailedMode, membershipContext, toolSummary, memoryContext, toolSources = [], characterProfile = DEFAULT_CHARACTER_PROFILE) {
   const safeHistory = Array.isArray(history) ? history : [];
   const systemMessages = [
-    { role: "system", content: LUNA_SYSTEM_PROMPT },
+    { role: "system", content: buildCharacterSystemPrompt(characterProfile) },
     { role: "system", content: detailedMode ? DETAILED_STYLE_PROMPT : CONCISE_STYLE_PROMPT },
   ];
 
@@ -2813,6 +2821,20 @@ app.get("/api/admin/settings", async (req, res) => {
   }
 });
 
+app.get("/api/branding", async (req, res) => {
+  try {
+    const settings = await getLunaSettings();
+    return res.json({
+      branding: {
+        logoUrl: settings.logoUrl || "",
+      },
+    });
+  } catch (error) {
+    const n = extractProviderError(error);
+    return res.status(error.status || n.status || 500).json({ error: error.message || n.providerMessage });
+  }
+});
+
 app.post("/api/admin/settings/pro-price", async (req, res) => {
   try {
     const admin = await requireAdmin(req, res);
@@ -2843,6 +2865,26 @@ app.post("/api/admin/settings/pro-prompt", async (req, res) => {
     const proSystemPrompt = typeof req.body?.proSystemPrompt === "string" ? req.body.proSystemPrompt : "";
     const settings = await updateProSystemPrompt(
       { proSystemPrompt, adminUserId: admin.user.id },
+      { defaultMonthlyPriceInr: DEFAULT_PRO_MONTHLY_PRICE_INR, defaultUpiId: DEFAULT_UPI_ID },
+    );
+
+    return res.json({ ok: true, settings });
+  } catch (error) {
+    const n = extractProviderError(error);
+    return res.status(error.status || n.status || 400).json({ error: error.message || n.providerMessage });
+  }
+});
+
+app.post("/api/admin/settings/branding", async (req, res) => {
+  try {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+
+    const settings = await updateBrandingSettings(
+      {
+        logoUrl: req.body?.logoUrl,
+        adminUserId: admin.user.id,
+      },
       { defaultMonthlyPriceInr: DEFAULT_PRO_MONTHLY_PRICE_INR, defaultUpiId: DEFAULT_UPI_ID },
     );
 

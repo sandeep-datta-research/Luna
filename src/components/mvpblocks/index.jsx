@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Activity, CheckCircle2, Crown, Megaphone, RefreshCw, Save, Shield, ShieldAlert, SlidersHorizontal, Sparkles, Users, WandSparkles, XCircle } from "lucide-react";
 import { fetchApi, getStoredUser, hydrateUser } from "@/lib/api-client";
+import { setBrandingLogoCache, useBrandingLogo } from "@/lib/branding";
 import CardNav from "@/component/CardNav";
 import logo from "@/assets/luna-logo.svg";
 
@@ -128,6 +129,7 @@ function AccessCard({ title, description, email }) {
 }
 
 export default function AdminDashboard() {
+  const brandLogo = useBrandingLogo(logo);
   const [authState, setAuthState] = useState("loading");
   const [userEmail, setUserEmail] = useState("");
   const [loadingData, setLoadingData] = useState(false);
@@ -143,6 +145,7 @@ export default function AdminDashboard() {
   const [proPromptInput, setProPromptInput] = useState("");
   const [settingsBusy, setSettingsBusy] = useState(false);
   const [settingsNote, setSettingsNote] = useState("");
+  const [brandingLogoInput, setBrandingLogoInput] = useState("");
   const [referralCodes, setReferralCodes] = useState([]);
   const [referralCodeInput, setReferralCodeInput] = useState("");
   const [referralPercentInput, setReferralPercentInput] = useState("10");
@@ -209,11 +212,14 @@ export default function AdminDashboard() {
     setSettings({
       proMonthlyPriceInr: Number.isFinite(price) && price > 0 ? price : 90,
       proSystemPrompt: prompt,
+      logoUrl: rawSettings?.logoUrl || "",
       updatedAt: rawSettings?.updatedAt || "",
       updatedBy: rawSettings?.updatedBy || "",
     });
     setProPriceInput(String(Number.isFinite(price) && price > 0 ? price : 90));
     setProPromptInput(prompt);
+    setBrandingLogoInput(rawSettings?.logoUrl || "");
+    setBrandingLogoCache(rawSettings?.logoUrl || "");
     setReferralCodes(referrals);
     setCharacters(Array.isArray(rawSettings?.characters) ? rawSettings.characters : []);
   };
@@ -436,6 +442,41 @@ export default function AdminDashboard() {
 
     applySettings(result.data?.settings || {});
     setSettingsNote("Pro custom prompt saved. It now applies to Pro users only.");
+  };
+
+  const handleBrandLogoUpload = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const nextValue = typeof reader.result === "string" ? reader.result : "";
+      setBrandingLogoInput(nextValue);
+    };
+    reader.onerror = () => setSettingsNote("Could not read logo image.");
+    reader.readAsDataURL(file);
+  };
+
+  const saveBranding = async () => {
+    setSettingsBusy(true);
+    setSettingsNote("");
+
+    const result = await fetchApi("/api/admin/settings/branding", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ logoUrl: brandingLogoInput.trim() }),
+    });
+
+    setSettingsBusy(false);
+    if (!result.ok) {
+      setSettingsNote(result.message || "Failed to update branding logo.");
+      return;
+    }
+
+    applySettings(result.data?.settings || {});
+    setBrandingLogoCache(result.data?.settings?.logoUrl || brandingLogoInput.trim());
+    setSettingsNote("Main logo updated across Luna surfaces.");
   };
 
     const saveReferral = async () => {
@@ -725,7 +766,7 @@ export default function AdminDashboard() {
       <nav className="sticky top-0 z-50 border-b border-zinc-800/80 bg-[#07070d]/85 px-4 py-3 backdrop-blur-xl sm:px-6 lg:px-8">
         <div className="mx-auto w-full max-w-6xl">
           <CardNav
-            logo={logo}
+            logo={brandLogo}
             logoAlt="Luna Logo"
             items={ADMIN_NAV_ITEMS}
             className="w-full"
@@ -804,6 +845,38 @@ export default function AdminDashboard() {
                     className="inline-flex items-center gap-1 rounded-lg border border-violet-400/35 bg-violet-500/20 px-3 py-2 text-sm text-violet-100 hover:bg-violet-500/30 disabled:opacity-60"
                   >
                     <Save className="h-4 w-4" />Update Price
+                  </button>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/6 bg-white/[0.03] p-4">
+                <p className="text-sm font-medium text-zinc-200">Main Luna logo</p>
+                <p className="mt-1 text-xs text-zinc-500">Used in navbars, chat shell, and admin surfaces.</p>
+                <div className="mt-3 flex flex-wrap items-center gap-3">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleBrandLogoUpload}
+                    className="block text-xs text-zinc-400"
+                  />
+                  <span className="inline-flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl border border-zinc-700 bg-zinc-900">
+                    <img src={brandingLogoInput || brandLogo} alt="Current Luna logo" className="h-full w-full object-contain" />
+                  </span>
+                </div>
+                <input
+                  value={brandingLogoInput}
+                  onChange={(event) => setBrandingLogoInput(event.target.value)}
+                  placeholder="Paste logo URL or data URL"
+                  className="mt-3 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none"
+                />
+                <div className="mt-3 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={saveBranding}
+                    disabled={settingsBusy || loadingData || actionBusy}
+                    className="inline-flex items-center gap-1 rounded-lg border border-emerald-400/35 bg-emerald-500/15 px-3 py-2 text-sm text-emerald-100 hover:bg-emerald-500/25 disabled:opacity-60"
+                  >
+                    <Save className="h-4 w-4" />Save Logo
                   </button>
                 </div>
               </div>

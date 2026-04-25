@@ -7,6 +7,7 @@ import Earth from "@/components/ui/globe";
 import Feature1 from "@/components/mvpblocks/feature-1";
 import logo from "@/assets/luna-logo.svg";
 import { getStoredUser, hydrateUser } from "@/lib/api-client";
+import { useBrandingLogo } from "@/lib/branding";
 
 const ALLOWED_ADMIN_EMAILS = new Set(["seiuasatou@gmail.com", "sandeepdatta866@gmail.com"]);
 
@@ -71,6 +72,7 @@ function getSignedInSnapshot() {
 }
 
 export default function Features() {
+  const brandLogo = useBrandingLogo(logo);
   const [showAdmin, setShowAdmin] = useState(false);
   const [isSignedIn, setIsSignedIn] = useState(false);
 
@@ -121,7 +123,7 @@ export default function Features() {
       <nav className="sticky top-0 z-50 border-b border-zinc-800/80 bg-[#07070d]/85 px-4 py-3 backdrop-blur-xl sm:px-6 lg:px-8">
         <div className="mx-auto w-full max-w-6xl">
           <CardNav
-            logo={logo}
+            logo={brandLogo}
             logoAlt="Luna Logo"
             items={cardNavItems}
             className="w-full"

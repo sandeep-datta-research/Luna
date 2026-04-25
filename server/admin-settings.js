@@ -19,6 +19,10 @@ function normalizeText(value) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function sanitizeAssetUrl(value) {
+  return normalizeText(value).slice(0, 2_000_000);
+}
+
 function normalizeCode(value) {
   if (typeof value !== "string") return "";
   return value
@@ -159,6 +163,7 @@ function sanitizeSettings(raw, defaults) {
     proMonthlyPriceInr: toPositiveAmount(raw?.proMonthlyPriceInr, defaults.defaultMonthlyPriceInr),
     proSystemPrompt: normalizeText(raw?.proSystemPrompt).slice(0, 5000),
     upiId: normalizeText(raw?.upiId) || defaults.defaultUpiId,
+    logoUrl: sanitizeAssetUrl(raw?.logoUrl),
     referralCodes: sanitizeReferralCodes(raw?.referralCodes, defaults),
     announcements: sanitizeAnnouncements(raw?.announcements),
     characters: sanitizeCharacters(raw?.characters),
@@ -248,6 +253,17 @@ export async function updateProSystemPrompt({ proSystemPrompt, adminUserId = "" 
   return mutate(defaults, (db) => {
     const safePrompt = normalizeText(proSystemPrompt).slice(0, 5000);
     db.settings.proSystemPrompt = safePrompt;
+    db.settings.updatedAt = nowIso();
+    db.settings.updatedBy = normalizeText(adminUserId);
+    return clone(db.settings);
+  });
+}
+
+export async function updateBrandingSettings({ logoUrl, adminUserId = "" }, overrides = {}) {
+  const defaults = getDefaults(overrides);
+
+  return mutate(defaults, (db) => {
+    db.settings.logoUrl = sanitizeAssetUrl(logoUrl);
     db.settings.updatedAt = nowIso();
     db.settings.updatedBy = normalizeText(adminUserId);
     return clone(db.settings);

@@ -17,6 +17,7 @@ import {
   Zap,
 } from "lucide-react";
 import { fetchApi, getStoredUser, hydrateUser } from "@/lib/api-client";
+import { useBrandingLogo } from "@/lib/branding";
 import CardNav from "@/component/CardNav";
 import logo from "@/assets/luna-logo.svg";
 import lunaLogo from "@/assets/luna-logo.svg";
@@ -272,7 +273,7 @@ function getSignedInSnapshot() {
   return { email, name, isSignedIn: Boolean(email) };
 }
 
-function MobileNavbar({ ctaHref, onOpenMenu }) {
+function MobileNavbar({ ctaHref, onOpenMenu, logoSrc = lunaLogo }) {
   return (
     <header className="relative z-20 flex h-14 items-center justify-between px-4">
       <motion.button
@@ -288,7 +289,7 @@ function MobileNavbar({ ctaHref, onOpenMenu }) {
 
       <div className="absolute left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 backdrop-blur-md">
         <span className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-white/10">
-          <img src={lunaLogo} alt="Luna" className="h-full w-full object-cover" />
+          <img src={logoSrc} alt="Luna" className="h-full w-full object-cover" />
         </span>
         <span className="text-sm font-semibold tracking-[0.02em] text-white">Luna</span>
       </div>
@@ -831,6 +832,7 @@ function FeedbackSection({
 
 function MobileLanding({
   ctaHref,
+  logoSrc,
   menuOpen,
   onOpenMenu,
   onCloseMenu,
@@ -859,7 +861,7 @@ function MobileLanding({
     <div className="min-h-screen overflow-hidden bg-[#07070d] text-white">
       <ScrollProgressBar progress={progress} />
       <div className="relative mx-auto flex min-h-screen w-full max-w-[420px] flex-col">
-        <MobileNavbar ctaHref={ctaHref} onOpenMenu={onOpenMenu} />
+        <MobileNavbar ctaHref={ctaHref} onOpenMenu={onOpenMenu} logoSrc={logoSrc} />
         <div className="px-4 pt-2">
           <AnnouncementBanner />
         </div>
@@ -964,7 +966,7 @@ function MobileLanding({
               <div className="mb-4 flex items-center justify-between">
                 <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5">
                   <span className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-white/10">
-                    <img src={lunaLogo} alt="Luna" className="h-full w-full object-cover" />
+                    <img src={logoSrc} alt="Luna" className="h-full w-full object-cover" />
                   </span>
                   <span className="text-sm font-semibold text-white">Luna</span>
                 </div>
@@ -1003,6 +1005,7 @@ function MobileLanding({
 }
 
 function DesktopHome({
+  logoSrc,
   isSignedIn,
   cardNavItems,
   userMetrics,
@@ -1036,7 +1039,7 @@ function DesktopHome({
       <nav className="sticky top-0 z-50 border-b border-zinc-800/80 bg-[#07070d]/85 px-4 py-3 backdrop-blur-xl sm:px-6 lg:px-8">
         <div className="mx-auto w-full max-w-6xl">
           <CardNav
-            logo={logo}
+            logo={logoSrc}
             logoAlt="Luna Logo"
             items={cardNavItems}
             className="w-full"
@@ -1118,6 +1121,7 @@ function DesktopHome({
 }
 
 export default function Home() {
+  const brandLogo = useBrandingLogo(logo);
   const isDesktop = useIsDesktop();
   const [showAdmin, setShowAdmin] = useState(false);
   const [isSignedIn, setIsSignedIn] = useState(false);
@@ -1324,6 +1328,7 @@ export default function Home() {
     <>
       {isDesktop ? (
         <DesktopHome
+          logoSrc={brandLogo}
           isSignedIn={isSignedIn}
           cardNavItems={cardNavItems}
           userMetrics={userMetrics}
@@ -1339,6 +1344,7 @@ export default function Home() {
       ) : (
         <MobileLanding
           ctaHref={ctaHref}
+          logoSrc={brandLogo}
           menuOpen={mobileMenuOpen}
           onOpenMenu={() => setMobileMenuOpen(true)}
           onCloseMenu={() => setMobileMenuOpen(false)}
