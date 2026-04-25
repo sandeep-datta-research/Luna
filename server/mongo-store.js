@@ -211,7 +211,7 @@ export function createMongoStore() {
   const mongoUri = normalizeText(process.env.MONGODB_URI);
   if (!mongoUri) throw new Error("MONGODB_URI is required for Mongo mode");
 
-  const dbName = normalizeText(process.env.MONGODB_DB) || "luna";
+  let dbName = normalizeText(process.env.MONGODB_DB) || "luna";
   const client = new MongoClient(mongoUri, getMongoClientOptions());
 
   let db = null;
@@ -272,11 +272,36 @@ export function createMongoStore() {
     ]);
   }
 
+  function getExistingDbNameFromCaseConflict(error) {
+    const message = `${error?.message || ""}`;
+    const match = message.match(/already have:\s*\[([^\]]+)\]\s*trying to create\s*\[([^\]]+)\]/i);
+    if (!match) return "";
+
+    const existingName = normalizeText(match[1]);
+    const requestedName = normalizeText(match[2]);
+    if (!existingName || !requestedName) return "";
+    if (existingName.toLowerCase() !== requestedName.toLowerCase()) return "";
+    return existingName;
+  }
+
   async function init() {
     if (initialized && db) return;
     await client.connect();
     db = client.db(dbName);
-    await ensureIndexes();
+
+    try {
+      await ensureIndexes();
+    } catch (error) {
+      const existingDbName = getExistingDbNameFromCaseConflict(error);
+      if (!existingDbName || existingDbName === dbName) {
+        throw error;
+      }
+
+      dbName = existingDbName;
+      db = client.db(dbName);
+      await ensureIndexes();
+    }
+
     initialized = true;
   }
 
