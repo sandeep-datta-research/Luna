@@ -2,6 +2,7 @@ import fs from "fs/promises";
 import path from "path";
 import { randomUUID } from "crypto";
 import { fileURLToPath } from "url";
+import { MongoClient } from "mongodb";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -10,6 +11,7 @@ const DATA_DIR = path.join(__dirname, "data");
 const SETTINGS_FILE = path.join(DATA_DIR, "admin-settings.json");
 
 let writeQueue = Promise.resolve();
+let characterStorePromise = null;
 
 function nowIso() {
   return new Date().toISOString();
@@ -179,6 +181,292 @@ function sanitizeDb(raw, defaults) {
   };
 }
 
+function normalizeDbMode(rawMode) {
+  const value = typeof rawMode === "string" ? rawMode.trim().toLowerCase() : "";
+  if (value === "mongo" || value === "file" || value === "auto") return value;
+  return "auto";
+}
+
+function readCharacterStoreConfig() {
+  const mode = normalizeDbMode(process.env.LUNA_DB_MODE || "auto");
+  const mongoUri = normalizeText(process.env.CHARACTER_MONGODB_URI) || normalizeText(process.env.MONGODB_URI);
+  const dbName = normalizeText(process.env.CHARACTER_MONGODB_DB) || normalizeText(process.env.MONGODB_DB) || "luna";
+  const useMongo = mode === "mongo" || (mode === "auto" && mongoUri.length > 0);
+
+  return {
+    mode,
+    mongoUri,
+    dbName,
+    useMongo,
+  };
+}
+
+function getMongoClientOptions() {
+  const maxPoolRaw = Number(process.env.MONGODB_MAX_POOL_SIZE || 10);
+  const maxPoolSize = Number.isFinite(maxPoolRaw) && maxPoolRaw > 0 ? maxPoolRaw : 10;
+  return { maxPoolSize };
+}
+
+async function listIndexesSafe(collection) {
+  try {
+    return await collection.listIndexes().toArray();
+  } catch (error) {
+    if (error?.code === 26 || /ns does not exist/i.test(error?.message || "")) {
+      return [];
+    }
+    throw error;
+  }
+}
+
+function getExistingDbNameFromCaseConflict(error) {
+  const message = `${error?.message || ""}`;
+  const match = message.match(/already have:\s*\[([^\]]+)\]\s*trying to create\s*\[([^\]]+)\]/i);
+  if (!match) return "";
+
+  const existingName = normalizeText(match[1]);
+  const requestedName = normalizeText(match[2]);
+  if (!existingName || !requestedName) return "";
+  if (existingName.toLowerCase() !== requestedName.toLowerCase()) return "";
+  return existingName;
+}
+
+function createMongoCharacterStore({ mongoUri, dbName }) {
+  const client = new MongoClient(mongoUri, getMongoClientOptions());
+  let currentDbName = dbName;
+  let db = null;
+  let initialized = false;
+  let seededFromFile = false;
+
+  const characters = () => db.collection("characters");
+
+  async function ensureIndexes() {
+    const existingIndexes = await listIndexesSafe(characters());
+    const idIndex = existingIndexes.find((item) => item.name === "id_1");
+    if (idIndex && !idIndex.unique) {
+      await characters().dropIndex("id_1");
+    }
+
+    await Promise.all([
+      characters().createIndex({ id: 1 }, { unique: true }),
+      characters().createIndex({ active: 1, sortOrder: 1, name: 1 }),
+      characters().createIndex({ updatedAt: -1 }),
+    ]);
+  }
+
+  async function init() {
+    if (initialized && db) return;
+    await client.connect();
+    db = client.db(currentDbName);
+
+    try {
+      await ensureIndexes();
+    } catch (error) {
+      const existingDbName = getExistingDbNameFromCaseConflict(error);
+      if (!existingDbName || existingDbName === currentDbName) {
+        throw error;
+      }
+
+      currentDbName = existingDbName;
+      db = client.db(currentDbName);
+      await ensureIndexes();
+    }
+
+    initialized = true;
+  }
+
+  async function seedFromFile(fileCharacters = []) {
+    if (seededFromFile) return;
+    const safeCharacters = sanitizeCharacters(fileCharacters);
+    if (safeCharacters.length === 0) {
+      seededFromFile = true;
+      return;
+    }
+
+    const existingCount = await characters().countDocuments({}, { limit: 1 });
+    if (existingCount > 0) {
+      seededFromFile = true;
+      return;
+    }
+
+    try {
+      await characters().insertMany(safeCharacters, { ordered: false });
+    } catch (error) {
+      if (error?.code !== 11000) throw error;
+    }
+
+    seededFromFile = true;
+  }
+
+  async function listCharacters(fileCharacters = []) {
+    await init();
+    await seedFromFile(fileCharacters);
+    const items = await characters().find({}).sort({ sortOrder: 1, name: 1 }).toArray();
+    return sanitizeCharacters(items);
+  }
+
+  async function upsertCharacter(payload, fileCharacters = []) {
+    await init();
+    await seedFromFile(fileCharacters);
+
+    const safeId = normalizeText(payload?.id) || `char-${randomUUID()}`;
+    const now = nowIso();
+    const existing = await characters().findOne({ id: safeId });
+    const incoming = sanitizeCharacter({
+      id: safeId,
+      name: payload?.name,
+      tagline: payload?.tagline,
+      description: payload?.description,
+      imageUrl: payload?.imageUrl,
+      accentStart: payload?.accentStart,
+      accentEnd: payload?.accentEnd,
+      prompt: payload?.prompt,
+      access: payload?.access,
+      active: payload?.active,
+      sortOrder: payload?.sortOrder,
+      usageCount: existing?.usageCount,
+      usageCountFree: existing?.usageCountFree,
+      usageCountPro: existing?.usageCountPro,
+      lastUsedAt: existing?.lastUsedAt,
+      createdAt: existing?.createdAt || now,
+      createdBy: existing?.createdBy || normalizeText(payload?.adminUserId),
+      updatedAt: now,
+      updatedBy: normalizeText(payload?.adminUserId),
+    });
+
+    if (!incoming) throw new Error("Character name and prompt are required");
+
+    const next = existing
+      ? {
+          ...sanitizeCharacter(existing),
+          ...incoming,
+          createdAt: existing.createdAt || now,
+          createdBy: existing.createdBy || normalizeText(payload?.adminUserId),
+          updatedAt: now,
+          updatedBy: normalizeText(payload?.adminUserId),
+        }
+      : incoming;
+
+    await characters().updateOne({ id: safeId }, { $set: next }, { upsert: true });
+    return clone(next);
+  }
+
+  async function updateCharacter(payload, fileCharacters = []) {
+    await init();
+    await seedFromFile(fileCharacters);
+
+    const safeId = normalizeText(payload?.id);
+    if (!safeId) throw new Error("Character id is required");
+
+    const existing = await characters().findOne({ id: safeId });
+    if (!existing) throw new Error("Character not found");
+
+    const next = sanitizeCharacter({
+      ...sanitizeCharacter(existing),
+      id: safeId,
+      name: payload?.name !== undefined ? payload.name : existing.name,
+      tagline: payload?.tagline !== undefined ? payload.tagline : existing.tagline,
+      description: payload?.description !== undefined ? payload.description : existing.description,
+      imageUrl: payload?.imageUrl !== undefined ? payload.imageUrl : existing.imageUrl,
+      accentStart: payload?.accentStart !== undefined ? payload.accentStart : existing.accentStart,
+      accentEnd: payload?.accentEnd !== undefined ? payload.accentEnd : existing.accentEnd,
+      prompt: payload?.prompt !== undefined ? payload.prompt : existing.prompt,
+      access: payload?.access !== undefined ? payload.access : existing.access,
+      active: payload?.active !== undefined ? payload.active : existing.active,
+      sortOrder: payload?.sortOrder !== undefined ? payload.sortOrder : existing.sortOrder,
+      usageCount: existing.usageCount,
+      usageCountFree: existing.usageCountFree,
+      usageCountPro: existing.usageCountPro,
+      lastUsedAt: existing.lastUsedAt,
+      createdAt: existing.createdAt,
+      createdBy: existing.createdBy,
+      updatedAt: nowIso(),
+      updatedBy: normalizeText(payload?.adminUserId),
+    });
+
+    if (!next) throw new Error("Character name and prompt are required");
+
+    await characters().updateOne({ id: safeId }, { $set: next });
+    return clone(next);
+  }
+
+  async function removeCharacter({ id }, fileCharacters = []) {
+    await init();
+    await seedFromFile(fileCharacters);
+
+    const safeId = normalizeText(id);
+    if (!safeId) throw new Error("Character id is required");
+
+    const result = await characters().deleteOne({ id: safeId });
+    if (!result.deletedCount) throw new Error("Character not found");
+    return true;
+  }
+
+  async function incrementCharacterUsage({ id, plan = "free", adminUserId = "system" }, fileCharacters = []) {
+    await init();
+    await seedFromFile(fileCharacters);
+
+    const safeId = normalizeText(id);
+    if (!safeId) return null;
+
+    const existing = await characters().findOne({ id: safeId });
+    if (!existing) return null;
+
+    const now = nowIso();
+    const next = sanitizeCharacter({
+      ...sanitizeCharacter(existing),
+      id: safeId,
+      usageCount: Number(existing.usageCount || 0) + 1,
+      usageCountFree: Number(existing.usageCountFree || 0) + (plan === "pro" ? 0 : 1),
+      usageCountPro: Number(existing.usageCountPro || 0) + (plan === "pro" ? 1 : 0),
+      lastUsedAt: now,
+      updatedAt: now,
+      updatedBy: normalizeText(adminUserId) || "system",
+    });
+
+    await characters().updateOne({ id: safeId }, { $set: next });
+    return clone(next);
+  }
+
+  return {
+    listCharacters,
+    upsertCharacter,
+    updateCharacter,
+    removeCharacter,
+    incrementCharacterUsage,
+  };
+}
+
+async function getCharacterStore() {
+  const config = readCharacterStoreConfig();
+
+  if (config.mode === "file") return null;
+  if (!config.mongoUri) {
+    if (config.mode === "mongo") {
+      throw new Error("MONGODB_URI is required when LUNA_DB_MODE=mongo");
+    }
+    return null;
+  }
+
+  if (!characterStorePromise) {
+    characterStorePromise = (async () => {
+      const store = createMongoCharacterStore(config);
+      await store.listCharacters([]);
+      return store;
+    })().catch((error) => {
+      characterStorePromise = null;
+      throw error;
+    });
+  }
+
+  try {
+    return await characterStorePromise;
+  } catch (error) {
+    if (config.mode === "mongo") throw error;
+    console.warn(`[characters] MongoDB unavailable for characters (${error.message}). Falling back to file storage.`);
+    return null;
+  }
+}
+
 async function ensureFile(defaults) {
   await fs.mkdir(DATA_DIR, { recursive: true });
 
@@ -230,10 +518,21 @@ function getDefaults(overrides = {}) {
   };
 }
 
-export async function getAdminSettings(overrides = {}) {
-  const defaults = getDefaults(overrides);
+async function getFileAdminSettings(defaults) {
   const db = await readDb(defaults);
   return clone(db.settings);
+}
+
+async function listFileCharacters(defaults) {
+  const settings = await getFileAdminSettings(defaults);
+  return Array.isArray(settings?.characters) ? clone(settings.characters) : [];
+}
+
+export async function getAdminSettings(overrides = {}) {
+  const defaults = getDefaults(overrides);
+  const settings = await getFileAdminSettings(defaults);
+  settings.characters = await listCharacters(overrides);
+  return settings;
 }
 
 export async function updateProMonthlyPrice({ amountInr, adminUserId = "" }, overrides = {}) {
@@ -271,8 +570,11 @@ export async function updateBrandingSettings({ logoUrl, adminUserId = "" }, over
 }
 
 export async function listCharacters(overrides = {}) {
-  const settings = await getAdminSettings(overrides);
-  return Array.isArray(settings?.characters) ? clone(settings.characters) : [];
+  const defaults = getDefaults(overrides);
+  const fileCharacters = await listFileCharacters(defaults);
+  const store = await getCharacterStore();
+  if (!store) return fileCharacters;
+  return clone(await store.listCharacters(fileCharacters));
 }
 
 export async function listActiveCharacters(overrides = {}) {
@@ -285,6 +587,14 @@ export async function upsertCharacter(
   overrides = {},
 ) {
   const defaults = getDefaults(overrides);
+  const store = await getCharacterStore();
+  if (store) {
+    const fileCharacters = await listFileCharacters(defaults);
+    return store.upsertCharacter(
+      { id, name, tagline, description, imageUrl, accentStart, accentEnd, prompt, access, active, sortOrder, adminUserId },
+      fileCharacters,
+    );
+  }
 
   return mutate(defaults, (db) => {
     const now = nowIso();
@@ -338,6 +648,14 @@ export async function updateCharacter(
   const defaults = getDefaults(overrides);
   const safeId = normalizeText(id);
   if (!safeId) throw new Error("Character id is required");
+  const store = await getCharacterStore();
+  if (store) {
+    const fileCharacters = await listFileCharacters(defaults);
+    return store.updateCharacter(
+      { id: safeId, name, tagline, description, imageUrl, accentStart, accentEnd, prompt, access, active, sortOrder, adminUserId },
+      fileCharacters,
+    );
+  }
 
   return mutate(defaults, (db) => {
     const list = Array.isArray(db.settings.characters) ? db.settings.characters : [];
@@ -370,6 +688,11 @@ export async function removeCharacter({ id, adminUserId = "" }, overrides = {}) 
   const defaults = getDefaults(overrides);
   const safeId = normalizeText(id);
   if (!safeId) throw new Error("Character id is required");
+  const store = await getCharacterStore();
+  if (store) {
+    const fileCharacters = await listFileCharacters(defaults);
+    return store.removeCharacter({ id: safeId, adminUserId }, fileCharacters);
+  }
 
   return mutate(defaults, (db) => {
     const list = Array.isArray(db.settings.characters) ? db.settings.characters : [];
@@ -387,6 +710,11 @@ export async function incrementCharacterUsage({ id, plan = "free", adminUserId =
   const defaults = getDefaults(overrides);
   const safeId = normalizeText(id);
   if (!safeId) return null;
+  const store = await getCharacterStore();
+  if (store) {
+    const fileCharacters = await listFileCharacters(defaults);
+    return store.incrementCharacterUsage({ id: safeId, plan, adminUserId }, fileCharacters);
+  }
 
   return mutate(defaults, (db) => {
     const list = Array.isArray(db.settings.characters) ? db.settings.characters : [];
