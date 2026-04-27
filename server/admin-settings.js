@@ -124,10 +124,73 @@ function normalizeCharacterAccess(value) {
   return raw === "pro" ? "pro" : "free";
 }
 
+function sanitizeStarterPrompts(value) {
+  const items = Array.isArray(value)
+    ? value
+    : typeof value === "string"
+      ? value.split("\n")
+      : [];
+
+  return items
+    .map((item) => normalizeText(item).slice(0, 160))
+    .filter(Boolean)
+    .slice(0, 6);
+}
+
+function sanitizePromptVersion(raw) {
+  const prompt = normalizeText(raw?.prompt).slice(0, 5000);
+  if (!prompt) return null;
+
+  return {
+    id: normalizeText(raw?.id) || `pv-${randomUUID()}`,
+    prompt,
+    createdAt: normalizeText(raw?.createdAt) || nowIso(),
+    createdBy: normalizeText(raw?.createdBy),
+  };
+}
+
+function sanitizePromptVersions(rawList) {
+  if (!Array.isArray(rawList)) return [];
+
+  return rawList
+    .map((item) => sanitizePromptVersion(item))
+    .filter(Boolean)
+    .slice(0, 12);
+}
+
+function buildPromptVersions({ existing = [], prompt, adminUserId = "", forceAppend = false }) {
+  const safePrompt = normalizeText(prompt).slice(0, 5000);
+  const safeExisting = sanitizePromptVersions(existing);
+  if (!safePrompt) return safeExisting;
+
+  const current = safeExisting[0];
+  if (!forceAppend && current?.prompt === safePrompt) {
+    return safeExisting;
+  }
+
+  return sanitizePromptVersions([
+    {
+      id: `pv-${randomUUID()}`,
+      prompt: safePrompt,
+      createdAt: nowIso(),
+      createdBy: normalizeText(adminUserId),
+    },
+    ...safeExisting,
+  ]);
+}
+
 function sanitizeCharacter(raw) {
   const name = normalizeText(raw?.name).slice(0, 60);
   const prompt = normalizeText(raw?.prompt).slice(0, 5000);
   if (!name || !prompt) return null;
+
+  const starterPrompts = sanitizeStarterPrompts(raw?.starterPrompts);
+  const promptVersions = buildPromptVersions({
+    existing: sanitizePromptVersions(raw?.promptVersions),
+    prompt,
+    adminUserId: raw?.updatedBy || raw?.createdBy || "",
+    forceAppend: false,
+  });
 
   return {
     id: normalizeText(raw?.id) || `char-${randomUUID()}`,
@@ -138,6 +201,8 @@ function sanitizeCharacter(raw) {
     accentStart: normalizeText(raw?.accentStart).slice(0, 32) || "#7fc7ba",
     accentEnd: normalizeText(raw?.accentEnd).slice(0, 32) || "#0f1f24",
     prompt,
+    starterPrompts,
+    promptVersions,
     access: normalizeCharacterAccess(raw?.access),
     active: raw?.active !== false,
     sortOrder: Number.isFinite(Number(raw?.sortOrder)) ? Number(raw.sortOrder) : 0,
@@ -320,6 +385,13 @@ function createMongoCharacterStore({ mongoUri, dbName }) {
       accentStart: payload?.accentStart,
       accentEnd: payload?.accentEnd,
       prompt: payload?.prompt,
+      starterPrompts: payload?.starterPrompts,
+      promptVersions: buildPromptVersions({
+        existing: existing?.promptVersions,
+        prompt: payload?.prompt,
+        adminUserId: payload?.adminUserId,
+        forceAppend: normalizeText(payload?.prompt) !== normalizeText(existing?.prompt),
+      }),
       access: payload?.access,
       active: payload?.active,
       sortOrder: payload?.sortOrder,
@@ -370,6 +442,13 @@ function createMongoCharacterStore({ mongoUri, dbName }) {
       accentStart: payload?.accentStart !== undefined ? payload.accentStart : existing.accentStart,
       accentEnd: payload?.accentEnd !== undefined ? payload.accentEnd : existing.accentEnd,
       prompt: payload?.prompt !== undefined ? payload.prompt : existing.prompt,
+      starterPrompts: payload?.starterPrompts !== undefined ? payload.starterPrompts : existing.starterPrompts,
+      promptVersions: buildPromptVersions({
+        existing: existing?.promptVersions,
+        prompt: payload?.prompt !== undefined ? payload.prompt : existing.prompt,
+        adminUserId: payload?.adminUserId,
+        forceAppend: payload?.prompt !== undefined && normalizeText(payload?.prompt) !== normalizeText(existing?.prompt),
+      }),
       access: payload?.access !== undefined ? payload.access : existing.access,
       active: payload?.active !== undefined ? payload.active : existing.active,
       sortOrder: payload?.sortOrder !== undefined ? payload.sortOrder : existing.sortOrder,
@@ -583,7 +662,7 @@ export async function listActiveCharacters(overrides = {}) {
 }
 
 export async function upsertCharacter(
-  { id = "", name, tagline, description, imageUrl, accentStart, accentEnd, prompt, access = "free", active = true, sortOrder = 0, adminUserId = "" },
+  { id = "", name, tagline, description, imageUrl, accentStart, accentEnd, prompt, starterPrompts = [], access = "free", active = true, sortOrder = 0, adminUserId = "" },
   overrides = {},
 ) {
   const defaults = getDefaults(overrides);
@@ -591,7 +670,7 @@ export async function upsertCharacter(
   if (store) {
     const fileCharacters = await listFileCharacters(defaults);
     return store.upsertCharacter(
-      { id, name, tagline, description, imageUrl, accentStart, accentEnd, prompt, access, active, sortOrder, adminUserId },
+      { id, name, tagline, description, imageUrl, accentStart, accentEnd, prompt, starterPrompts, access, active, sortOrder, adminUserId },
       fileCharacters,
     );
   }
@@ -609,6 +688,13 @@ export async function upsertCharacter(
       accentStart,
       accentEnd,
       prompt,
+      starterPrompts,
+      promptVersions: buildPromptVersions({
+        existing: [],
+        prompt,
+        adminUserId,
+        forceAppend: true,
+      }),
       access,
       active,
       sortOrder,
@@ -642,7 +728,7 @@ export async function upsertCharacter(
 }
 
 export async function updateCharacter(
-  { id, name, tagline, description, imageUrl, accentStart, accentEnd, prompt, access, active, sortOrder, adminUserId = "" },
+  { id, name, tagline, description, imageUrl, accentStart, accentEnd, prompt, starterPrompts, access, active, sortOrder, adminUserId = "" },
   overrides = {},
 ) {
   const defaults = getDefaults(overrides);
@@ -652,7 +738,7 @@ export async function updateCharacter(
   if (store) {
     const fileCharacters = await listFileCharacters(defaults);
     return store.updateCharacter(
-      { id: safeId, name, tagline, description, imageUrl, accentStart, accentEnd, prompt, access, active, sortOrder, adminUserId },
+      { id: safeId, name, tagline, description, imageUrl, accentStart, accentEnd, prompt, starterPrompts, access, active, sortOrder, adminUserId },
       fileCharacters,
     );
   }
@@ -663,6 +749,7 @@ export async function updateCharacter(
     if (!existing) throw new Error("Character not found");
 
     const now = nowIso();
+    const previousPrompt = normalizeText(existing.prompt).slice(0, 5000);
     if (name !== undefined) existing.name = normalizeText(name).slice(0, 60);
     if (tagline !== undefined) existing.tagline = normalizeText(tagline).slice(0, 80);
     if (description !== undefined) existing.description = normalizeText(description).slice(0, 220);
@@ -670,10 +757,17 @@ export async function updateCharacter(
     if (accentStart !== undefined) existing.accentStart = normalizeText(accentStart).slice(0, 32) || existing.accentStart;
     if (accentEnd !== undefined) existing.accentEnd = normalizeText(accentEnd).slice(0, 32) || existing.accentEnd;
     if (prompt !== undefined) existing.prompt = normalizeText(prompt).slice(0, 5000);
+    if (starterPrompts !== undefined) existing.starterPrompts = sanitizeStarterPrompts(starterPrompts);
     if (access !== undefined) existing.access = normalizeCharacterAccess(access);
     if (active !== undefined) existing.active = Boolean(active);
     if (sortOrder !== undefined) existing.sortOrder = Number.isFinite(Number(sortOrder)) ? Number(sortOrder) : existing.sortOrder;
     if (!existing.name || !existing.prompt) throw new Error("Character name and prompt are required");
+    existing.promptVersions = buildPromptVersions({
+      existing: existing.promptVersions,
+      prompt: existing.prompt,
+      adminUserId,
+      forceAppend: prompt !== undefined && normalizeText(prompt).slice(0, 5000) !== previousPrompt,
+    });
 
     existing.updatedAt = now;
     existing.updatedBy = normalizeText(adminUserId);

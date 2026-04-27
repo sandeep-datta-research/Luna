@@ -172,6 +172,7 @@ export default function AdminDashboard() {
   const [characterAccentStart, setCharacterAccentStart] = useState("#7fc7ba");
   const [characterAccentEnd, setCharacterAccentEnd] = useState("#0f1f24");
   const [characterPrompt, setCharacterPrompt] = useState("");
+  const [characterStarterPromptsInput, setCharacterStarterPromptsInput] = useState("");
   const [characterAccess, setCharacterAccess] = useState("free");
   const [characterActive, setCharacterActive] = useState(true);
   const [characterSortOrder, setCharacterSortOrder] = useState("0");
@@ -183,6 +184,10 @@ export default function AdminDashboard() {
     const counts = overview?.modelUsage?.counts || {};
     return Object.entries(counts).sort((a, b) => Number(b[1] || 0) - Number(a[1] || 0));
   }, [overview]);
+  const selectedCharacter = useMemo(
+    () => characters.find((item) => item.id === characterId) || null,
+    [characterId, characters],
+  );
   const filteredCharacters = useMemo(() => {
     const query = characterSearch.trim().toLowerCase();
     if (!query) return characters;
@@ -196,6 +201,16 @@ export default function AdminDashboard() {
     () => feedbackItems.filter((item) => item.featured).length,
     [feedbackItems],
   );
+  const characterAnalytics = useMemo(() => {
+    const total = characters.length;
+    const active = characters.filter((item) => item.active !== false).length;
+    const totalUses = characters.reduce((sum, item) => sum + Number(item?.usageCount || 0), 0);
+    const freeUses = characters.reduce((sum, item) => sum + Number(item?.usageCountFree || 0), 0);
+    const proUses = characters.reduce((sum, item) => sum + Number(item?.usageCountPro || 0), 0);
+    const starterPromptCount = characters.reduce((sum, item) => sum + (Array.isArray(item?.starterPrompts) ? item.starterPrompts.length : 0), 0);
+    const topCharacter = [...characters].sort((a, b) => Number(b?.usageCount || 0) - Number(a?.usageCount || 0))[0] || null;
+    return { total, active, totalUses, freeUses, proUses, starterPromptCount, topCharacter };
+  }, [characters]);
 
   const isReferralExpired = (expiresAt) => {
     if (!expiresAt) return false;
@@ -245,6 +260,7 @@ export default function AdminDashboard() {
     setCharacterAccentStart("#7fc7ba");
     setCharacterAccentEnd("#0f1f24");
     setCharacterPrompt("");
+    setCharacterStarterPromptsInput("");
     setCharacterAccess("free");
     setCharacterActive(true);
     setCharacterSortOrder(String(characters.length));
@@ -259,6 +275,7 @@ export default function AdminDashboard() {
     setCharacterAccentStart(item?.accentStart || "#7fc7ba");
     setCharacterAccentEnd(item?.accentEnd || "#0f1f24");
     setCharacterPrompt(item?.prompt || "");
+    setCharacterStarterPromptsInput(Array.isArray(item?.starterPrompts) ? item.starterPrompts.join("\n") : "");
     setCharacterAccess(item?.access === "pro" ? "pro" : "free");
     setCharacterActive(item?.active !== false);
     setCharacterSortOrder(String(Number.isFinite(Number(item?.sortOrder)) ? Number(item.sortOrder) : 0));
@@ -680,6 +697,11 @@ export default function AdminDashboard() {
       accentStart: characterAccentStart,
       accentEnd: characterAccentEnd,
       prompt: characterPrompt.trim(),
+      starterPrompts: characterStarterPromptsInput
+        .split("\n")
+        .map((item) => item.trim())
+        .filter(Boolean)
+        .slice(0, 6),
       access: characterAccess === "pro" ? "pro" : "free",
       active: characterActive,
       sortOrder: Number(characterSortOrder) || 0,
@@ -1028,6 +1050,13 @@ export default function AdminDashboard() {
             icon={Sparkles}
             description="Create Mobile Legends style chat characters, upload portraits, define prompts, and lock them to Free or Pro."
           >
+            <div className="mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+              <AdminMetricCard label="Characters" value={characterAnalytics.total} hint="Total roster entries" />
+              <AdminMetricCard label="Active" value={characterAnalytics.active} tone="emerald" hint="Visible in chat" />
+              <AdminMetricCard label="Total Uses" value={characterAnalytics.totalUses} hint={`Free ${characterAnalytics.freeUses} / Pro ${characterAnalytics.proUses}`} />
+              <AdminMetricCard label="Starter Prompts" value={characterAnalytics.starterPromptCount} tone="violet" hint="One-tap openers" />
+              <AdminMetricCard label="Top Character" value={characterAnalytics.topCharacter?.name || "-"} tone="amber" hint={characterAnalytics.topCharacter ? `${characterAnalytics.topCharacter.usageCount || 0} uses` : "No usage yet"} />
+            </div>
             <div className="grid gap-4 lg:grid-cols-[1.05fr_1.2fr]">
               <div className="rounded-2xl border border-white/6 bg-white/[0.03] p-4">
                 <p className="text-sm font-medium text-zinc-200">{characterId ? "Edit character" : "Create character"}</p>
@@ -1056,6 +1085,13 @@ export default function AdminDashboard() {
                     placeholder="Admin character prompt. This controls how the character speaks."
                     className="min-h-[140px] w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none"
                   />
+                  <textarea
+                    value={characterStarterPromptsInput}
+                    onChange={(event) => setCharacterStarterPromptsInput(event.target.value)}
+                    placeholder={"Starter prompts, one per line\nHelp me make a plan for this week.\nRewrite this text to sound more confident."}
+                    className="min-h-[110px] w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none"
+                  />
+                  <p className="-mt-1 text-[11px] text-zinc-500">Up to 6 starter prompts. They appear in chat as quick conversation starters.</p>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <select
                       value={characterAccess}
@@ -1142,6 +1178,41 @@ export default function AdminDashboard() {
                   </button>
                 </div>
                 {characterNote ? <p className="mt-2 text-xs text-cyan-200">{characterNote}</p> : null}
+                <div className="mt-4 rounded-xl border border-zinc-800 bg-zinc-950/60 p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium text-zinc-200">Prompt history</p>
+                      <p className="mt-1 text-xs text-zinc-500">Saved prompt snapshots can be loaded into the editor and re-saved as the current version.</p>
+                    </div>
+                    <span className="rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-[11px] text-zinc-300">
+                      {Array.isArray(selectedCharacter?.promptVersions) ? selectedCharacter.promptVersions.length : 0} versions
+                    </span>
+                  </div>
+                  {Array.isArray(selectedCharacter?.promptVersions) && selectedCharacter.promptVersions.length > 0 ? (
+                    <div className="mt-3 space-y-2">
+                      {selectedCharacter.promptVersions.slice(0, 6).map((version, index) => (
+                        <div key={version.id || `${selectedCharacter.id}-${index}`} className="rounded-lg border border-zinc-800 bg-zinc-900/80 p-3">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <p className="text-xs text-zinc-400">{formatDate(version.createdAt)}{version.createdBy ? ` • ${version.createdBy}` : ""}</p>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCharacterPrompt(version.prompt || "");
+                                setCharacterNote("Loaded an earlier prompt version into the editor. Save to make it current.");
+                              }}
+                              className="rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-[11px] text-zinc-200 hover:bg-zinc-800"
+                            >
+                              Load into editor
+                            </button>
+                          </div>
+                          <p className="mt-2 line-clamp-4 text-xs leading-5 text-zinc-300">{version.prompt}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-3 text-xs text-zinc-500">No saved prompt versions yet.</p>
+                  )}
+                </div>
               </div>
 
               <div className="rounded-2xl border border-white/6 bg-white/[0.03] p-4">
@@ -1190,6 +1261,19 @@ export default function AdminDashboard() {
                             <p className="mt-1 text-sm font-medium text-violet-200">{item.usageCountPro || 0}</p>
                           </div>
                         </div>
+                        <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-zinc-400">
+                          <span className="rounded-md border border-zinc-800 bg-zinc-950/70 px-2 py-1">{Array.isArray(item.starterPrompts) ? item.starterPrompts.length : 0} starters</span>
+                          <span className="rounded-md border border-zinc-800 bg-zinc-950/70 px-2 py-1">{Array.isArray(item.promptVersions) ? item.promptVersions.length : 0} prompt versions</span>
+                        </div>
+                        {Array.isArray(item.starterPrompts) && item.starterPrompts.length > 0 ? (
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {item.starterPrompts.slice(0, 2).map((prompt) => (
+                              <span key={prompt} className="rounded-full border border-cyan-400/20 bg-cyan-500/10 px-2.5 py-1 text-[11px] text-cyan-100">
+                                {prompt}
+                              </span>
+                            ))}
+                          </div>
+                        ) : null}
                         {item.lastUsedAt ? <p className="mt-2 text-[11px] text-zinc-500">Last used: {formatDate(item.lastUsedAt)}</p> : null}
                         <div className="mt-3 flex flex-wrap gap-2">
                           <button

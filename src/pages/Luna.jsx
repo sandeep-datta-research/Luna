@@ -96,6 +96,11 @@ const CHARACTER_OPTIONS = [
     portrait: lunaClassicPortrait,
     accentStart: "#7fc7ba",
     accentEnd: "#0f1f24",
+    starterPrompts: [
+      "Help me plan my day in 5 practical steps.",
+      "Rewrite this message so it sounds sharper and more confident.",
+      "Break this problem down and tell me the best next move.",
+    ],
   },
   {
     id: "electro-empress",
@@ -105,6 +110,11 @@ const CHARACTER_OPTIONS = [
     portrait: electroEmpressPortrait,
     accentStart: "#8e6cff",
     accentEnd: "#0f1f24",
+    starterPrompts: [
+      "Challenge this plan and tell me what is weak.",
+      "Give me the strongest decision with risks and tradeoffs.",
+      "Turn this messy idea into a clear strategy memo.",
+    ],
   },
   {
     id: "trickster-director",
@@ -114,6 +124,11 @@ const CHARACTER_OPTIONS = [
     portrait: tricksterDirectorPortrait,
     accentStart: "#ff7a4f",
     accentEnd: "#0f1f24",
+    starterPrompts: [
+      "Punch this copy up and make it impossible to ignore.",
+      "Give me 5 bold creative directions for this concept.",
+      "Turn this boring draft into something with attitude.",
+    ],
   },
   {
     id: "verdant-sage",
@@ -123,6 +138,11 @@ const CHARACTER_OPTIONS = [
     portrait: verdantSagePortrait,
     accentStart: "#78d89d",
     accentEnd: "#0f1f24",
+    starterPrompts: [
+      "Help me think through this calmly before I react.",
+      "Explain this gently and simply, step by step.",
+      "Give me a grounded reflection on what to do next.",
+    ],
   },
 ];
 
@@ -192,6 +212,9 @@ function hydrateCharacterOptions(rawList) {
         portrait: text(item?.imageUrl) || fallback.portrait,
         accentStart: text(item?.accentStart) || fallback.accentStart,
         accentEnd: text(item?.accentEnd) || fallback.accentEnd,
+        starterPrompts: Array.isArray(item?.starterPrompts)
+          ? item.starterPrompts.map((entry) => text(entry)).filter(Boolean).slice(0, 6)
+          : fallback.starterPrompts,
         access: text(item?.access) === "pro" ? "pro" : "free",
         active: item?.active !== false,
         locked: Boolean(item?.locked),
@@ -499,6 +522,41 @@ function MessageBubble({
         <span className="text-[11px] text-[#7f9893]">{formatTime(message.createdAt)}</span>
       </div>
     </motion.div>
+  );
+}
+
+function CharacterStarterPrompts({ prompts = [], onSelect }) {
+  if (!Array.isArray(prompts) || prompts.length === 0) return null;
+
+  return (
+    <div className="mt-3 flex flex-wrap gap-2">
+      {prompts.slice(0, 4).map((prompt) => (
+        <button
+          key={prompt}
+          type="button"
+          onClick={() => onSelect?.(prompt)}
+          className="rounded-full border border-[#274149] bg-[#0f1f24] px-3 py-2 text-xs text-[#d7e8e5] transition duration-150 hover:-translate-y-0.5 hover:border-[#4f7c75] hover:bg-[#102126]"
+        >
+          {prompt}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function InstallLunaButton({ onInstall, disabled = false, compact = false }) {
+  return (
+    <button
+      type="button"
+      onClick={onInstall}
+      disabled={disabled}
+      className={`inline-flex items-center gap-2 rounded-2xl border border-[#6f5624] bg-[#2d2413] text-[#f0d79b] transition hover:-translate-y-0.5 hover:bg-[#362b16] disabled:cursor-not-allowed disabled:opacity-60 ${
+        compact ? "px-3 py-2 text-xs" : "px-4 py-2.5 text-sm"
+      }`}
+    >
+      <Download className="h-4 w-4" />
+      Install Luna
+    </button>
   );
 }
 
@@ -833,6 +891,11 @@ export default function Luna() {
   const [newProjectName, setNewProjectName] = useState("");
   const [toast, setToast] = useState(null);
   const [onboardingState, setOnboardingState] = useState({ loading: true, answered: false });
+  const [installPromptEvent, setInstallPromptEvent] = useState(null);
+  const [installSupported, setInstallSupported] = useState(false);
+  const [installingApp, setInstallingApp] = useState(false);
+  const [isStandaloneApp, setIsStandaloneApp] = useState(false);
+  const [showIosInstallHint, setShowIosInstallHint] = useState(false);
 
   const supportsStreaming = useMemo(() => {
     if (typeof window === "undefined") return false;
@@ -842,6 +905,7 @@ export default function Luna() {
   }, []);
   const [lastRetryPayload, setLastRetryPayload] = useState(null);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const canInstallApp = installSupported && !isStandaloneApp && !installingApp;
 
   const mediaRecorderRef = useRef(null);
   const mediaStreamRef = useRef(null);
@@ -1194,6 +1258,54 @@ export default function Luna() {
   }, [activeMessages, isTyping]);
 
   useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+
+    const mediaQuery = window.matchMedia?.("(display-mode: standalone)");
+    const updateStandalone = () => {
+      const standalone = Boolean(mediaQuery?.matches || window.navigator?.standalone);
+      setIsStandaloneApp(standalone);
+    };
+
+    updateStandalone();
+    mediaQuery?.addEventListener?.("change", updateStandalone);
+
+    return () => {
+      mediaQuery?.removeEventListener?.("change", updateStandalone);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+
+    const ua = window.navigator?.userAgent || "";
+    const isIos = /iPad|iPhone|iPod/i.test(ua);
+    const isSafari = /Safari/i.test(ua) && !/CriOS|FxiOS|EdgiOS/i.test(ua);
+    setShowIosInstallHint(isIos && isSafari && !window.navigator?.standalone);
+
+    const handleBeforeInstallPrompt = (event) => {
+      event.preventDefault();
+      setInstallPromptEvent(event);
+      setInstallSupported(true);
+    };
+
+    const handleAppInstalled = () => {
+      setInstallPromptEvent(null);
+      setInstallSupported(false);
+      setInstallingApp(false);
+      setIsStandaloneApp(true);
+      setToast({ id: createId("toast"), message: "Luna is installed on this device." });
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    window.addEventListener("appinstalled", handleAppInstalled);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      window.removeEventListener("appinstalled", handleAppInstalled);
+    };
+  }, []);
+
+  useEffect(() => {
     let timer;
     if (toast) {
       timer = setTimeout(() => setToast(null), 6000);
@@ -1209,6 +1321,30 @@ export default function Luna() {
     const timer = window.setTimeout(() => setIsTyping(false), 20000);
     return () => clearTimeout(timer);
   }, [isTyping]);
+
+  const handleInstallLuna = useCallback(async () => {
+    if (installPromptEvent) {
+      setInstallingApp(true);
+      try {
+        await installPromptEvent.prompt();
+        await installPromptEvent.userChoice;
+      } catch {
+        setToast({ id: createId("toast"), message: "Install prompt could not be opened." });
+      } finally {
+        setInstallPromptEvent(null);
+        setInstallSupported(false);
+        setInstallingApp(false);
+      }
+      return;
+    }
+
+    if (showIosInstallHint) {
+      setToast({ id: createId("toast"), message: "On iPhone or iPad, tap Share and choose Add to Home Screen." });
+      return;
+    }
+
+    setToast({ id: createId("toast"), message: "Install is not available in this browser yet. Try Chrome or Safari on a supported device." });
+  }, [installPromptEvent, showIosInstallHint]);
 
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -2453,6 +2589,9 @@ export default function Luna() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {(canInstallApp || showIosInstallHint) ? (
+                <InstallLunaButton compact onInstall={handleInstallLuna} disabled={installingApp} />
+              ) : null}
               <button
                 type="button"
                 onClick={() => createFreshSession()}
@@ -2485,6 +2624,9 @@ export default function Luna() {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              {(canInstallApp || showIosInstallHint) ? (
+                <InstallLunaButton onInstall={handleInstallLuna} disabled={installingApp} />
+              ) : null}
               <div className="rounded-full border border-[#274149] bg-[#0f1f24] px-3 py-1.5 text-xs text-[#8fb0aa]">
                 {formatDateLabel()}
               </div>
@@ -2530,6 +2672,11 @@ export default function Luna() {
                       <p className="mx-auto mb-8 max-w-2xl text-center text-sm leading-7 text-[#90a7a2] md:text-base">
                         Ask for research, writing, debugging, strategy, summaries, or image prompts. The composer stays centered so you can get straight to work.
                       </p>
+                      {(canInstallApp || showIosInstallHint) ? (
+                        <div className="mb-6 flex justify-center">
+                          <InstallLunaButton onInstall={handleInstallLuna} disabled={installingApp} />
+                        </div>
+                      ) : null}
                       <div className="mb-6">
                         <div className="mb-3 flex items-center justify-between gap-3">
                           <div>
@@ -2554,6 +2701,10 @@ export default function Luna() {
                           selectedCharacterId={activeSession?.characterId}
                           onSelect={handleSelectCharacter}
                           isPro={membershipPlan === "pro"}
+                        />
+                        <CharacterStarterPrompts
+                          prompts={activeCharacter.starterPrompts}
+                          onSelect={(prompt) => setInputValue(prompt)}
                         />
                       </div>
                       <Composer
@@ -2721,6 +2872,10 @@ export default function Luna() {
                                 <p className="mt-1 text-xs text-[#9ab3ae]">{activeCharacter.tagline}</p>
                               </div>
                             </div>
+                            <CharacterStarterPrompts
+                              prompts={activeCharacter.starterPrompts}
+                              onSelect={(prompt) => setInputValue(prompt)}
+                            />
                           </div>
                           <div className="mt-3">
                             <input

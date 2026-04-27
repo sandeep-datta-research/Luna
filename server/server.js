@@ -270,6 +270,12 @@ const DEFAULT_CHARACTER_PROFILE = {
   accentStart: "#7fc7ba",
   accentEnd: "#0f1f24",
   prompt: "Primary persona: Luna Classic. Keep Luna's established identity, witty warmth, and anime-inspired confidence.",
+  starterPrompts: [
+    "Help me plan my day in 5 practical steps.",
+    "Rewrite this message so it sounds sharper and more confident.",
+    "Break this problem down and tell me the best next move.",
+  ],
+  promptVersions: [],
   access: "free",
   active: true,
   sortOrder: 0,
@@ -291,6 +297,20 @@ function normalizeCharacterCatalog(items = []) {
       accentStart: `${item?.accentStart || DEFAULT_CHARACTER_PROFILE.accentStart}`.trim() || DEFAULT_CHARACTER_PROFILE.accentStart,
       accentEnd: `${item?.accentEnd || DEFAULT_CHARACTER_PROFILE.accentEnd}`.trim() || DEFAULT_CHARACTER_PROFILE.accentEnd,
       prompt: `${item?.prompt || ""}`.trim(),
+      starterPrompts: Array.isArray(item?.starterPrompts)
+        ? item.starterPrompts.map((entry) => `${entry || ""}`.trim()).filter(Boolean).slice(0, 6)
+        : DEFAULT_CHARACTER_PROFILE.starterPrompts,
+      promptVersions: Array.isArray(item?.promptVersions)
+        ? item.promptVersions
+          .map((entry) => ({
+            id: `${entry?.id || ""}`.trim(),
+            prompt: `${entry?.prompt || ""}`.trim(),
+            createdAt: `${entry?.createdAt || ""}`.trim(),
+            createdBy: `${entry?.createdBy || ""}`.trim(),
+          }))
+          .filter((entry) => entry.prompt)
+          .slice(0, 12)
+        : [],
       access: `${item?.access || "free"}`.trim().toLowerCase() === "pro" ? "pro" : "free",
       active: item?.active !== false,
       sortOrder: Number.isFinite(Number(item?.sortOrder)) ? Number(item.sortOrder) : index,
@@ -2924,6 +2944,7 @@ app.post("/api/admin/characters", async (req, res) => {
         accentStart: req.body?.accentStart,
         accentEnd: req.body?.accentEnd,
         prompt: req.body?.prompt,
+        starterPrompts: req.body?.starterPrompts,
         access: req.body?.access,
         active: req.body?.active,
         sortOrder: req.body?.sortOrder,
@@ -2955,6 +2976,7 @@ app.patch("/api/admin/characters/:id", async (req, res) => {
         accentStart: req.body?.accentStart,
         accentEnd: req.body?.accentEnd,
         prompt: req.body?.prompt,
+        starterPrompts: req.body?.starterPrompts,
         access: req.body?.access,
         active: req.body?.active,
         sortOrder: req.body?.sortOrder,
