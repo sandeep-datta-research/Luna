@@ -1,9 +1,10 @@
-import { Suspense, lazy, useEffect, useId, useMemo, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useId, useMemo, useState } from "react";
 import { AnimatePresence, motion, useScroll, useSpring, useTransform } from "framer-motion";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
   BrainCircuit,
+  Download,
   Globe2,
   Layers3,
   Menu,
@@ -368,7 +369,7 @@ function ScrollProgressBar({ progress }) {
   );
 }
 
-function HeroExperience({ ctaHref, isSignedIn, scrollYProgress, logoSrc }) {
+function HeroExperience({ ctaHref, isSignedIn, scrollYProgress, logoSrc, canInstallApp, showIosInstallHint, installingApp, onInstall }) {
   const textY = useTransform(scrollYProgress, [0, 0.22], [0, -42]);
   const textOpacity = useTransform(scrollYProgress, [0, 0.22], [1, 0.82]);
   const visualY = useTransform(scrollYProgress, [0, 0.22], [0, 58]);
@@ -426,7 +427,24 @@ function HeroExperience({ ctaHref, isSignedIn, scrollYProgress, logoSrc }) {
             >
               Explore Features
             </Link>
+            {(canInstallApp || showIosInstallHint) ? (
+              <button
+                type="button"
+                onClick={onInstall}
+                disabled={installingApp}
+                className="inline-flex items-center gap-2 rounded-full border border-amber-300/20 bg-[#20190f] px-6 py-3 text-sm font-semibold text-amber-100 backdrop-blur-xl disabled:opacity-60"
+              >
+                <Download className="h-4 w-4" />
+                Install Luna
+              </button>
+            ) : null}
           </div>
+
+          {(canInstallApp || showIosInstallHint) ? (
+            <p className="mt-4 text-sm text-zinc-400">
+              Install Luna directly from the web. Supported browsers will show an install prompt, and iPhone/iPad can use Add to Home Screen.
+            </p>
+          ) : null}
 
           <div className="mt-10 grid gap-3 sm:grid-cols-3">
             {HERO_SIGNAL_ITEMS.map((item) => (
@@ -843,6 +861,10 @@ function MobileLanding({
   menuOpen,
   onOpenMenu,
   onCloseMenu,
+  canInstallApp,
+  showIosInstallHint,
+  installingApp,
+  onInstall,
   userMetrics,
   chartPoints,
   feedbackForm,
@@ -893,6 +915,17 @@ function MobileLanding({
               <p className="relative mt-4 text-sm leading-7 text-zinc-300">
                 A cleaner command surface for chat, research, and premium output.
               </p>
+              {(canInstallApp || showIosInstallHint) ? (
+                <button
+                  type="button"
+                  onClick={onInstall}
+                  disabled={installingApp}
+                  className="relative mt-5 inline-flex items-center gap-2 rounded-full border border-amber-300/20 bg-[#20190f] px-5 py-2.5 text-sm font-semibold text-amber-100 disabled:opacity-60"
+                >
+                  <Download className="h-4 w-4" />
+                  Install Luna
+                </button>
+              ) : null}
               <div className="relative mt-6 flex h-[220px] items-center justify-center">
                 <div className="absolute inset-0 rounded-[28px] bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.16),transparent_40%),radial-gradient(circle_at_bottom,rgba(168,85,247,0.14),transparent_34%)]" />
                 <div className="relative h-[170px] w-[170px]">
@@ -1022,6 +1055,10 @@ function DesktopHome({
   logoSrc,
   isSignedIn,
   cardNavItems,
+  canInstallApp,
+  showIosInstallHint,
+  installingApp,
+  onInstall,
   userMetrics,
   chartPoints,
   feedbackForm,
@@ -1070,7 +1107,16 @@ function DesktopHome({
         <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8">
           <AnnouncementBanner className="mb-6" />
         </div>
-        <HeroExperience ctaHref={isSignedIn ? "/chat" : "/signin"} isSignedIn={isSignedIn} scrollYProgress={progress} logoSrc={logoSrc} />
+        <HeroExperience
+          ctaHref={isSignedIn ? "/chat" : "/signin"}
+          isSignedIn={isSignedIn}
+          scrollYProgress={progress}
+          logoSrc={logoSrc}
+          canInstallApp={canInstallApp}
+          showIosInstallHint={showIosInstallHint}
+          installingApp={installingApp}
+          onInstall={onInstall}
+        />
 
         <DeferredSection
           sectionId="desktop-pillars"
@@ -1146,6 +1192,12 @@ export default function Home() {
   const [featuredFeedback, setFeaturedFeedback] = useState([]);
   const [userMetrics, setUserMetrics] = useState({ total: 0, series: [], days: 14 });
   const [showAnalytics, setShowAnalytics] = useState(false);
+  const [installPromptEvent, setInstallPromptEvent] = useState(null);
+  const [installSupported, setInstallSupported] = useState(false);
+  const [installingApp, setInstallingApp] = useState(false);
+  const [isStandaloneApp, setIsStandaloneApp] = useState(false);
+  const [showIosInstallHint, setShowIosInstallHint] = useState(false);
+  const canInstallApp = installSupported && !isStandaloneApp && !installingApp;
 
   useEffect(() => {
     const syncAdminVisibility = () => {
@@ -1188,6 +1240,72 @@ export default function Home() {
     const timeoutId = window.setTimeout(loadAnalytics, 1800);
     return () => window.clearTimeout(timeoutId);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+
+    const mediaQuery = window.matchMedia?.("(display-mode: standalone)");
+    const updateStandalone = () => {
+      const standalone = Boolean(mediaQuery?.matches || window.navigator?.standalone);
+      setIsStandaloneApp(standalone);
+    };
+
+    updateStandalone();
+    mediaQuery?.addEventListener?.("change", updateStandalone);
+    return () => mediaQuery?.removeEventListener?.("change", updateStandalone);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+
+    const ua = window.navigator?.userAgent || "";
+    const isIos = /iPad|iPhone|iPod/i.test(ua);
+    const isSafari = /Safari/i.test(ua) && !/CriOS|FxiOS|EdgiOS/i.test(ua);
+    setShowIosInstallHint(isIos && isSafari && !window.navigator?.standalone);
+
+    const handleBeforeInstallPrompt = (event) => {
+      event.preventDefault();
+      setInstallPromptEvent(event);
+      setInstallSupported(true);
+    };
+
+    const handleAppInstalled = () => {
+      setInstallPromptEvent(null);
+      setInstallSupported(false);
+      setInstallingApp(false);
+      setIsStandaloneApp(true);
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    window.addEventListener("appinstalled", handleAppInstalled);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      window.removeEventListener("appinstalled", handleAppInstalled);
+    };
+  }, []);
+
+  const handleInstallLuna = useCallback(async () => {
+    if (installPromptEvent) {
+      setInstallingApp(true);
+      try {
+        await installPromptEvent.prompt();
+        await installPromptEvent.userChoice;
+      } finally {
+        setInstallPromptEvent(null);
+        setInstallSupported(false);
+        setInstallingApp(false);
+      }
+      return;
+    }
+
+    if (showIosInstallHint) {
+      window.alert("On iPhone or iPad, tap Share and choose Add to Home Screen.");
+      return;
+    }
+
+    window.alert("Install is not available in this browser yet. Try Chrome or Safari on a supported device.");
+  }, [installPromptEvent, showIosInstallHint]);
 
   const cardNavItems = useMemo(() => {
     const items = [...BASE_CARD_NAV_ITEMS];
@@ -1345,6 +1463,10 @@ export default function Home() {
           logoSrc={brandLogo}
           isSignedIn={isSignedIn}
           cardNavItems={cardNavItems}
+          canInstallApp={canInstallApp}
+          showIosInstallHint={showIosInstallHint}
+          installingApp={installingApp}
+          onInstall={handleInstallLuna}
           userMetrics={userMetrics}
           chartPoints={chartPoints}
           feedbackForm={feedbackForm}
@@ -1362,6 +1484,10 @@ export default function Home() {
           menuOpen={mobileMenuOpen}
           onOpenMenu={() => setMobileMenuOpen(true)}
           onCloseMenu={() => setMobileMenuOpen(false)}
+          canInstallApp={canInstallApp}
+          showIosInstallHint={showIosInstallHint}
+          installingApp={installingApp}
+          onInstall={handleInstallLuna}
           userMetrics={userMetrics}
           chartPoints={chartPoints}
           feedbackForm={feedbackForm}
