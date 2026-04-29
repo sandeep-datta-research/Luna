@@ -6,11 +6,21 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:app": "npm run build && npx cap sync",
+    "cap:sync": "npx cap sync",
+    "cap:copy": "npx cap copy",
+    "cap:open:android": "npx cap open android",
+    "cap:open:ios": "npx cap open ios",
     "lint": "eslint .",
     "preview": "vite preview",
     "start": "node server/server.js"
   },
   "dependencies": {
+    "@capacitor/android": "^7.6.2",
+    "@capacitor/app": "^7.1.2",
+    "@capacitor/cli": "^7.6.2",
+    "@capacitor/core": "^7.6.2",
+    "@capacitor/ios": "^7.6.2",
     "@number-flow/react": "^0.6.0",
     "@radix-ui/react-avatar": "^1.1.11",
     "@radix-ui/react-dialog": "^1.1.15",
@@ -55,7 +65,8 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
-    "@types/react": "^19.2.7",
+    "@types/node": "^25.6.0",
+    "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
     "autoprefixer": "^10.4.27",
@@ -65,6 +76,7 @@
     "globals": "^16.5.0",
     "postcss": "^8.5.8",
     "tailwindcss": "^3.4.19",
+    "typescript": "^6.0.3",
     "vite": "^8.0.0-beta.13",
     "vite-plugin-pwa": "^1.2.0"
   },

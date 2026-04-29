@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Component, Suspense, lazy, useEffect, useState } from "react";
+import { Capacitor } from "@capacitor/core";
 import { HashRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import Orb from "./components/ui/orb";
 import { hydrateUser } from "./lib/api-client";
@@ -83,21 +84,33 @@ function RouteFallback() {
 
 function AnimatedRoutes() {
   const location = useLocation();
+  const isNativeShell = Capacitor.isNativePlatform();
 
   return (
     <RouteErrorBoundary>
       <AnimatePresence mode="wait" initial={false}>
         <Suspense fallback={<RouteFallback />}>
           <Routes location={location} key={location.pathname}>
-            <Route path="/" element={<PageTransition><Home /></PageTransition>} />
-            <Route path="/features" element={<PageTransition><Features /></PageTransition>} />
-            <Route path="/chat" element={<PageTransition><Luna /></PageTransition>} />
-            <Route path="/onboarding" element={<PageTransition><Onboarding /></PageTransition>} />
-            <Route path="/profile" element={<PageTransition><Profile /></PageTransition>} />
-            <Route path="/pricing" element={<PageTransition><Pricing /></PageTransition>} />
-            <Route path="/admin" element={<PageTransition><AdminDashboard /></PageTransition>} />
-            <Route path="/signin" element={<PageTransition><SignInPage /></PageTransition>} />
-            <Route path="*" element={<Navigate to="/" replace />} />
+            {isNativeShell ? (
+              <>
+                <Route path="/" element={<Navigate to="/chat" replace />} />
+                <Route path="/chat" element={<PageTransition><Luna /></PageTransition>} />
+                <Route path="/pricing" element={<PageTransition><Pricing /></PageTransition>} />
+                <Route path="*" element={<Navigate to="/chat" replace />} />
+              </>
+            ) : (
+              <>
+                <Route path="/" element={<PageTransition><Home /></PageTransition>} />
+                <Route path="/features" element={<PageTransition><Features /></PageTransition>} />
+                <Route path="/chat" element={<PageTransition><Luna /></PageTransition>} />
+                <Route path="/onboarding" element={<PageTransition><Onboarding /></PageTransition>} />
+                <Route path="/profile" element={<PageTransition><Profile /></PageTransition>} />
+                <Route path="/pricing" element={<PageTransition><Pricing /></PageTransition>} />
+                <Route path="/admin" element={<PageTransition><AdminDashboard /></PageTransition>} />
+                <Route path="/signin" element={<PageTransition><SignInPage /></PageTransition>} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </>
+            )}
           </Routes>
         </Suspense>
       </AnimatePresence>
