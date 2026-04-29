@@ -7,37 +7,45 @@ interface FeaturePillarSectionProps {
 }
 
 export function FeaturePillarSection({ scrollYProgress }: FeaturePillarSectionProps) {
-  const sectionY = useTransform(scrollYProgress, [0.12, 0.45], [48, -18]);
-  const sectionOpacity = useTransform(scrollYProgress, [0.04, 0.18], [0.55, 1]);
+  const sectionY = useTransform(scrollYProgress, [0.1, 0.4], [100, 0]);
+  const sectionOpacity = useTransform(scrollYProgress, [0.05, 0.25], [0, 1]);
 
   return (
     <motion.section
-      className="mx-auto mt-8 w-full max-w-6xl px-4 sm:px-6 lg:px-8"
+      className="mx-auto mt-24 w-full max-w-7xl px-6 lg:px-12"
       style={{ y: sectionY, opacity: sectionOpacity }}
     >
-      <motion.div
-        {...fadeInUp}
-        className="grid gap-5 lg:grid-cols-3"
-      >
+      <div className="grid gap-8 lg:grid-cols-3">
         {FEATURE_PILLARS.map((item, index) => {
           const Icon = item.icon;
           return (
             <motion.article
               key={item.title}
-              whileHover={{ y: -8, rotateX: 2, rotateY: index === 1 ? 0 : index === 0 ? 2 : -2 }}
-              transition={{ type: "spring", stiffness: 220, damping: 24 }}
-              className="rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(14,18,26,0.88),rgba(9,11,16,0.86))] p-6 shadow-[0_26px_100px_rgba(0,0,0,0.25)] backdrop-blur-2xl"
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.2 }}
+              transition={{ 
+                duration: 0.8, 
+                delay: index * 0.15,
+                ease: [0.16, 1, 0.3, 1]
+              }}
+              whileHover={{ y: -12, scale: 1.02 }}
+              className="group relative rounded-[40px] border border-white/10 bg-gradient-to-b from-white/[0.08] to-white/[0.02] p-8 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.5)] backdrop-blur-3xl transition-all hover:border-white/20"
               style={{ transformStyle: "preserve-3d" }}
             >
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/10 text-white">
-                <Icon className="h-5 w-5" />
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-white transition-transform group-hover:scale-110 group-hover:rotate-3">
+                <Icon className="h-6 w-6" />
               </div>
-              <h2 className="mt-5 text-2xl font-semibold text-white">{item.title}</h2>
-              <p className="mt-4 text-sm leading-7 text-zinc-300">{item.body}</p>
+              <h2 className="mt-8 text-3xl font-bold text-white tracking-tight">{item.title}</h2>
+              <p className="mt-5 text-[15px] leading-relaxed text-zinc-400 group-hover:text-zinc-300 transition-colors">{item.body}</p>
+              
+              <div className="absolute bottom-6 right-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="h-1 w-12 rounded-full bg-gradient-to-r from-cyan-400 to-violet-400" />
+              </div>
             </motion.article>
           );
         })}
-      </motion.div>
+      </div>
     </motion.section>
   );
 }

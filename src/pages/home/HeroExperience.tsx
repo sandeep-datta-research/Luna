@@ -30,163 +30,167 @@ export function HeroExperience({
   installingApp,
   onInstall,
 }: HeroExperienceProps) {
-  const textY = useTransform(scrollYProgress, [0, 0.22], [0, -42]);
-  const textOpacity = useTransform(scrollYProgress, [0, 0.22], [1, 0.82]);
-  const visualY = useTransform(scrollYProgress, [0, 0.22], [0, 58]);
-  const visualRotate = useTransform(scrollYProgress, [0, 0.22], [0, -5]);
-  const ribbonsOpacity = useTransform(scrollYProgress, [0, 0.18], [0.75, 0.18]);
+  const textY = useTransform(scrollYProgress, [0, 0.22], [0, -60]);
+  const textOpacity = useTransform(scrollYProgress, [0, 0.15], [1, 0]);
+  const visualY = useTransform(scrollYProgress, [0, 0.3], [0, 100]);
+  const visualScale = useTransform(scrollYProgress, [0, 0.3], [1, 0.9]);
+  const visualRotate = useTransform(scrollYProgress, [0, 0.22], [0, -8]);
+  const ribbonsOpacity = useTransform(scrollYProgress, [0, 0.15], [0.8, 0]);
+  const bgScale = useTransform(scrollYProgress, [0, 0.4], [1, 1.1]);
 
   return (
-    <section className="relative overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,rgba(88,165,255,0.18),transparent_25%),radial-gradient(circle_at_78%_18%,rgba(168,85,247,0.18),transparent_28%),radial-gradient(circle_at_50%_85%,rgba(16,185,129,0.12),transparent_34%)]" />
-      <motion.div className="absolute inset-x-0 top-0 h-[520px] overflow-hidden" style={{ opacity: ribbonsOpacity }}>
+    <section className="relative min-h-[110vh] overflow-hidden">
+      <motion.div 
+        style={{ scale: bgScale }}
+        className="absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,rgba(88,165,255,0.15),transparent_35%),radial-gradient(circle_at_78%_18%,rgba(168,85,247,0.15),transparent_40%),radial-gradient(circle_at_50%_85%,rgba(16,185,129,0.08),transparent_45%)]" 
+      />
+      <motion.div className="absolute inset-x-0 top-0 h-[640px] overflow-hidden" style={{ opacity: ribbonsOpacity }}>
         <Ribbons
-          className="absolute inset-0 opacity-70"
+          className="absolute inset-0 opacity-60"
           colors={["#59d3ff", "#8b5cf6", "#22c55e"]}
-          baseThickness={36}
-          speedMultiplier={0.45}
-          maxAge={420}
+          baseThickness={42}
+          speedMultiplier={0.35}
+          maxAge={500}
           enableFade
           enableShaderEffect
         />
       </motion.div>
 
-      <div className="relative mx-auto grid min-h-[calc(100vh-84px)] w-full max-w-6xl items-center gap-12 px-4 pb-16 pt-10 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:px-8 lg:pb-20 lg:pt-16">
+      <div className="relative mx-auto grid min-h-screen w-full max-w-7xl items-center gap-16 px-6 pb-24 pt-10 lg:grid-cols-[1.1fr_0.9fr] lg:px-12 lg:pb-32 lg:pt-20">
         <motion.div
-          initial={{ opacity: 0, y: 28 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
+          initial={{ opacity: 0, x: -30 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
           className="relative z-10"
           style={{ y: textY, opacity: textOpacity }}
         >
-          <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-4 py-2 text-xs uppercase tracking-[0.28em] text-cyan-100">
-            <Zap className="h-3.5 w-3.5" />
-            Professional AI Workspace
-          </div>
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="inline-flex items-center gap-2.5 rounded-full border border-cyan-400/20 bg-cyan-400/5 px-5 py-2.5 text-[11px] font-medium uppercase tracking-[0.32em] text-cyan-200 shadow-[0_0_20px_rgba(34,211,238,0.1)] backdrop-blur-md"
+          >
+            <Zap className="h-4 w-4 text-cyan-400" />
+            The Intelligence Layer
+          </motion.div>
 
-          <h1 className="mt-6 max-w-[12ch] text-5xl font-semibold leading-[0.94] tracking-[-0.05em] text-white sm:text-6xl lg:text-7xl">
-            Built to feel fast, spatial, and serious.
+          <h1 className="mt-8 max-w-[14ch] text-6xl font-bold leading-[0.92] tracking-[-0.06em] text-white sm:text-7xl lg:text-8xl">
+            Smarter. <br />
+            <span className="bg-gradient-to-r from-cyan-400 via-violet-400 to-fuchsia-400 bg-clip-text text-transparent">Spatial.</span> <br />
+            Serious.
           </h1>
 
-          <p className="mt-6 max-w-2xl text-base leading-8 text-zinc-300 sm:text-lg">
-            Luna now leads with a smoother 3D presence, clearer information hierarchy, and a more
-            polished command surface for research, writing, and daily execution.
+          <p className="mt-8 max-w-xl text-lg leading-relaxed text-zinc-400 sm:text-xl">
+            Luna is a high-performance workspace designed for research, technical execution, and strategic writing. Guided by spatial cues and a cinematic command surface.
           </p>
 
-          <div className="mt-8 flex flex-wrap gap-4">
+          <div className="mt-10 flex flex-wrap gap-5">
             <Link
               to={ctaHref}
-              className="inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-gradient-to-r from-cyan-400/80 to-sky-500/70 px-6 py-3 text-sm font-semibold text-slate-950 shadow-[0_18px_50px_rgba(56,189,248,0.3)]"
+              className="group relative inline-flex items-center gap-2.5 overflow-hidden rounded-full bg-white px-8 py-4 text-base font-bold text-black transition-all hover:scale-105 active:scale-95 shadow-[0_20px_40px_rgba(255,255,255,0.15)]"
             >
-              {isSignedIn ? "Open Workspace" : "Enter Luna"}
-              <ArrowRight className="h-4 w-4" />
+              <span className="relative z-10">{isSignedIn ? "Open Workspace" : "Get Started"}</span>
+              <ArrowRight className="relative z-10 h-5 w-5 transition-transform group-hover:translate-x-1" />
+              <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-cyan-200 to-white transition-transform group-hover:translate-x-0" />
             </Link>
+            
             <Link
               to="/features"
-              className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.04] px-6 py-3 text-sm font-semibold text-white backdrop-blur-xl"
+              className="inline-flex items-center gap-2.5 rounded-full border border-white/10 bg-white/5 px-8 py-4 text-base font-semibold text-white backdrop-blur-xl transition-all hover:bg-white/10 hover:border-white/20"
             >
-              Explore Features
+              Tour Features
             </Link>
-            {(canInstallApp || showIosInstallHint) ? (
-              <button
-                type="button"
-                onClick={onInstall}
-                disabled={installingApp}
-                className="inline-flex items-center gap-2 rounded-full border border-amber-300/20 bg-[#20190f] px-6 py-3 text-sm font-semibold text-amber-100 backdrop-blur-xl disabled:opacity-60"
-              >
-                <Download className="h-4 w-4" />
-                Install Luna
-              </button>
-            ) : null}
           </div>
 
-          {(canInstallApp || showIosInstallHint) ? (
-            <p className="mt-4 text-sm text-zinc-400">
-              Install Luna directly from the web. Supported browsers will show an install prompt, and iPhone/iPad can use Add to Home Screen.
-            </p>
-          ) : null}
-
-          <div className="mt-10 grid gap-3 sm:grid-cols-3">
-            {HERO_SIGNAL_ITEMS.map((item) => (
-              <SignalStat key={item.label} item={item} />
+          <div className="mt-16 grid grid-cols-3 gap-6 border-t border-white/5 pt-10">
+            {HERO_SIGNAL_ITEMS.map((item, i) => (
+              <motion.div
+                key={item.label}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 + i * 0.1 }}
+              >
+                <p className="text-2xl font-bold text-white tracking-tight">{item.value}</p>
+                <p className="mt-1 text-[10px] uppercase tracking-[0.2em] text-zinc-500 font-medium">{item.label}</p>
+              </motion.div>
             ))}
           </div>
         </motion.div>
 
         <motion.div
-          initial={{ opacity: 0, scale: 0.96, y: 24 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ duration: 0.9, ease: "easeOut", delay: 0.08 }}
-          className="relative flex min-h-[540px] items-center justify-center"
-          style={{ y: visualY, rotateZ: visualRotate }}
+          initial={{ opacity: 0, scale: 0.9, rotateY: 10 }}
+          animate={{ opacity: 1, scale: 1, rotateY: 0 }}
+          transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
+          className="relative flex min-h-[600px] items-center justify-center lg:min-h-[700px]"
+          style={{ y: visualY, rotateZ: visualRotate, scale: visualScale }}
         >
           {MOTION_STACK.map((item, index) => (
             <MotionPanel key={item.title} item={item} index={index} />
           ))}
 
-          <div className="absolute inset-0 rounded-[38px] border border-white/10 bg-[linear-gradient(180deg,rgba(10,16,24,0.86),rgba(7,9,13,0.56))] shadow-[0_40px_140px_rgba(0,0,0,0.38)] backdrop-blur-2xl" />
-          <div className="absolute inset-[1px] rounded-[38px] border border-white/8" />
+          <div className="absolute inset-0 rounded-[48px] border border-white/10 bg-[linear-gradient(180deg,rgba(10,16,24,0.92),rgba(7,9,13,0.72))] shadow-[0_60px_160px_rgba(0,0,0,0.5)] backdrop-blur-3xl" />
+          <div className="absolute inset-[1px] rounded-[48px] border border-white/5 bg-gradient-to-b from-white/5 to-transparent" />
 
           <motion.div
-            animate={{ y: [0, -14, 0], rotate: [0, 4, 0] }}
-            transition={{ duration: 10, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
-            className="absolute left-6 top-8 h-24 w-24 rounded-full bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.34),transparent_65%)] blur-2xl"
+            animate={{ y: [0, -20, 0], opacity: [0.2, 0.4, 0.2] }}
+            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute left-10 top-12 h-40 w-40 rounded-full bg-cyan-500/20 blur-[80px]"
           />
           <motion.div
-            animate={{ y: [0, 12, 0], x: [0, -10, 0] }}
-            transition={{ duration: 12, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
-            className="absolute bottom-10 right-10 h-28 w-28 rounded-full bg-[radial-gradient(circle_at_center,rgba(168,85,247,0.32),transparent_65%)] blur-2xl"
+            animate={{ y: [0, 20, 0], opacity: [0.2, 0.3, 0.2] }}
+            transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute bottom-16 right-16 h-48 w-48 rounded-full bg-violet-600/20 blur-[100px]"
           />
 
-          <div className="relative z-10 flex w-full max-w-[460px] flex-col items-center px-6 py-8">
-            <div className="relative flex h-[220px] w-[220px] items-center justify-center sm:h-[250px] sm:w-[250px]">
+          <div className="relative z-10 flex w-full max-w-[500px] flex-col items-center px-8 py-12">
+            <div className="relative flex h-[280px] w-[280px] items-center justify-center sm:h-[320px] sm:w-[320px]">
               <motion.div
-                animate={{ y: [0, -10, 0] }}
-                transition={{ duration: 6, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+                animate={{ y: [0, -15, 0], rotate: [0, 2, 0] }}
+                transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
                 className="absolute inset-0"
               >
                 <Orb
                   hue={194}
-                  hoverIntensity={0.6}
-                  rotateOnHover={false}
+                  hoverIntensity={0.8}
+                  rotateOnHover={true}
                   backgroundColor="#071018"
                   logoSrc={logoSrc}
-                  logoClassName="scale-[1.08]"
+                  logoClassName="scale-[1.15] drop-shadow-[0_0_30px_rgba(34,211,238,0.4)]"
                 />
               </motion.div>
             </div>
 
-            <div className="mt-8 grid w-full gap-4 md:grid-cols-[1.1fr_0.9fr]">
+            <div className="mt-12 grid w-full gap-5 md:grid-cols-[1.1fr_0.9fr]">
               <motion.div
-                whileHover={{ y: -6, rotateX: 2, rotateY: -2 }}
-                className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-2xl"
+                whileHover={{ y: -8, rotateX: 3, rotateY: -3 }}
+                className="group relative overflow-hidden rounded-[32px] border border-white/10 bg-white/5 p-6 backdrop-blur-3xl"
                 style={{ transformStyle: "preserve-3d" }}
               >
-                <div className="flex items-center justify-between">
+                <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="relative flex items-center justify-between">
                   <div>
-                    <p className="text-xs uppercase tracking-[0.24em] text-zinc-400">Response Layer</p>
-                    <p className="mt-2 text-lg font-semibold text-white">Smooth, guided, executive-grade</p>
+                    <p className="text-[10px] uppercase tracking-[0.24em] text-cyan-400 font-bold">Workspace</p>
+                    <p className="mt-2 text-xl font-bold text-white tracking-tight">Executive Grade</p>
                   </div>
-                  <Sparkles className="h-5 w-5 text-cyan-200" />
+                  <Sparkles className="h-6 w-6 text-cyan-300" />
                 </div>
-                <p className="mt-4 text-sm leading-7 text-zinc-300">
-                  Cleaner motion, calmer gradients, and better spatial cues make the homepage feel
-                  like a product surface rather than a collection of sections.
+                <p className="mt-5 text-[15px] leading-relaxed text-zinc-400">
+                  Precision-tuned motion and spatial context organized into a clearer command surface.
                 </p>
               </motion.div>
 
               <motion.div
-                whileHover={{ y: -6, rotateX: 2, rotateY: 2 }}
-                className="overflow-hidden rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(11,18,28,0.95),rgba(10,12,18,0.8))] p-4"
+                whileHover={{ y: -8, rotateX: 3, rotateY: 3 }}
+                className="group relative overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(11,18,28,0.98),rgba(10,12,18,0.85))] p-5"
                 style={{ transformStyle: "preserve-3d" }}
               >
-                <p className="px-1 text-xs uppercase tracking-[0.24em] text-zinc-400">Global Context</p>
-                <div className="mt-3 h-[180px] rounded-[22px] border border-white/8 bg-black/30">
+                <p className="px-1 text-[10px] uppercase tracking-[0.24em] text-violet-400 font-bold">Analytics</p>
+                <div className="mt-4 h-[190px] rounded-[24px] border border-white/5 bg-black/40 overflow-hidden">
                   <Earth
-                    className="max-w-none scale-[1.08]"
-                    baseColor={[0.17, 0.67, 0.92]}
-                    glowColor={[0.39, 0.33, 0.97]}
-                    markerColor={[0.45, 0.96, 0.82]}
+                    className="max-w-none scale-[1.15]"
+                    baseColor={[0.2, 0.7, 1.0]}
+                    glowColor={[0.4, 0.4, 1.0]}
+                    markerColor={[0.5, 1.0, 0.8]}
                   />
                 </div>
               </motion.div>
