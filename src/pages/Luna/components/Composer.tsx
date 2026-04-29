@@ -102,7 +102,7 @@ export function Composer({
           <motion.button
             whileTap={{ scale: 0.97 }}
             type="button"
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => { triggerHaptic(); fileInputRef.current?.click(); }}
             className="rounded-xl border border-[#274149] bg-[#0f1f24] p-2 text-[#cde3df] transition hover:border-[#4f7c75]"
             title="Attach file"
           >
@@ -142,7 +142,7 @@ export function Composer({
           <motion.button
             whileTap={{ scale: 0.97 }}
             type="button"
-            onClick={onToggleImageMode}
+            onClick={() => { triggerHaptic(); onToggleImageMode(); }}
             className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition ${
               imageMode
                 ? "border-[#4f7c75] bg-[#102126] text-[#eef6f3]"

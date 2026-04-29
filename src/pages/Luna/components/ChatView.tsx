@@ -26,6 +26,28 @@ interface ChatViewProps {
   setInputValue: (val: string) => void;
 }
 
+function ChatSkeleton() {
+  return (
+    <div className="flex flex-col gap-6 animate-pulse px-2 py-4">
+      <div className="flex justify-end">
+        <div className="h-14 w-[60%] md:w-[40%] rounded-3xl rounded-br-sm bg-[linear-gradient(145deg,#327d74,#184f49)] opacity-40 shadow-sm" />
+      </div>
+      <div className="flex justify-start">
+        <div className="flex w-[85%] flex-col gap-2 items-start">
+          <div className="mb-0.5 ml-1 flex items-center gap-2">
+            <div className="h-[26px] w-[26px] rounded-full bg-[#1f3135]/50" />
+            <div className="h-3 w-20 rounded bg-[#1f3135]/50" />
+          </div>
+          <div className="h-24 w-full md:w-[70%] rounded-3xl rounded-bl-sm bg-[linear-gradient(180deg,rgba(18,27,31,0.6),rgba(12,20,23,0.6))] border border-[#1f3135]/30" />
+        </div>
+      </div>
+      <div className="flex justify-end">
+        <div className="h-10 w-[45%] md:w-[30%] rounded-3xl rounded-br-sm bg-[linear-gradient(145deg,#327d74,#184f49)] opacity-40 shadow-sm" />
+      </div>
+    </div>
+  );
+}
+
 export function ChatView({
   activeSession,
   activeCharacter,
@@ -142,41 +164,59 @@ export function ChatView({
             </div>
           ) : null}
           <div className="mb-2 rounded-[28px] border border-[#1f3135] bg-[linear-gradient(180deg,rgba(9,16,19,0.92),rgba(7,12,14,0.98))] p-4 xl:hidden">
-            <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+            <button
+              onClick={() => setIsMobileSwitchboardOpen(!isMobileSwitchboardOpen)}
+              className="flex w-full items-center justify-between text-left"
+            >
               <div>
                 <p className="text-[11px] uppercase tracking-[0.18em] text-[#84a7a0]">Character Switchboard</p>
                 <p className="mt-1 text-sm text-[#97b0ab]">
-                  Each conversation keeps its own speaking style and portrait card.
+                  Current: {activeCharacter.name}
                 </p>
               </div>
-              <span className="text-xs text-[#d7e8e5]">Current: {activeCharacter.name}</span>
-            </div>
-            <div className="mb-3">
-              <input
-                value={characterSearchQuery}
-                onChange={(event) => setCharacterSearchQuery(event.target.value)}
-                placeholder="Search character board..."
-                className="w-full rounded-2xl border border-[#274149] bg-[#0c1719] px-4 py-2.5 text-sm text-[#e7f0ee] outline-none placeholder:text-[#69807b]"
-              />
-            </div>
-            <CharacterCards
-              options={filteredCharacterOptions}
-              selectedCharacterId={activeSession?.characterId}
-              onSelect={handleSelectCharacter}
-              isPro={membershipPlan === "pro"}
-            />
+              <span className="text-xs text-[#d7e8e5] bg-[#1a2b2f] px-3 py-1 rounded-full border border-[#274149]">
+                {isMobileSwitchboardOpen ? "Close" : "Change"}
+              </span>
+            </button>
+            <AnimatePresence>
+              {isMobileSwitchboardOpen && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0, marginTop: 0 }}
+                  animate={{ height: "auto", opacity: 1, marginTop: 16 }}
+                  exit={{ height: 0, opacity: 0, marginTop: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="mb-3">
+                    <input
+                      value={characterSearchQuery}
+                      onChange={(event) => setCharacterSearchQuery(event.target.value)}
+                      placeholder="Search character board..."
+                      className="w-full rounded-2xl border border-[#274149] bg-[#0c1719] px-4 py-2.5 text-sm text-[#e7f0ee] outline-none placeholder:text-[#69807b]"
+                    />
+                  </div>
+                  <CharacterCards
+                    options={filteredCharacterOptions}
+                    selectedCharacterId={activeSession?.characterId}
+                    onSelect={(c) => { handleSelectCharacter(c); setIsMobileSwitchboardOpen(false); }}
+                    isPro={membershipPlan === "pro"}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
-          {activeMessages.map((message) => (
-            <MessageBubble
-              key={message.id}
-              message={message}
-              showLunaHeader={message.role === "assistant"}
-              isLatestAssistant={message.id === latestAssistantId}
-              onCopy={copyMessage}
-              onRegenerate={regenerateLatest}
-              character={activeCharacter}
-            />
-          ))}
+          <div aria-live="polite" aria-atomic="false">
+            {activeMessages.map((message) => (
+              <MessageBubble
+                key={message.id}
+                message={message}
+                showLunaHeader={message.role === "assistant"}
+                isLatestAssistant={message.id === latestAssistantId}
+                onCopy={copyMessage}
+                onRegenerate={regenerateLatest}
+                character={activeCharacter}
+              />
+            ))}
+          </div>
 
           {showTyping ? <TypingIndicator character={activeCharacter} /> : null}
           <div ref={listEndRef} className="h-2" />

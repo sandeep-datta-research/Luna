@@ -49,6 +49,7 @@ export function MessageBubble({
   const isUser = message.role === "user";
   const sources = Array.isArray(message.sources) ? message.sources : [];
   const assistantCharacter = character || CHARACTER_OPTIONS[0];
+  const [showSources, setShowSources] = useState(false);
 
   return (
     <motion.div

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Shield } from "lucide-react";
-import CardNav from "@/component/CardNav";
+import CardNav from "@/components/CardNav";
 import HeroGeometric from "@/components/ui/hero-geometric";
 import Earth from "@/components/ui/globe";
 import Feature1 from "@/components/mvpblocks/feature-1";

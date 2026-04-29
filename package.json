@@ -20,6 +20,7 @@
     "@capacitor/app": "^7.1.2",
     "@capacitor/cli": "^7.6.2",
     "@capacitor/core": "^7.6.2",
+    "@capacitor/haptics": "^7.0.5",
     "@capacitor/ios": "^7.6.2",
     "@number-flow/react": "^0.6.0",
     "@radix-ui/react-avatar": "^1.1.11",

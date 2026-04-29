@@ -254,5 +254,6 @@ export function useVoiceRecorder({ onTranscription, onError }) {
     voiceActive,
     isTranscribing,
     toggleVoice,
+    analyser: analyserRef.current,
   };
 }

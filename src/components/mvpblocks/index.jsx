@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Activity, CheckCircle2, Crown, Megaphone, RefreshCw, Save, Shield, ShieldAlert, SlidersHorizontal, Sparkles, Users, WandSparkles, XCircle } from "lucide-react";
 import { fetchApi, getStoredUser, hydrateUser } from "@/lib/api-client";
 import { setBrandingLogoCache, useBrandingLogo } from "@/lib/branding";
-import CardNav from "@/component/CardNav";
+import CardNav from "@/components/CardNav";
 import logo from "@/assets/luna-logo.svg";
 
 const ALLOWED_ADMIN_EMAILS = new Set([

@@ -224,7 +224,7 @@ const CardNav = ({
                   {item.links?.map((lnk, i) => {
                     const isInternalRoute = typeof lnk.href === 'string' && lnk.href.startsWith('/');
                     const linkClassName =
-                      'nav-card-link inline-flex items-center gap-[6px] no-underline cursor-pointer transition-opacity duration-300 hover:opacity-75 text-[15px] md:text-[16px]';
+                      'nav-card-link inline-flex items-center gap-[6px] no-underline cursor-pointer transition-opacity duration-300 hover:opacity-75 text-[15px] md:text-[16px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 rounded';
 
                     if (isInternalRoute) {
                       return (

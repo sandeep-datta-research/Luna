@@ -283,7 +283,11 @@ export default function Orb({
       rafId = requestAnimationFrame(update);
       const dt = (t - lastTime) * 0.001;
       lastTime = t;
-      program.uniforms.iTime.value = t * 0.001;
+
+      if (!prefersReducedMotion) {
+        program.uniforms.iTime.value = t * 0.001;
+      }
+      
       program.uniforms.hue.value = hue;
       program.uniforms.hoverIntensity.value = hoverIntensity;
       program.uniforms.backgroundColor.value = hexToVec3(backgroundColor);
@@ -291,7 +295,7 @@ export default function Orb({
       const effectiveHover = forceHoverState ? 1 : targetHover;
       program.uniforms.hover.value += (effectiveHover - program.uniforms.hover.value) * 0.1;
 
-      if (rotateOnHover && effectiveHover > 0.5) {
+      if (rotateOnHover && effectiveHover > 0.5 && !prefersReducedMotion) {
         currentRot += dt * rotationSpeed;
       }
       program.uniforms.rot.value = currentRot;
