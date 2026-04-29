@@ -1,10 +1,30 @@
-import { motion } from "framer-motion";
-import { Zap, Clock3, Loader2 } from "lucide-react";
+import React, { useRef, useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Zap, Clock3, Loader2, ArrowDown } from "lucide-react";
 import { MessageBubble } from "./MessageBubble";
 import { TypingIndicator } from "./TypingIndicator";
 import { CharacterCards } from "./CharacterCards";
 import { CharacterStarterPrompts } from "./CharacterStarterPrompts";
 import { formatHistoryTime } from "../utils";
+
+interface ChatViewProps {
+  activeSession: any;
+  activeCharacter: any;
+  modePills: string[];
+  historyLoading: boolean;
+  characterSearchQuery: string;
+  setCharacterSearchQuery: (q: string) => void;
+  filteredCharacterOptions: any[];
+  handleSelectCharacter: (c: any) => void;
+  membershipPlan: string;
+  activeMessages: any[];
+  latestAssistantId: string;
+  copyMessage: (c: string) => void;
+  regenerateLatest: () => void;
+  showTyping: boolean;
+  listEndRef: any;
+  setInputValue: (val: string) => void;
+}
 
 export function ChatView({
   activeSession,
@@ -23,7 +43,45 @@ export function ChatView({
   showTyping,
   listEndRef,
   setInputValue,
-}) {
+}: ChatViewProps) {
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [showScrollBottom, setShowScrollBottom] = useState(false);
+  const [hasNewMessage, setHasNewMessage] = useState(false);
+
+  const prevMessageCountRef = useRef(activeMessages.length);
+
+  useEffect(() => {
+    // If a new message arrives and we are not at the bottom, flash the button
+    if (activeMessages.length > prevMessageCountRef.current) {
+      if (showScrollBottom) {
+        setHasNewMessage(true);
+      }
+    }
+    prevMessageCountRef.current = activeMessages.length;
+  }, [activeMessages.length, showScrollBottom]);
+
+  const handleScroll = () => {
+    if (!scrollContainerRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
+    const distanceToBottom = scrollHeight - scrollTop - clientHeight;
+    const isAtBottom = distanceToBottom < 120;
+    
+    setShowScrollBottom(!isAtBottom);
+    if (isAtBottom) {
+      setHasNewMessage(false);
+    }
+  };
+
+  const scrollToBottom = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({
+        top: scrollContainerRef.current.scrollHeight,
+        behavior: "smooth"
+      });
+    }
+    setHasNewMessage(false);
+  };
+
   return (
     <motion.div
       key={activeSession?.id || "messages"}
@@ -31,10 +89,12 @@ export function ChatView({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 14 }}
       transition={{ duration: 0.25 }}
-      className="luna-scrollbar h-full overflow-y-auto pr-1"
+      ref={scrollContainerRef}
+      onScroll={handleScroll}
+      className="luna-scrollbar relative h-full overflow-y-auto pr-1"
     >
       <div className="mx-auto grid w-full max-w-7xl gap-4 pb-6 pt-3 xl:grid-cols-[minmax(0,1.65fr)_360px] xl:items-start md:pb-8">
-        <div className="min-w-0">
+        <div className="min-w-0 relative">
           <div className="luna-fade-lift sticky top-0 z-10 mb-2 rounded-[28px] border border-[#1f3135] bg-[linear-gradient(180deg,rgba(9,16,19,0.95),rgba(7,12,14,0.9))] px-4 py-4 backdrop-blur xl:px-5">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div className="min-w-0">
@@ -119,7 +179,7 @@ export function ChatView({
           ))}
 
           {showTyping ? <TypingIndicator character={activeCharacter} /> : null}
-          <div ref={listEndRef} />
+          <div ref={listEndRef} className="h-2" />
         </div>
         <aside className="hidden xl:block">
           <div className="sticky top-3 space-y-4">
@@ -143,7 +203,7 @@ export function ChatView({
                 </div>
                 <CharacterStarterPrompts
                   prompts={activeCharacter.starterPrompts}
-                  onSelect={(prompt) => setInputValue(prompt)}
+                  onSelect={(prompt: string) => setInputValue(prompt)}
                 />
               </div>
               <div className="mt-3">
@@ -166,6 +226,27 @@ export function ChatView({
           </div>
         </aside>
       </div>
+
+      <AnimatePresence>
+        {showScrollBottom && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: 10 }}
+            onClick={scrollToBottom}
+            className={`fixed bottom-24 right-6 xl:right-[380px] z-50 flex h-10 w-10 items-center justify-center rounded-full border border-[#2d474e] bg-[#112024] text-[#a4b5b2] shadow-[0_8px_20px_rgba(0,0,0,0.3)] transition-all hover:border-[#4f7c75] hover:text-[#e4f0ed] ${hasNewMessage ? "ring-2 ring-emerald-500/50" : ""}`}
+            title="Scroll to bottom"
+          >
+            <ArrowDown className="h-5 w-5" />
+            {hasNewMessage && (
+              <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+              </span>
+            )}
+          </motion.button>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
