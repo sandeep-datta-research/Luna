@@ -21,6 +21,8 @@ import { InstallLunaButton } from "./Luna/components/InstallLunaButton";
 import OnboardingFlow from "@/components/onboarding/OnboardingFlow";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 
+import { useLunaStore } from "@/store/useLunaStore";
+
 // Local Hooks
 import { useVoiceRecorder } from "./Luna/hooks/useVoiceRecorder";
 import { useLunaSession } from "./Luna/hooks/useLunaSession";
@@ -61,23 +63,26 @@ export default function Luna() {
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
 
-  // UI State
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [characterSearchQuery, setCharacterSearchQuery] = useState("");
-  const [toast, setToast] = useState(null);
-  const [lastRetryPayload, setLastRetryPayload] = useState(null);
-  const [inputValue, setInputValue] = useState("");
-  const [selectedModel, setSelectedModel] = useState("luna-2.5");
-  const [webSearchMode, setWebSearchMode] = useState(false);
-  const [researchMode, setResearchMode] = useState(false);
-  const [imageMode, setImageMode] = useState(false);
-  const [attachments, setAttachments] = useState([]);
+  // UI State from Zustand
+  const {
+    isSidebarOpen, setIsSidebarOpen,
+    mobileSidebarOpen, setMobileSidebarOpen,
+    searchQuery, setSearchQuery,
+    characterSearchQuery, setCharacterSearchQuery,
+    toast, setToast,
+    lastRetryPayload, setLastRetryPayload,
+    inputValue, setInputValue,
+    selectedModel, setSelectedModel,
+    webSearchMode, setWebSearchMode,
+    researchMode, setResearchMode,
+    imageMode, setImageMode,
+    attachments, setAttachments
+  } = useLunaStore();
+
   const [onboardingState, setOnboardingState] = useState({ loading: true, answered: false });
 
   // PWA State
-  const [installPromptEvent, setInstallPromptEvent] = useState(null);
+  const [installPromptEvent, setInstallPromptEvent] = useState<any>(null);
   const [installSupported, setInstallSupported] = useState(false);
   const [installingApp, setInstallingApp] = useState(false);
   const [isStandaloneApp, setIsStandaloneApp] = useState(false);
