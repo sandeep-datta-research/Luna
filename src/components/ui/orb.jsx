@@ -279,6 +279,8 @@ export default function Orb({
     container.addEventListener("mousemove", handleMouseMove);
     container.addEventListener("mouseleave", handleMouseLeave);
 
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
     const update = (t) => {
       rafId = requestAnimationFrame(update);
       const dt = (t - lastTime) * 0.001;

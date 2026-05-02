@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useMemo } from "react";
+import { useState, useCallback, useRef } from "react";
 import { fetchApi, streamApi } from "@/lib/api-client";
 import { 
   text, 

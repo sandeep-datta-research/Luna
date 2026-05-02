@@ -69,6 +69,7 @@ export function ChatView({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [showScrollBottom, setShowScrollBottom] = useState(false);
   const [hasNewMessage, setHasNewMessage] = useState(false);
+  const [isMobileSwitchboardOpen, setIsMobileSwitchboardOpen] = useState(false);
 
   const prevMessageCountRef = useRef(activeMessages.length);
 

@@ -1,7 +1,7 @@
 import "./load-env.js";
 import express from "express";
 import cors from "cors";
-import { initDb, getDbInfo } from "./db-adapter.js";
+import { initDb } from "./db-adapter.js";
 import { trackRequest } from "./observability.js";
 import { 
   PORT, 

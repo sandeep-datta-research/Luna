@@ -27,8 +27,7 @@ import {
 } from "../services/user-memory.js";
 import { 
   buildProviderRunners, 
-  resolveRequestedModel,
-  buildProviders
+  resolveRequestedModel
 } from "../services/provider-service.js";
 import { 
   buildConversationMessages, 

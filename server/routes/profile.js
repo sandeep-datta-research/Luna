@@ -30,9 +30,6 @@ import {
   hasUserMemory 
 } from "../services/user-memory.js";
 import { 
-  normalizeMemoryPayload 
-} from "../services/user-memory.js"; // Wait, I put this in services/user-memory.js as a local function, need to export it or move it
-import { 
   extractProviderError, 
   buildAccountSecurity 
 } from "../utils/common.js";

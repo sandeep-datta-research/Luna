@@ -357,12 +357,6 @@ export default function AdminDashboard() {
     boot();
   }, [loadAdminData]);
 
-  useEffect(() => {
-    if (!characterId) {
-      setCharacterSortOrder(String(characters.length));
-    }
-  }, [characterId, characters.length]);
-
   const reviewRequest = async (id, status) => {
     setActionBusy(true);
     const result = await fetchApi(`/api/admin/upgrade-requests/${id}/status`, {

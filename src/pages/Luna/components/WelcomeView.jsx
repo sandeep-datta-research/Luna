@@ -44,7 +44,7 @@ export function WelcomeView({
       transition={{ duration: 0.35 }}
       className="flex h-full flex-col items-center justify-center py-6 md:py-10"
     >
-      <div className="mx-auto flex w-full max-w-5xl flex-col items-center justify-center xl:max-w-6xl">
+      <div className="mx-auto flex w-full max-w-5xl flex-col items-center justify-center xl:max-w-7xl">
         <div className="luna-fade-lift w-full rounded-[36px] border border-[#1f3135] bg-[linear-gradient(180deg,rgba(9,16,19,0.92),rgba(7,12,14,0.98))] px-5 py-8 shadow-[0_30px_80px_rgba(0,0,0,0.24)] md:px-10 md:py-12 xl:px-12">
           <motion.p
             initial={{ opacity: 0, y: 16 }}

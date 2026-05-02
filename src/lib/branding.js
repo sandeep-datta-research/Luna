@@ -37,8 +37,6 @@ export function useBrandingLogo(fallbackLogo = "") {
   useEffect(() => {
     let cancelled = false;
 
-    setLogoUrl(brandingCache.logoUrl || fallbackLogo);
-
     loadBranding()
       .then((branding) => {
         if (cancelled) return;

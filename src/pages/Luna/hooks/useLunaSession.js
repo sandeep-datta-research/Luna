@@ -5,13 +5,11 @@ import {
   mapConversationSummaryToSession, 
   mapConversationMessages, 
   text, 
-  normalizeCharacterId, 
-  nowIso,
-  shortTitle
+  normalizeCharacterId 
 } from "../utils";
 import { CHARACTER_OPTIONS, MAX_HISTORY_ITEMS } from "../constants";
 
-export function useLunaSession({ user, isSignedIn, projects, showErrorToast }) {
+export function useLunaSession({ isSignedIn, projects, showErrorToast }) {
   const [sessions, setSessions] = useState(() => [createSession(projects?.[0]?.id || "")]);
   const [activeSessionId, setActiveSessionId] = useState(sessions[0].id);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -30,7 +28,7 @@ export function useLunaSession({ user, isSignedIn, projects, showErrorToast }) {
 
   const activeMessages = useMemo(
     () => (Array.isArray(activeSession?.messages) ? activeSession.messages : []),
-    [activeSession?.messages],
+    [activeSession],
   );
 
   const updateSession = useCallback((sessionId, updater) => {

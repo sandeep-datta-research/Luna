@@ -469,9 +469,11 @@ export default function Luna() {
             </div>
           </div>
 
-          <div className="px-3 pt-3 md:px-6 md:pt-4"><AnnouncementBanner className="mb-3" /></div>
+          <div className="mx-auto w-full max-w-7xl px-3 pt-3 md:px-6 md:pt-4">
+            <AnnouncementBanner className="mb-3" />
+          </div>
           
-          <div className="hidden items-center justify-between px-3 md:flex md:px-6">
+          <div className="mx-auto hidden w-full max-w-7xl items-center justify-between px-3 md:flex md:px-6">
             <div className="flex min-w-0 items-center gap-4">
               <div className="min-w-0">
                 <p className="text-[11px] uppercase tracking-[0.18em] text-[#78938d]">Workspace briefing</p>
@@ -551,28 +553,31 @@ export default function Luna() {
 
           {visibleMain && (
             <div className="border-t border-white/6 bg-[#071013]/92 px-3 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:px-6">
-              <div className="mx-auto max-w-5xl xl:max-w-7xl">
-                <Composer
-                  value={inputValue}
-                  onChange={setInputValue}
-                  onSend={() => sendMessage(null, { inputValue })}
-                  disabled={isTranscribing}
-                  sendDisabled={isTyping || isTranscribing}
-                  voiceActive={voiceActive}
-                  transcribing={isTranscribing}
-                  onToggleVoice={toggleVoice}
-                  webSearch={webSearchMode}
-                  researchMode={researchMode}
-                  imageMode={imageMode}
-                  onToggleWebSearch={() => setWebSearchMode((prev) => !prev)}
-                  onToggleResearchMode={handleToggleResearchMode}
-                  onToggleImageMode={() => setImageMode((prev) => !prev)}
-                  onExport={handleExportSession}
-                  onAttach={(f) => setAttachments((p) => [...p, ...f])}
-                  attachments={attachments}
-                  onRemoveAttachment={(i) => setAttachments((p) => p.filter((_, idx) => idx !== i))}
-                  isPro={membershipPlan === "pro"}
-                />
+              <div className="mx-auto grid w-full max-w-7xl gap-4 xl:grid-cols-[minmax(0,1.65fr)_360px]">
+                <div className="min-w-0">
+                  <Composer
+                    value={inputValue}
+                    onChange={setInputValue}
+                    onSend={() => sendMessage(null, { inputValue })}
+                    disabled={isTranscribing}
+                    sendDisabled={isTyping || isTranscribing}
+                    voiceActive={voiceActive}
+                    transcribing={isTranscribing}
+                    onToggleVoice={toggleVoice}
+                    webSearch={webSearchMode}
+                    researchMode={researchMode}
+                    imageMode={imageMode}
+                    onToggleWebSearch={() => setWebSearchMode((prev) => !prev)}
+                    onToggleResearchMode={handleToggleResearchMode}
+                    onToggleImageMode={() => setImageMode((prev) => !prev)}
+                    onExport={handleExportSession}
+                    onAttach={(f) => setAttachments((p) => [...p, ...f])}
+                    attachments={attachments}
+                    onRemoveAttachment={(i) => setAttachments((p) => p.filter((_, idx) => idx !== i))}
+                    isPro={membershipPlan === "pro"}
+                  />
+                </div>
+                <div className="hidden xl:block" />
               </div>
             </div>
           )}
