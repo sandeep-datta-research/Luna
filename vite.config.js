@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => {
       react(),
       VitePWA({
         registerType: "autoUpdate",
-        includeAssets: ["favicon.svg", "pwa-icon.svg", "pwa-maskable-icon.svg"],
+        includeAssets: ["favicon.svg", "favicon.png", "apple-touch-icon.png", "luna.png", "pwa-icon.svg", "pwa-maskable-icon.svg"],
         manifest: {
           name: "Luna",
           short_name: "Luna",
@@ -25,6 +25,12 @@ export default defineConfig(({ mode }) => {
           start_url: "/",
           scope: "/",
           icons: [
+            {
+              src: "/favicon.png",
+              sizes: "1536x1024",
+              type: "image/png",
+              purpose: "any",
+            },
             {
               src: "/pwa-icon.svg",
               sizes: "512x512",
@@ -41,7 +47,7 @@ export default defineConfig(({ mode }) => {
         },
         workbox: {
           globPatterns: ["**/*.{js,css,html,svg,png,woff,woff2}"],
-          globIgnores: ["**/favicon.png"],
+          globIgnores: ["**/favicon.png", "**/apple-touch-icon.png", "**/luna.png"],
         },
       }),
     ],

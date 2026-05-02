@@ -11,6 +11,10 @@ export function SignalStat({ item }: SignalStatProps) {
 
   return (
     <motion.div
+      initial={{ opacity: 0, y: 18 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.5 }}
+      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
       whileHover={{ y: -4, scale: 1.01 }}
       className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-xl"
     >

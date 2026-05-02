@@ -84,6 +84,30 @@ export const fadeInUp = {
   transition: { duration: 0.55, ease: "easeOut" },
 };
 
+export const staggerContainer = {
+  initial: "hidden",
+  whileInView: "show",
+  viewport: { once: true, amount: 0.2 },
+  variants: {
+    hidden: {},
+    show: {
+      transition: {
+        staggerChildren: 0.12,
+      },
+    },
+  },
+};
+
+export const revealItem = {
+  hidden: { opacity: 0, y: 24, scale: 0.97 },
+  show: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.65, ease: [0.16, 1, 0.3, 1] },
+  },
+};
+
 export const hoverFloat = {
   whileHover: { y: -6, scale: 1.01 },
   transition: { type: "spring", stiffness: 240, damping: 22 },

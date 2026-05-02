@@ -1,6 +1,5 @@
 import { motion } from "framer-motion";
-import { fadeInUp } from "./constants";
-import { WORKFLOW_STEPS } from "./constants";
+import { fadeInUp, revealItem, staggerContainer, WORKFLOW_STEPS } from "./constants";
 
 interface WorkflowTimelineProps {
   compact?: boolean;
@@ -26,19 +25,21 @@ export function WorkflowTimeline({ compact = false }: WorkflowTimelineProps) {
           ) : null}
         </div>
 
-        <div className={`mt-8 grid gap-4 ${compact ? "" : "md:grid-cols-3"}`}>
+        <motion.div className={`mt-8 grid gap-4 ${compact ? "" : "md:grid-cols-3"}`} {...staggerContainer}>
           {WORKFLOW_STEPS.map((item) => (
             <motion.div
               key={item.step}
-              whileHover={{ y: -6, scale: 1.01 }}
-              className="rounded-[26px] border border-white/10 bg-white/[0.03] p-5"
+              variants={revealItem}
+              whileHover={{ y: -8, scale: 1.01 }}
+              className="group relative overflow-hidden rounded-[26px] border border-white/10 bg-white/[0.03] p-5"
             >
-              <p className="text-xs uppercase tracking-[0.24em] text-cyan-200/80">{item.step}</p>
-              <h3 className="mt-3 text-xl font-semibold text-white">{item.title}</h3>
-              <p className="mt-3 text-sm leading-7 text-zinc-300">{item.body}</p>
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.12),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(168,85,247,0.12),transparent_36%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+              <p className="relative text-xs uppercase tracking-[0.24em] text-cyan-200/80">{item.step}</p>
+              <h3 className="relative mt-3 text-xl font-semibold text-white">{item.title}</h3>
+              <p className="relative mt-3 text-sm leading-7 text-zinc-300">{item.body}</p>
             </motion.div>
           ))}
-        </div>
+        </motion.div>
       </motion.div>
     </section>
   );

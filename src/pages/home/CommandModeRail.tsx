@@ -1,7 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
-import { COMMAND_MODES, fadeInUp } from "./constants";
+import { ArrowRight, Sparkles } from "lucide-react";
+import { COMMAND_MODES, revealItem, staggerContainer } from "./constants";
 
 interface CommandModeRailProps {
   compact?: boolean;
@@ -11,9 +11,13 @@ export function CommandModeRail({ compact = false }: CommandModeRailProps) {
   return (
     <section className={`${compact ? "" : "mx-auto mt-32 w-full max-w-7xl px-6 lg:px-12"}`}>
       <motion.div
+        {...staggerContainer}
         className={`grid gap-12 ${compact ? "" : "lg:grid-cols-[1.1fr_0.9fr] lg:items-center"}`}
       >
-        <div className="rounded-[48px] border border-white/10 bg-gradient-to-br from-white/[0.06] to-transparent p-10 shadow-[0_40px_100px_rgba(0,0,0,0.3)] backdrop-blur-3xl">
+        <motion.div
+          variants={revealItem}
+          className="rounded-[48px] border border-white/10 bg-gradient-to-br from-white/[0.06] to-transparent p-10 shadow-[0_40px_100px_rgba(0,0,0,0.3)] backdrop-blur-3xl"
+        >
           <div className="inline-flex items-center gap-2 rounded-full border border-violet-400/20 bg-violet-400/10 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.24em] text-violet-300">
             Workflows
           </div>
@@ -27,11 +31,11 @@ export function CommandModeRail({ compact = false }: CommandModeRailProps) {
             {COMMAND_MODES.map((mode, i) => (
               <motion.div
                 key={mode.label}
-                initial={{ opacity: 0, x: -20 }}
+                initial={{ opacity: 0, x: -22 }}
                 whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                whileHover={{ x: 8 }}
+                viewport={{ once: true, amount: 0.4 }}
+                transition={{ delay: i * 0.09, duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+                whileHover={{ x: 8, y: -2 }}
                 className="group relative cursor-pointer overflow-hidden rounded-[28px] border border-white/5 bg-white/[0.02] p-5 transition-all hover:bg-white/[0.05] hover:border-white/10"
               >
                 <div className={`pointer-events-none absolute inset-0 bg-gradient-to-r opacity-0 group-hover:opacity-100 transition-opacity duration-500 ${mode.tone}`} />
@@ -52,13 +56,10 @@ export function CommandModeRail({ compact = false }: CommandModeRailProps) {
               </motion.div>
             ))}
           </div>
-        </div>
+        </motion.div>
 
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8 }}
+          variants={revealItem}
           whileHover={{ y: -10, rotateZ: 1 }}
           className="relative rounded-[48px] border border-white/10 bg-[linear-gradient(180deg,rgba(11,18,28,0.95),rgba(10,12,18,0.88))] p-8 shadow-[0_60px_140px_rgba(0,0,0,0.4)]"
           style={{ transformStyle: "preserve-3d" }}

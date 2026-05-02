@@ -28,7 +28,7 @@ export function FeedbackSection({
   return (
     <motion.section
       {...(compact ? {} : hoverFloat)}
-      className={`rounded-3xl border border-zinc-800 bg-zinc-900/60 text-zinc-300 ${compact ? "px-4 py-5" : "px-6 py-6 sm:px-8"}`}
+      className={`rounded-3xl border border-zinc-800 bg-zinc-900/60 text-zinc-300 shadow-[0_30px_110px_rgba(0,0,0,0.2)] ${compact ? "px-4 py-5" : "px-6 py-6 sm:px-8"}`}
     >
       <h2 className="text-lg font-semibold text-white">Feedback</h2>
       <p className="mt-2 text-sm leading-relaxed">
@@ -42,7 +42,7 @@ export function FeedbackSection({
             value={feedbackForm.name}
             onChange={(e) => setFeedbackForm((prev) => ({ ...prev, name: e.target.value }))}
             placeholder="Your name"
-            className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900/70 px-3 py-2 text-sm text-zinc-100 outline-none"
+            className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900/70 px-3 py-2 text-sm text-zinc-100 outline-none transition-colors focus:border-cyan-400/60"
           />
         </label>
 
@@ -52,7 +52,8 @@ export function FeedbackSection({
             value={feedbackForm.email}
             onChange={(e) => setFeedbackForm((prev) => ({ ...prev, email: e.target.value }))}
             placeholder="you@example.com"
-            className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900/70 px-3 py-2 text-sm text-zinc-100 outline-none"
+            type="email"
+            className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900/70 px-3 py-2 text-sm text-zinc-100 outline-none transition-colors focus:border-cyan-400/60"
           />
         </label>
 
@@ -62,7 +63,7 @@ export function FeedbackSection({
             value={feedbackForm.message}
             onChange={(e) => setFeedbackForm((prev) => ({ ...prev, message: e.target.value }))}
             placeholder="Tell us what to improve in Luna..."
-            className="mt-1 min-h-[100px] w-full rounded-lg border border-zinc-700 bg-zinc-900/70 px-3 py-2 text-sm text-zinc-100 outline-none"
+            className="mt-1 min-h-[100px] w-full rounded-lg border border-zinc-700 bg-zinc-900/70 px-3 py-2 text-sm text-zinc-100 outline-none transition-colors focus:border-cyan-400/60"
           />
         </label>
 
@@ -71,7 +72,7 @@ export function FeedbackSection({
           <select
             value={feedbackForm.rating}
             onChange={(e) => setFeedbackForm((prev) => ({ ...prev, rating: Number(e.target.value) }))}
-            className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900/70 px-3 py-2 text-sm text-zinc-100 outline-none"
+            className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900/70 px-3 py-2 text-sm text-zinc-100 outline-none transition-colors focus:border-cyan-400/60"
           >
             <option value={5}>5 - Excellent</option>
             <option value={4}>4 - Good</option>

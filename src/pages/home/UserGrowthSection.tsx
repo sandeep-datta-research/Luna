@@ -44,13 +44,17 @@ export function UserGrowthSection({ userMetrics, chartPoints, compact = false }:
               <stop offset="100%" stopColor="rgba(91,106,245,0)" />
             </linearGradient>
           </defs>
-          <polyline
+          <motion.polyline
             points={chartPoints || "8,120 552,120"}
             fill="none"
             stroke={`url(#${gradientId})`}
             strokeWidth="3"
             strokeLinecap="round"
             strokeLinejoin="round"
+            initial={{ pathLength: 0, opacity: 0.4 }}
+            whileInView={{ pathLength: 1, opacity: 1 }}
+            viewport={{ once: true, amount: 0.6 }}
+            transition={{ duration: 1.1, ease: "easeInOut" }}
           />
           <polyline
             points={`${chartPoints || "8,120 552,120"} 552,136 8,136`}

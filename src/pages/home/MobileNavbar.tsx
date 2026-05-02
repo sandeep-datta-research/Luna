@@ -12,7 +12,12 @@ interface MobileNavbarProps {
 
 export function MobileNavbar({ ctaHref, onOpenMenu, logoSrc = lunaLogo }: MobileNavbarProps) {
   return (
-    <header className="relative z-20 flex h-14 items-center justify-between px-4">
+    <motion.header
+      initial={{ opacity: 0, y: -16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+      className="relative z-20 flex h-14 items-center justify-between px-4"
+    >
       <motion.button
         type="button"
         onClick={onOpenMenu}
@@ -39,6 +44,6 @@ export function MobileNavbar({ ctaHref, onOpenMenu, logoSrc = lunaLogo }: Mobile
           Start Chat
         </Link>
       </motion.div>
-    </header>
+    </motion.header>
   );
 }
