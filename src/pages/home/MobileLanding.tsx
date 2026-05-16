@@ -93,6 +93,7 @@ export function MobileLanding({
   const menuLinks = [
     { label: "Home", href: "/" },
     { label: "Features", href: "/features" },
+    { label: "Luna App", href: "/app" },
     { label: "Pricing", href: "/pricing" },
     { label: "Open Chat", href: "/chat" },
     { label: "Profile", href: "/profile" },

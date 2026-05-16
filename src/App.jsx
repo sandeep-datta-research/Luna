@@ -7,6 +7,7 @@ import { hydrateUser } from "./lib/api-client";
 
 const Home = lazy(() => import("./pages/home"));
 const Features = lazy(() => import("./pages/Features"));
+const LunaApp = lazy(() => import("./pages/LunaApp"));
 const Luna = lazy(() => import("./pages/Luna"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const Pricing = lazy(() => import("./pages/Pricing"));
@@ -16,6 +17,7 @@ const SignInPage = lazy(() => import("./components/mvpblocks/login-form-3"));
 const ROUTE_PRELOADERS = [
   () => import("./pages/home"),
   () => import("./pages/Features"),
+  () => import("./pages/LunaApp"),
   () => import("./pages/Luna"),
   () => import("./pages/Onboarding"),
   () => import("./pages/Pricing"),
@@ -111,6 +113,7 @@ function AnimatedRoutes() {
               <>
                 <Route path="/" element={<Navigate to="/chat" replace />} />
                 <Route path="/chat" element={<PageTransition><Luna /></PageTransition>} />
+                <Route path="/app" element={<PageTransition><LunaApp /></PageTransition>} />
                 <Route path="/pricing" element={<PageTransition><Pricing /></PageTransition>} />
                 <Route path="*" element={<Navigate to="/chat" replace />} />
               </>
@@ -118,6 +121,7 @@ function AnimatedRoutes() {
               <>
                 <Route path="/" element={<PageTransition><Home /></PageTransition>} />
                 <Route path="/features" element={<PageTransition><Features /></PageTransition>} />
+                <Route path="/app" element={<PageTransition><LunaApp /></PageTransition>} />
                 <Route path="/chat" element={<PageTransition><Luna /></PageTransition>} />
                 <Route path="/onboarding" element={<PageTransition><Onboarding /></PageTransition>} />
                 <Route path="/profile" element={<PageTransition><Profile /></PageTransition>} />

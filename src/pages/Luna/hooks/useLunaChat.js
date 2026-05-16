@@ -10,6 +10,7 @@ import {
 import { CHARACTER_OPTIONS } from "../constants";
 
 export function useLunaChat({
+  sessions,
   activeSession,
   setActiveSessionId,
   setSessions,
@@ -30,6 +31,19 @@ export function useLunaChat({
   const [isTyping, setIsTyping] = useState(false);
   const streamAbortRef = useRef(null);
   const STREAM_ABORT_MS = researchMode ? 60000 : 45000;
+
+  const resolveTargetSession = useCallback(
+    (sessionId = "") => {
+      const normalizedId = text(sessionId);
+      if (normalizedId) {
+        const matched = sessions.find((item) => item.id === normalizedId || item.backendConversationId === normalizedId);
+        if (matched) return matched;
+      }
+
+      return activeSession;
+    },
+    [activeSession, sessions],
+  );
 
   const buildPromptPayload = useCallback(
     (prompt, options = { applyToggles: true }) => {
@@ -179,6 +193,8 @@ export function useLunaChat({
 
       const sessionId = options.sessionId || activeSession?.id;
       if (!sessionId) return;
+      const targetSession = resolveTargetSession(sessionId);
+      if (!targetSession) return;
 
       setToast(null);
 
@@ -278,7 +294,7 @@ export function useLunaChat({
 
       try {
         if (!supportsStreaming) {
-          const response = await requestLuna(activeSession, basePrompt, { applyToggles: options.applyToggles });
+          const response = await requestLuna(targetSession, basePrompt, { applyToggles: options.applyToggles });
           setMembershipPlan(response.membershipPlan === "pro" ? "pro" : "free");
           if (response.warning) {
             setToast({ id: createId("toast"), message: response.warning });
@@ -309,7 +325,7 @@ export function useLunaChat({
         }, STREAM_ABORT_MS);
 
         const streamResult = await requestLunaStream(
-          activeSession,
+          targetSession,
           basePrompt,
           {
             signal: abortController.signal,
@@ -355,7 +371,7 @@ export function useLunaChat({
       } catch (error) {
         if (!streamedText) {
           try {
-            const response = await requestLuna(activeSession, basePrompt, { applyToggles: options.applyToggles });
+            const response = await requestLuna(targetSession, basePrompt, { applyToggles: options.applyToggles });
             setMembershipPlan(response.membershipPlan === "pro" ? "pro" : "free");
             if (response.warning) {
               setToast({ id: createId("toast"), message: response.warning });
@@ -406,6 +422,7 @@ export function useLunaChat({
     [
       isTyping,
       activeSession,
+      resolveTargetSession,
       setToast,
       updateSession,
       setInputValue,

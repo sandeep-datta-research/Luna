@@ -39,6 +39,12 @@ export const BASE_CARD_NAV_ITEMS = [
     links: [{ label: "Pricing", href: "/pricing", ariaLabel: "View pricing section" }],
   },
   {
+    label: "App",
+    bgColor: "#2C2342",
+    textColor: "#fff",
+    links: [{ label: "Luna App", href: "/app", ariaLabel: "View Luna app details and downloads" }],
+  },
+  {
     label: "Luna",
     bgColor: "#33224A",
     textColor: "#fff",

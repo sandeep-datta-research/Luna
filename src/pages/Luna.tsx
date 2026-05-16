@@ -115,7 +115,8 @@ export default function Luna() {
   const supportsStreaming = useMemo(() => {
     if (typeof window === "undefined") return false;
     const ua = window.navigator?.userAgent || "";
-    return typeof ReadableStream !== "undefined" && !/iPad|iPhone|iPod/i.test(ua);
+    const isNativeShell = Boolean(window.Capacitor?.isNativePlatform?.() || window.Capacitor);
+    return typeof ReadableStream !== "undefined" && (isNativeShell || !/iPad|iPhone|iPod/i.test(ua));
   }, []);
 
   const {
@@ -123,6 +124,7 @@ export default function Luna() {
     sendMessage,
     regenerateLatest,
   } = useLunaChat({
+    sessions,
     activeSession,
     setActiveSessionId,
     setSessions,
