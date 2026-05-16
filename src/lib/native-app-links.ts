@@ -22,7 +22,14 @@ function getClientUserAgent() {
   return window.navigator?.userAgent || "";
 }
 
-const androidDownloadUrl = normalizeNativeAppUrl(import.meta.env.VITE_ANDROID_APP_URL);
+function buildDefaultAndroidDownloadUrl() {
+  const baseUrl = `${import.meta.env.BASE_URL || "/"}`.replace(/\/?$/, "/");
+  return `${baseUrl}downloads/luna-android.apk`;
+}
+
+const androidDownloadUrl =
+  normalizeNativeAppUrl(import.meta.env.VITE_ANDROID_APP_URL) ||
+  normalizeNativeAppUrl(buildDefaultAndroidDownloadUrl());
 const iosDownloadUrl = normalizeNativeAppUrl(import.meta.env.VITE_IOS_APP_URL);
 
 export const nativeAppLinks = {
@@ -83,4 +90,8 @@ export function getNativeDownloadOptions(platform = getPreferredNativePlatform()
   }>;
 
   return options.sort((a, b) => Number(b.preferred) - Number(a.preferred));
+}
+
+export function getPrimaryNativeDownload(platform = getPreferredNativePlatform()) {
+  return getNativeDownloadOptions(platform)[0] || null;
 }

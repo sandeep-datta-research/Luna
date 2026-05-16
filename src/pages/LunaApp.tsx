@@ -6,6 +6,7 @@ import { ArrowRight, CheckCircle2, Download, Smartphone, Sparkles } from "lucide
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 import { NativeAppDownloads } from "@/components/NativeAppDownloads";
 import { useBrandingLogo } from "@/lib/branding";
+import { getPrimaryNativeDownload } from "@/lib/native-app-links";
 import logo from "@/assets/luna-logo.svg";
 
 export default function LunaApp() {
@@ -82,6 +83,12 @@ export default function LunaApp() {
 
     if (showIosInstallHint) {
       window.alert("Safari on iPhone or iPad: tap Share, then Add to Home Screen.");
+      return;
+    }
+
+    const nativeDownload = getPrimaryNativeDownload();
+    if (nativeDownload?.href) {
+      window.location.assign(nativeDownload.href);
     }
   }, [installPromptEvent, showIosInstallHint]);
 

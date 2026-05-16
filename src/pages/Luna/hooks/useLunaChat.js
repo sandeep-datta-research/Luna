@@ -85,7 +85,6 @@ export function useLunaChat({
               item.id === session.id
                 ? {
                     ...item,
-                    id: conversationId,
                     backendConversationId: conversationId,
                     title: text(created.data.conversation.title) || item.title,
                     createdAt: text(created.data.conversation.createdAt) || item.createdAt,
@@ -95,7 +94,7 @@ export function useLunaChat({
                 : item,
             ),
           );
-          setActiveSessionId(conversationId);
+          setActiveSessionId(session.id);
         }
       }
 
@@ -150,7 +149,6 @@ export function useLunaChat({
               item.id === session.id
                 ? {
                     ...item,
-                    id: conversationId,
                     backendConversationId: conversationId,
                     title: text(created.data.conversation.title) || item.title,
                     createdAt: text(created.data.conversation.createdAt) || item.createdAt,
@@ -160,7 +158,7 @@ export function useLunaChat({
                 : item,
             ),
           );
-          setActiveSessionId(conversationId);
+          setActiveSessionId(session.id);
         }
       }
 
@@ -357,6 +355,10 @@ export function useLunaChat({
           flushPendingChunks();
         } else {
           flushPendingChunks();
+        }
+
+        if (!assistantAdded) {
+          ensureAssistant("");
         }
 
         updateSession(sessionId, (session) => ({

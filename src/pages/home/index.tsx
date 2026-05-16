@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Shield } from "lucide-react";
 import { fetchApi, hydrateUser } from "@/lib/api-client";
 import { useBrandingLogo } from "@/lib/branding";
+import { getPrimaryNativeDownload } from "@/lib/native-app-links";
 import logo from "@/assets/luna-logo.svg";
 import { useIsDesktop, getSignedInSnapshot } from "./utils";
 import {
@@ -140,6 +141,12 @@ export default function Home() {
 
     if (showIosInstallHint) {
       window.alert("On iPhone or iPad, tap Share and choose Add to Home Screen.");
+      return;
+    }
+
+    const nativeDownload = getPrimaryNativeDownload();
+    if (nativeDownload?.href) {
+      window.location.assign(nativeDownload.href);
       return;
     }
 

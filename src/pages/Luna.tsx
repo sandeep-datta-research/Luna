@@ -9,6 +9,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { fetchApi, hydrateUser } from "@/lib/api-client";
 import { useBrandingLogo } from "@/lib/branding";
+import { getPrimaryNativeDownload } from "@/lib/native-app-links";
 import lunaLogo from "@/assets/luna-logo.svg";
 
 // Local Components
@@ -259,6 +260,13 @@ export default function Luna() {
       setToast({ id: createId("toast"), message: "On iPhone or iPad, tap Share and choose Add to Home Screen." });
       return;
     }
+
+    const nativeDownload = getPrimaryNativeDownload();
+    if (nativeDownload?.href) {
+      window.location.assign(nativeDownload.href);
+      return;
+    }
+
     setToast({ id: createId("toast"), message: "Install is not available in this browser yet." });
   }, [installPromptEvent, showIosInstallHint]);
 
