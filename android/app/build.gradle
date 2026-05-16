@@ -1,5 +1,27 @@
 apply plugin: 'com.android.application'
 
+def readConfigValue = { String key, String fallback = "" ->
+    def gradleValue = project.findProperty(key)
+    if (gradleValue != null && gradleValue.toString().trim()) {
+        return gradleValue.toString().trim()
+    }
+
+    def envValue = System.getenv(key)
+    if (envValue != null && envValue.toString().trim()) {
+        return envValue.toString().trim()
+    }
+
+    return fallback
+}
+
+def versionCodeValue = Integer.parseInt(readConfigValue("LUNA_VERSION_CODE", "1"))
+def versionNameValue = readConfigValue("LUNA_VERSION_NAME", "1.0.0")
+def releaseStoreFileValue = readConfigValue("LUNA_UPLOAD_STORE_FILE")
+def releaseStorePasswordValue = readConfigValue("LUNA_UPLOAD_STORE_PASSWORD")
+def releaseKeyAliasValue = readConfigValue("LUNA_UPLOAD_KEY_ALIAS")
+def releaseKeyPasswordValue = readConfigValue("LUNA_UPLOAD_KEY_PASSWORD")
+def hasReleaseSigning = releaseStoreFileValue && releaseStorePasswordValue && releaseKeyAliasValue && releaseKeyPasswordValue
+
 android {
     namespace "com.luna.aihub"
     compileSdk rootProject.ext.compileSdkVersion
@@ -7,8 +29,8 @@ android {
         applicationId "com.luna.aihub"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode versionCodeValue
+        versionName versionNameValue
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,9 +38,24 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            if (hasReleaseSigning) {
+                storeFile file(releaseStoreFileValue)
+                storePassword releaseStorePasswordValue
+                keyAlias releaseKeyAliasValue
+                keyPassword releaseKeyPasswordValue
+            }
+        }
+    }
     buildTypes {
+        debug {
+            applicationIdSuffix ".debug"
+            versionNameSuffix "-debug"
+        }
         release {
             minifyEnabled false
+            signingConfig hasReleaseSigning ? signingConfigs.release : signingConfigs.debug
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }

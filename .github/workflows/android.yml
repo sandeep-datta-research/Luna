@@ -1,4 +1,4 @@
-name: Deploy Luna to GitHub Pages
+name: Android Build
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -7,19 +7,14 @@ on:
   push:
     branches:
       - main
+  pull_request:
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: pages
-  cancel-in-progress: true
 
 jobs:
-  build:
+  build-android:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -40,17 +35,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build app
+      - name: Build web app for Android shell
         run: npm run build
         env:
-          VITE_API_URL: ${{ secrets.VITE_API_URL }}
-          VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+          VITE_API_URL: ${{ secrets.VITE_API_URL || '' }}
+          VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID || '' }}
           VITE_ANDROID_APP_URL: ./downloads/luna-android.apk
 
       - name: Sync Capacitor Android shell
         run: npx cap sync android
 
-      - name: Build downloadable Android APK
+      - name: Build release APK and bundle
         working-directory: android
         env:
           LUNA_UPLOAD_STORE_FILE: ${{ secrets.LUNA_UPLOAD_STORE_FILE || '' }}
@@ -59,28 +54,16 @@ jobs:
           LUNA_UPLOAD_KEY_PASSWORD: ${{ secrets.LUNA_UPLOAD_KEY_PASSWORD || '' }}
           LUNA_VERSION_CODE: ${{ github.run_number }}
           LUNA_VERSION_NAME: 1.0.${{ github.run_number }}
-        run: ./gradlew assembleRelease
+        run: ./gradlew assembleRelease bundleRelease
 
-      - name: Attach APK to web build
-        run: |
-          mkdir -p dist/downloads
-          cp android/app/build/outputs/apk/release/app-release.apk dist/downloads/luna-android.apk
-
-      - name: Add SPA fallback
-        run: cp dist/index.html dist/404.html
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
         with:
-          path: ./dist
+          name: luna-android-apk
+          path: android/app/build/outputs/apk/release/app-release.apk
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: luna-android-aab
+          path: android/app/build/outputs/bundle/release/app-release.aab

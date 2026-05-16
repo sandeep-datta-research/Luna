@@ -5,6 +5,7 @@ import { ArrowRight, Download, Sparkles, Zap } from "lucide-react";
 import Orb from "@/components/ui/orb";
 import Earth from "@/components/ui/globe";
 import Ribbons from "@/components/ui/ribbons";
+import { NativeAppDownloads } from "@/components/NativeAppDownloads";
 import { SignalStat } from "./SignalStat";
 import { MotionPanel } from "./MotionPanel";
 import { HERO_SIGNAL_ITEMS, MOTION_STACK } from "./constants";
@@ -99,6 +100,29 @@ export function HeroExperience({
             >
               Tour Features
             </Link>
+          </div>
+
+          <div className="mt-5 flex flex-col gap-3">
+            <NativeAppDownloads />
+            {(canInstallApp || showIosInstallHint) ? (
+              <div className="flex flex-col items-start gap-2">
+                <motion.button
+                  type="button"
+                  onClick={onInstall}
+                  disabled={installingApp}
+                  whileTap={{ scale: 0.98 }}
+                  className="inline-flex items-center gap-2 rounded-full border border-amber-300/20 bg-[#20190f] px-5 py-2.5 text-sm font-semibold text-amber-100 shadow-[0_16px_32px_rgba(245,158,11,0.12)] disabled:opacity-60"
+                >
+                  <Download className="h-4 w-4" />
+                  {installingApp ? "Preparing web app..." : "Install Web App"}
+                </motion.button>
+                {showIosInstallHint ? (
+                  <p className="text-xs leading-5 text-amber-100/80">
+                    Safari on iPhone/iPad: use Share, then tap Add to Home Screen.
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
           </div>
 
           <div className="mt-16 grid grid-cols-3 gap-6 border-t border-white/5 pt-10">

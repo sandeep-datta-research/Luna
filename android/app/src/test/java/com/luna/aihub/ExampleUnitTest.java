@@ -1,4 +1,4 @@
-package com.getcapacitor.myapp;
+package com.luna.aihub;
 
 import static org.junit.Assert.*;
 

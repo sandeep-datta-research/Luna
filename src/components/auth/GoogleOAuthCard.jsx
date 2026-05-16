@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Capacitor } from "@capacitor/core";
 import {
   fetchApi,
   getStoredUser,
@@ -98,9 +99,12 @@ export default function GoogleOAuthCard({ onSignedIn } = {}) {
   const [isReady, setIsReady] = useState(false);
   const [runtimeError, setRuntimeError] = useState("");
   const [user, setUser] = useState(getStoredUser);
+  const isNativeShell = Capacitor.isNativePlatform();
 
   const error = !GOOGLE_CLIENT_ID
     ? "Google OAuth not configured. Add VITE_GOOGLE_CLIENT_ID in .env.local"
+    : isNativeShell
+      ? "Google web sign-in is disabled inside the native app shell. Use email/password sign-in until native OAuth is wired in."
     : runtimeError;
 
   useEffect(() => {
@@ -121,7 +125,7 @@ export default function GoogleOAuthCard({ onSignedIn } = {}) {
   }, []);
 
   useEffect(() => {
-    if (!GOOGLE_CLIENT_ID) return;
+    if (!GOOGLE_CLIENT_ID || isNativeShell) return;
 
     let cancelled = false;
 
@@ -185,7 +189,7 @@ export default function GoogleOAuthCard({ onSignedIn } = {}) {
     return () => {
       cancelled = true;
     };
-  }, [onSignedIn]);
+  }, [isNativeShell, onSignedIn]);
 
   const handleSignOut = async () => {
     await fetchAuthApi("/api/auth/logout", {
@@ -217,6 +221,10 @@ export default function GoogleOAuthCard({ onSignedIn } = {}) {
           >
             Sign out
           </button>
+        </div>
+      ) : isNativeShell ? (
+        <div className="mt-4 rounded-xl border border-amber-400/20 bg-amber-400/10 p-3 text-xs text-amber-100">
+          Native sign-in should use the local password flow right now. Embedded Google web sign-in is intentionally blocked here.
         </div>
       ) : (
         <div className="mt-4">

@@ -21,6 +21,14 @@ interface Message {
   content: string;
   createdAt: string;
   sources?: Source[];
+  usage?: {
+    provider?: string;
+    promptTokens?: number;
+    completionTokens?: number;
+    totalTokens?: number;
+    reasoningTokens?: number;
+    cachedPromptTokens?: number;
+  } | null;
 }
 
 interface Character {
@@ -49,7 +57,9 @@ export function MessageBubble({
   const isUser = message.role === "user";
   const sources = Array.isArray(message.sources) ? message.sources : [];
   const assistantCharacter = character || CHARACTER_OPTIONS[0];
-  const [showSources, setShowSources] = useState(false);
+  const usage = message?.usage && typeof message.usage === "object" ? message.usage : null;
+  const totalTokens = Number(usage?.totalTokens || 0);
+  const completionTokens = Number(usage?.completionTokens || 0);
 
   return (
     <motion.div
@@ -124,6 +134,13 @@ export function MessageBubble({
                 ) : null}
               </a>
             ))}
+          </div>
+        ) : null}
+
+        {!isUser && totalTokens > 0 ? (
+          <div className="pl-1 text-[10px] text-[#6f8682]">
+            {completionTokens > 0 ? `${completionTokens} output tokens` : `${totalTokens} total tokens`}
+            {usage?.provider ? ` via ${usage.provider}` : ""}
           </div>
         ) : null}
 

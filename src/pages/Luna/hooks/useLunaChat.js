@@ -29,6 +29,7 @@ export function useLunaChat({
 }) {
   const [isTyping, setIsTyping] = useState(false);
   const streamAbortRef = useRef(null);
+  const STREAM_ABORT_MS = researchMode ? 60000 : 45000;
 
   const buildPromptPayload = useCallback(
     (prompt, options = { applyToggles: true }) => {
@@ -109,6 +110,7 @@ export function useLunaChat({
         membershipPlan: result.data?.membership?.plan === "pro" ? "pro" : "free",
         warning: text(result.data?.warning),
         sources: Array.isArray(result.data?.sources) ? result.data.sources : [],
+        tokenUsage: result.data?.tokenUsage && typeof result.data.tokenUsage === "object" ? result.data.tokenUsage : null,
       };
     },
     [buildPromptPayload, isSignedIn, researchMode, selectedModel, setSessions, setActiveSessionId, webSearchMode],
@@ -212,6 +214,7 @@ export function useLunaChat({
       let assistantId = "";
       let assistantAdded = false;
       let streamedText = "";
+      let streamedUsage = null;
       let pendingChunkBuffer = "";
       let flushFrameId = 0;
 
@@ -287,6 +290,7 @@ export function useLunaChat({
             createdAt: nowIso(),
             llm: response.llm,
             sources: Array.isArray(response.sources) ? response.sources : [],
+            usage: response.tokenUsage,
           };
 
           updateSession(sessionId, (session) => ({
@@ -302,7 +306,7 @@ export function useLunaChat({
         streamAbortRef.current = abortController;
         streamTimeout = window.setTimeout(() => {
           abortController.abort();
-        }, 12000);
+        }, STREAM_ABORT_MS);
 
         const streamResult = await requestLunaStream(
           activeSession,
@@ -325,6 +329,7 @@ export function useLunaChat({
         const payloadConversationId = text(payload.conversationId);
         const payloadSources = Array.isArray(payload.sources) ? payload.sources : [];
         const payloadPlan = payload.membership?.plan === "pro" ? "pro" : "free";
+        streamedUsage = payload.tokenUsage && typeof payload.tokenUsage === "object" ? payload.tokenUsage : null;
         
         setMembershipPlan(payloadPlan);
         if (payload.warning) {
@@ -341,7 +346,7 @@ export function useLunaChat({
         updateSession(sessionId, (session) => ({
           ...session,
           messages: session.messages.map((msg) =>
-            msg.id === assistantId ? { ...msg, content: finalReply, llm, sources: payloadSources } : msg,
+            msg.id === assistantId ? { ...msg, content: finalReply, llm, sources: payloadSources, usage: streamedUsage } : msg,
           ),
           backendConversationId: payloadConversationId || session.backendConversationId,
           updatedAt: nowIso(),
@@ -362,6 +367,7 @@ export function useLunaChat({
               createdAt: nowIso(),
               llm: response.llm,
               sources: Array.isArray(response.sources) ? response.sources : [],
+              usage: response.tokenUsage,
             };
 
             updateSession(sessionId, (session) => ({
@@ -408,6 +414,7 @@ export function useLunaChat({
       requestLuna,
       setMembershipPlan,
       requestLunaStream,
+      STREAM_ABORT_MS,
       showErrorToast
     ],
   );

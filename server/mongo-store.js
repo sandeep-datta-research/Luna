@@ -57,6 +57,29 @@ function sanitizeSources(raw) {
     .slice(0, 8);
 }
 
+function sanitizeUsage(raw) {
+  if (!raw || typeof raw !== "object") return undefined;
+
+  const promptTokens = Number(raw?.promptTokens || 0);
+  const completionTokens = Number(raw?.completionTokens || 0);
+  const totalTokens = Number(raw?.totalTokens || 0);
+  const reasoningTokens = Number(raw?.reasoningTokens || 0);
+  const cachedPromptTokens = Number(raw?.cachedPromptTokens || 0);
+
+  if (![promptTokens, completionTokens, totalTokens, reasoningTokens, cachedPromptTokens].some((value) => Number.isFinite(value) && value > 0)) {
+    return undefined;
+  }
+
+  return {
+    provider: normalizeText(raw?.provider),
+    promptTokens: Number.isFinite(promptTokens) ? promptTokens : 0,
+    completionTokens: Number.isFinite(completionTokens) ? completionTokens : 0,
+    totalTokens: Number.isFinite(totalTokens) ? totalTokens : 0,
+    reasoningTokens: Number.isFinite(reasoningTokens) ? reasoningTokens : 0,
+    cachedPromptTokens: Number.isFinite(cachedPromptTokens) ? cachedPromptTokens : 0,
+  };
+}
+
 function createId(prefix) {
   return `${prefix}-${randomUUID()}`;
 }
@@ -93,6 +116,7 @@ function sanitizeMessage(raw) {
     text,
     llm: typeof raw?.llm === "string" ? raw.llm : undefined,
     sources: sanitizeSources(raw?.sources),
+    usage: sanitizeUsage(raw?.usage),
     createdAt: toIso(raw?.createdAt),
   };
 }
@@ -1058,6 +1082,7 @@ export function createMongoStore() {
     userText,
     assistantText,
     assistantSources = [],
+    assistantUsage,
     characterId = "luna-classic",
     llm,
     userId = "guest",
@@ -1094,6 +1119,7 @@ export function createMongoStore() {
         text: safeAssistantText,
         llm: typeof llm === "string" ? llm : undefined,
         sources: sanitizeSources(assistantSources),
+        usage: sanitizeUsage(assistantUsage),
         createdAt: nowIso(),
       });
     }

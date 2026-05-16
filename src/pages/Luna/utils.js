@@ -103,6 +103,17 @@ export function sanitizeMessage(raw) {
       .filter(Boolean)
     : [];
 
+  const usage = raw?.usage && typeof raw.usage === "object"
+    ? {
+        provider: text(raw.usage?.provider),
+        promptTokens: Number(raw.usage?.promptTokens || 0),
+        completionTokens: Number(raw.usage?.completionTokens || 0),
+        totalTokens: Number(raw.usage?.totalTokens || 0),
+        reasoningTokens: Number(raw.usage?.reasoningTokens || 0),
+        cachedPromptTokens: Number(raw.usage?.cachedPromptTokens || 0),
+      }
+    : null;
+
   return {
     id: text(raw?.id) || createId(role),
     role,
@@ -110,6 +121,7 @@ export function sanitizeMessage(raw) {
     createdAt: text(raw?.createdAt) || nowIso(),
     llm: text(raw?.llm),
     sources,
+    usage,
   };
 }
 

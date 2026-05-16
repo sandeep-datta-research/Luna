@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { CharacterCards } from "./CharacterCards";
 import { CharacterStarterPrompts } from "./CharacterStarterPrompts";
 import { Composer } from "./Composer";
+import { NativeAppDownloads } from "@/components/NativeAppDownloads";
 import { InstallLunaButton } from "./InstallLunaButton";
 import { QUICK_CHIPS } from "../constants";
 
@@ -66,11 +67,12 @@ export function WelcomeView({
           <p className="mx-auto mb-8 max-w-2xl text-center text-sm leading-7 text-[#90a7a2] md:text-base">
             Ask for research, writing, debugging, strategy, summaries, or image prompts. The composer stays centered so you can get straight to work.
           </p>
-          {(canInstallApp || showIosInstallHint) ? (
-            <div className="mb-6 flex justify-center">
+          <div className="mb-6 flex flex-col items-center gap-3">
+            <NativeAppDownloads />
+            {(canInstallApp || showIosInstallHint) ? (
               <InstallLunaButton onInstall={handleInstallLuna} disabled={installingApp} />
-            </div>
-          ) : null}
+            ) : null}
+          </div>
           <div className="mb-6">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>

@@ -76,6 +76,12 @@ Backend in `server/`:
 
 - `npm start` runs the Express API
 
+Android release/version inputs:
+
+- `android/gradle.properties` holds `LUNA_VERSION_CODE` and `LUNA_VERSION_NAME`
+- optional signing inputs: `LUNA_UPLOAD_STORE_FILE`, `LUNA_UPLOAD_STORE_PASSWORD`, `LUNA_UPLOAD_KEY_ALIAS`, `LUNA_UPLOAD_KEY_PASSWORD`
+- GitHub Actions can inject those same values through repository secrets for CI builds
+
 ## Core Environment Variables
 
 Backend:
@@ -102,12 +108,21 @@ Frontend:
 - `VITE_GOOGLE_CLIENT_ID`
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
+- `VITE_ANDROID_APP_URL`
+- `VITE_IOS_APP_URL`
 
 Minimum production setup after the recent security hardening:
 
 - set `LUNA_ADMIN_EMAILS`
 - set one of `CORS_ALLOWED_ORIGINS`, `FRONTEND_URL`, `APP_URL`, or `SITE_URL`
 - set `VITE_API_URL` if frontend and backend are on different origins
+
+Native app download CTAs on the web homepage/workspace are driven by:
+
+- `VITE_ANDROID_APP_URL` for a direct APK or Android release URL
+- `VITE_IOS_APP_URL` for an App Store or TestFlight URL
+
+Current GitHub Pages deploy is configured to publish an Android APK at `./downloads/luna-android.apk` when the Android build succeeds in CI.
 
 ## API Surface
 

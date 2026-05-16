@@ -59,6 +59,29 @@ function sanitizeSources(raw) {
     .slice(0, 8);
 }
 
+function sanitizeUsage(raw) {
+  if (!raw || typeof raw !== "object") return undefined;
+
+  const promptTokens = Number(raw?.promptTokens || 0);
+  const completionTokens = Number(raw?.completionTokens || 0);
+  const totalTokens = Number(raw?.totalTokens || 0);
+  const reasoningTokens = Number(raw?.reasoningTokens || 0);
+  const cachedPromptTokens = Number(raw?.cachedPromptTokens || 0);
+
+  if (![promptTokens, completionTokens, totalTokens, reasoningTokens, cachedPromptTokens].some((value) => Number.isFinite(value) && value > 0)) {
+    return undefined;
+  }
+
+  return {
+    provider: normalizeText(raw?.provider),
+    promptTokens: Number.isFinite(promptTokens) ? promptTokens : 0,
+    completionTokens: Number.isFinite(completionTokens) ? completionTokens : 0,
+    totalTokens: Number.isFinite(totalTokens) ? totalTokens : 0,
+    reasoningTokens: Number.isFinite(reasoningTokens) ? reasoningTokens : 0,
+    cachedPromptTokens: Number.isFinite(cachedPromptTokens) ? cachedPromptTokens : 0,
+  };
+}
+
 function deriveTitle(messages) {
   const firstUserMessage = (messages || []).find(
     (item) => item.role === "user" && typeof item.text === "string" && item.text.trim().length > 0,
@@ -90,6 +113,7 @@ function sanitizeMessage(raw) {
     text,
     llm: typeof raw?.llm === "string" ? raw.llm : undefined,
     sources: sanitizeSources(raw?.sources),
+    usage: sanitizeUsage(raw?.usage),
     createdAt: typeof raw?.createdAt === "string" ? raw.createdAt : nowIso(),
   };
 }
@@ -281,6 +305,7 @@ export async function saveConversationTurn({
   userText,
   assistantText,
   assistantSources = [],
+  assistantUsage,
   characterId = "luna-classic",
   llm,
   userId = "guest",
@@ -326,6 +351,7 @@ export async function saveConversationTurn({
         text: safeAssistantText,
         llm: typeof llm === "string" ? llm : undefined,
         sources: sanitizeSources(assistantSources),
+        usage: sanitizeUsage(assistantUsage),
         createdAt: nowIso(),
       });
     }

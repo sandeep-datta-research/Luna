@@ -315,6 +315,7 @@ router.post("/luna/stream", async (req, res) => {
     let llm = "";
     let warning = [researchWarning, characterWarning].filter(Boolean).join(" | ");
     let details = null;
+    let tokenUsage = null;
 
     try {
         const routed = await runRoutedProvidersStream({
@@ -326,6 +327,7 @@ router.post("/luna/stream", async (req, res) => {
         });
         llm = routed.llm;
         reply = routed.rawReply || reply;
+        tokenUsage = routed.usage || null;
         recordProviderAttempts(routed.attempts, routed.llm, "stream");
         details = {
           attempts: routed.attempts,
@@ -333,6 +335,7 @@ router.post("/luna/stream", async (req, res) => {
           profile: routingPlan.profile,
           tools: toolResults,
           sources: toolSources,
+          tokenUsage,
           researchMode,
           webSearchMode,
         };
@@ -345,6 +348,7 @@ router.post("/luna/stream", async (req, res) => {
           profile: routingPlan.profile,
           tools: toolResults,
           sources: toolSources,
+          tokenUsage,
           researchMode,
           webSearchMode,
         };
@@ -376,6 +380,7 @@ router.post("/luna/stream", async (req, res) => {
       userText: message,
       assistantText: reply,
       assistantSources: toolSources,
+      assistantUsage: tokenUsage,
       characterId: characterProfile.id,
       llm,
       userId: userContext.userId,
@@ -417,6 +422,7 @@ router.post("/luna/stream", async (req, res) => {
       details,
       tools: toolResults,
       sources: toolSources,
+      tokenUsage,
       characterId: characterProfile.id,
       webSearchMode,
       conversationId: updatedConversation.id,
@@ -508,6 +514,7 @@ router.post("/luna", async (req, res) => {
     let llm = "";
     let warning = [researchWarning, characterWarning].filter(Boolean).join(" | ");
     let details = null;
+    let tokenUsage = null;
 
     try {
         const routed = await runRoutedProviders({
@@ -518,6 +525,7 @@ router.post("/luna", async (req, res) => {
         });
         llm = routed.llm;
         reply = clampReplyLength(routed.rawReply);
+        tokenUsage = routed.usage || null;
         recordProviderAttempts(routed.attempts, routed.llm, "chat");
         details = {
           attempts: routed.attempts,
@@ -525,6 +533,7 @@ router.post("/luna", async (req, res) => {
           profile: routingPlan.profile,
           tools: toolResults,
           sources: toolSources,
+          tokenUsage,
           researchMode,
           webSearchMode,
         };
@@ -537,6 +546,7 @@ router.post("/luna", async (req, res) => {
           profile: routingPlan.profile,
           tools: toolResults,
           sources: toolSources,
+          tokenUsage,
           researchMode,
           webSearchMode,
         };
@@ -564,6 +574,7 @@ router.post("/luna", async (req, res) => {
       userText: message,
       assistantText: reply,
       assistantSources: toolSources,
+      assistantUsage: tokenUsage,
       characterId: characterProfile.id,
       llm,
       userId: userContext.userId,
@@ -605,6 +616,7 @@ router.post("/luna", async (req, res) => {
       details,
       tools: toolResults,
       sources: toolSources,
+      tokenUsage,
       characterId: characterProfile.id,
       webSearchMode,
       conversationId: updatedConversation.id,

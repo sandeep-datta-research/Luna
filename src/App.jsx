@@ -13,6 +13,16 @@ const Pricing = lazy(() => import("./pages/Pricing"));
 const Profile = lazy(() => import("./pages/Profile"));
 const AdminDashboard = lazy(() => import("./components/mvpblocks"));
 const SignInPage = lazy(() => import("./components/mvpblocks/login-form-3"));
+const ROUTE_PRELOADERS = [
+  () => import("./pages/home"),
+  () => import("./pages/Features"),
+  () => import("./pages/Luna"),
+  () => import("./pages/Onboarding"),
+  () => import("./pages/Pricing"),
+  () => import("./pages/Profile"),
+  () => import("./components/mvpblocks"),
+  () => import("./components/mvpblocks/login-form-3"),
+];
 
 class RouteErrorBoundary extends Component {
   constructor(props) {
@@ -26,6 +36,12 @@ class RouteErrorBoundary extends Component {
 
   componentDidCatch(error) {
     console.error("Luna route render failed:", error);
+  }
+
+  componentDidUpdate(prevProps) {
+    if (this.state.hasError && prevProps.resetKey !== this.props.resetKey) {
+      this.setState({ hasError: false });
+    }
   }
 
   render() {
@@ -87,7 +103,7 @@ function AnimatedRoutes() {
   const isNativeShell = Capacitor.isNativePlatform();
 
   return (
-    <RouteErrorBoundary>
+    <RouteErrorBoundary resetKey={location.pathname}>
       <AnimatePresence mode="wait" initial={false}>
         <Suspense fallback={<RouteFallback />}>
           <Routes location={location} key={location.pathname}>
@@ -129,6 +145,32 @@ function App() {
 
   useEffect(() => {
     hydrateUser().catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+
+    let cancelled = false;
+    const preloadRoutes = () => {
+      if (cancelled) return;
+      ROUTE_PRELOADERS.forEach((loadRoute) => {
+        loadRoute().catch(() => null);
+      });
+    };
+
+    if ("requestIdleCallback" in window) {
+      const idleId = window.requestIdleCallback(preloadRoutes, { timeout: 1800 });
+      return () => {
+        cancelled = true;
+        window.cancelIdleCallback?.(idleId);
+      };
+    }
+
+    const timeoutId = window.setTimeout(preloadRoutes, 900);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+    };
   }, []);
 
   useEffect(() => {

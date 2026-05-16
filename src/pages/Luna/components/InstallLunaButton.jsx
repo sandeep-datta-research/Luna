@@ -11,7 +11,7 @@ export function InstallLunaButton({ onInstall, disabled = false, compact = false
       }`}
     >
       <Download className="h-4 w-4" />
-      Install Luna
+      Install Web App
     </button>
   );
 }

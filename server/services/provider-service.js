@@ -24,6 +24,65 @@ import {
   toPlainPrompt 
 } from "../utils/common.js";
 
+function normalizeUsageValue(value) {
+  const n = Number(value);
+  return Number.isFinite(n) && n >= 0 ? Math.round(n) : 0;
+}
+
+function withUsage(reply, usage = null) {
+  return {
+    reply: typeof reply === "string" ? reply.trim() : "",
+    usage: usage && typeof usage === "object" ? usage : null,
+  };
+}
+
+function normalizeOpenAiCompatibleUsage(raw, provider) {
+  if (!raw || typeof raw !== "object") return null;
+
+  const promptTokens = normalizeUsageValue(raw.prompt_tokens);
+  const completionTokens = normalizeUsageValue(raw.completion_tokens);
+  const totalTokens = normalizeUsageValue(raw.total_tokens) || promptTokens + completionTokens;
+  const reasoningTokens = normalizeUsageValue(
+    raw.completion_tokens_details?.reasoning_tokens ?? raw.output_tokens_details?.reasoning_tokens,
+  );
+  const cachedPromptTokens = normalizeUsageValue(raw.prompt_tokens_details?.cached_tokens);
+
+  if (!promptTokens && !completionTokens && !totalTokens && !reasoningTokens && !cachedPromptTokens) {
+    return null;
+  }
+
+  return {
+    provider,
+    promptTokens,
+    completionTokens,
+    totalTokens,
+    reasoningTokens,
+    cachedPromptTokens,
+  };
+}
+
+function normalizeGeminiUsage(raw) {
+  if (!raw || typeof raw !== "object") return null;
+
+  const promptTokens = normalizeUsageValue(raw.promptTokenCount);
+  const completionTokens = normalizeUsageValue(raw.candidatesTokenCount);
+  const totalTokens = normalizeUsageValue(raw.totalTokenCount) || promptTokens + completionTokens;
+  const reasoningTokens = normalizeUsageValue(raw.thoughtsTokenCount);
+
+  if (!promptTokens && !completionTokens && !totalTokens && !reasoningTokens) {
+    return null;
+  }
+
+  return {
+    provider: "gemini",
+    promptTokens,
+    completionTokens,
+    totalTokens,
+    reasoningTokens,
+    cachedPromptTokens: 0,
+  };
+}
+
 async function requestGroq(messages, detailedMode) {
   const response = await axios.post(
     "https://api.groq.com/openai/v1/chat/completions",
@@ -43,7 +102,10 @@ async function requestGroq(messages, detailedMode) {
     },
   );
 
-  return response.data?.choices?.[0]?.message?.content?.trim() || "";
+  return withUsage(
+    response.data?.choices?.[0]?.message?.content?.trim() || "",
+    normalizeOpenAiCompatibleUsage(response.data?.usage, "gpt"),
+  );
 }
 
 async function requestOpenRouter(messages, detailedMode, model = OPENROUTER_MODEL) {
@@ -65,7 +127,10 @@ async function requestOpenRouter(messages, detailedMode, model = OPENROUTER_MODE
     },
   );
 
-  return response.data?.choices?.[0]?.message?.content?.trim() || "";
+  return withUsage(
+    response.data?.choices?.[0]?.message?.content?.trim() || "",
+    normalizeOpenAiCompatibleUsage(response.data?.usage, model),
+  );
 }
 
 async function requestNvidiaModel(messages, detailedMode, model) {
@@ -88,7 +153,10 @@ async function requestNvidiaModel(messages, detailedMode, model) {
     },
   );
 
-  return response.data?.choices?.[0]?.message?.content?.trim() || "";
+  return withUsage(
+    response.data?.choices?.[0]?.message?.content?.trim() || "",
+    normalizeOpenAiCompatibleUsage(response.data?.usage, model),
+  );
 }
 
 async function requestNvidiaGlm(messages, detailedMode) {
@@ -135,8 +203,11 @@ async function requestGemini(messages, detailedMode) {
   });
 
   const parts = response.data?.candidates?.[0]?.content?.parts;
-  if (!Array.isArray(parts)) return "";
-  return parts.map((p) => (typeof p?.text === "string" ? p.text : "")).join("").trim();
+  const reply = Array.isArray(parts)
+    ? parts.map((p) => (typeof p?.text === "string" ? p.text : "")).join("").trim()
+    : "";
+
+  return withUsage(reply, normalizeGeminiUsage(response.data?.usageMetadata));
 }
 
 async function requestZai(messages, detailedMode, model = ZAI_GLM_MODEL) {
@@ -163,7 +234,10 @@ async function requestZai(messages, detailedMode, model = ZAI_GLM_MODEL) {
     },
   );
 
-  return response.data?.choices?.[0]?.message?.content?.trim() || "";
+  return withUsage(
+    response.data?.choices?.[0]?.message?.content?.trim() || "",
+    normalizeOpenAiCompatibleUsage(response.data?.usage, model),
+  );
 }
 
 async function requestHuggingFace(messages, detailedMode) {
@@ -194,16 +268,16 @@ async function requestHuggingFace(messages, detailedMode) {
   );
 
   if (Array.isArray(response.data)) {
-    return response.data?.[0]?.generated_text?.trim() || "";
+    return withUsage(response.data?.[0]?.generated_text?.trim() || "", null);
   }
 
-  return response.data?.generated_text?.trim() || "";
+  return withUsage(response.data?.generated_text?.trim() || "", null);
 }
 
 async function streamOpenAICompatible({ url, headers, body, onToken, signal }) {
   const response = await axios.post(
     url,
-    { ...body, stream: true },
+    { ...body, stream: true, stream_options: { include_usage: true } },
     {
       headers,
       responseType: "stream",
@@ -216,11 +290,12 @@ async function streamOpenAICompatible({ url, headers, body, onToken, signal }) {
     let reply = "";
     let buffer = "";
     let done = false;
+    let usage = null;
 
     const finish = () => {
       if (done) return;
       done = true;
-      resolve(reply.trim());
+      resolve(withUsage(reply, usage));
     };
 
     const fail = (error) => {
@@ -267,6 +342,11 @@ async function streamOpenAICompatible({ url, headers, body, onToken, signal }) {
           error.responseData = parsed;
           fail(error);
           return;
+        }
+
+        const usagePayload = normalizeOpenAiCompatibleUsage(parsed?.usage, body.model);
+        if (usagePayload) {
+          usage = usagePayload;
         }
 
         const delta = parsed?.choices?.[0]?.delta?.content ?? parsed?.choices?.[0]?.message?.content;
@@ -358,11 +438,12 @@ async function streamGemini(messages, detailedMode, onToken, signal) {
     let reply = "";
     let buffer = "";
     let done = false;
+    let usage = null;
 
     const finish = () => {
       if (done) return;
       done = true;
-      resolve(reply.trim());
+      resolve(withUsage(reply, usage));
     };
 
     const fail = (error) => {
@@ -402,6 +483,11 @@ async function streamGemini(messages, detailedMode, onToken, signal) {
           parsed = null;
         }
 
+        const usagePayload = normalizeGeminiUsage(parsed?.usageMetadata);
+        if (usagePayload) {
+          usage = usagePayload;
+        }
+
         const partsText = parsed?.candidates?.[0]?.content?.parts;
         const textChunk = Array.isArray(partsText)
           ? partsText.map((p) => (typeof p?.text === "string" ? p.text : "")).join("")
@@ -422,19 +508,19 @@ async function streamGemini(messages, detailedMode, onToken, signal) {
 }
 
 async function streamHuggingFace(messages, detailedMode, onToken) {
-  const reply = await requestHuggingFace(messages, detailedMode);
-  if (reply) {
-    streamTextChunks(reply, onToken);
+  const result = await requestHuggingFace(messages, detailedMode);
+  if (result.reply) {
+    streamTextChunks(result.reply, onToken);
   }
-  return reply;
+  return result;
 }
 
 async function streamViaFallback(run, onToken) {
-  const reply = await run();
-  if (reply) {
-    streamTextChunks(reply, onToken);
+  const result = await run();
+  if (result.reply) {
+    streamTextChunks(result.reply, onToken);
   }
-  return reply;
+  return result;
 }
 
 export function buildProviders(messages, detailedMode, streamSignal) {
