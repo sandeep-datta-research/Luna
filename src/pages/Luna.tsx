@@ -114,12 +114,9 @@ export default function Luna() {
     historyLoading,
   } = useLunaSession({ user, isSignedIn, projects, showErrorToast });
 
-  const supportsStreaming = useMemo(() => {
-    if (typeof window === "undefined") return false;
-    const ua = window.navigator?.userAgent || "";
-    const isNativeShell = Boolean(window.Capacitor?.isNativePlatform?.() || window.Capacitor);
-    return typeof ReadableStream !== "undefined" && (isNativeShell || !/iPad|iPhone|iPod/i.test(ua));
-  }, []);
+  // Disable incremental token streaming for now. The current chat layout is
+  // more stable when assistant replies render as a complete message.
+  const supportsStreaming = false;
 
   const {
     isTyping,
