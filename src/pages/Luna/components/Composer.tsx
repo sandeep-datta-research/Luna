@@ -1,19 +1,38 @@
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { triggerHaptic } from "@/lib/haptics";
-import { 
-  X, 
-  Paperclip, 
-  Globe, 
-  Sparkles, 
-  Lock, 
-  ImageIcon, 
-  Download, 
-  Mic, 
-  Loader2, 
-  Send, 
-  Command 
+import {
+  Command,
+  Download,
+  Globe,
+  ImageIcon,
+  Loader2,
+  Lock,
+  Mic,
+  Paperclip,
+  Send,
+  Sparkles,
+  X,
 } from "lucide-react";
+
+function ModeButton({ active, children, icon, onClick, title }) {
+  return (
+    <motion.button
+      whileTap={{ scale: 0.98 }}
+      type="button"
+      onClick={onClick}
+      title={title}
+      className={`inline-flex min-h-11 items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-medium transition ${
+        active
+          ? "border-[#7fc7ba] bg-[#16363d] text-[#f5fbfa] shadow-[0_10px_24px_rgba(0,0,0,0.18)]"
+          : "border-white/8 bg-white/[0.03] text-[#dcebe8] hover:border-[#7fc7ba]/50 hover:bg-white/[0.05]"
+      }`}
+    >
+      {icon}
+      {children}
+    </motion.button>
+  );
+}
 
 export function Composer({
   value,
@@ -44,25 +63,25 @@ export function Composer({
   useEffect(() => {
     const textarea = textareaRef.current;
     if (!textarea) return;
-    textarea.style.height = "48px";
-    textarea.style.height = `${Math.min(180, Math.max(48, textarea.scrollHeight))}px`;
+    textarea.style.height = "56px";
+    textarea.style.height = `${Math.min(220, Math.max(56, textarea.scrollHeight))}px`;
   }, [value]);
 
   return (
     <div
-      className={`rounded-[28px] border bg-[linear-gradient(180deg,rgba(10,16,18,0.96),rgba(7,12,14,0.98))] px-3 py-3 backdrop-blur ${
-        focused ? "border-[#4f7c75]/80 shadow-[0_0_0_2px_rgba(79,124,117,0.16)]" : "border-[#1f3135]"
-      } ${compact ? "mx-auto w-full max-w-3xl" : "w-full"}`}
+      className={`rounded-[34px] border bg-[linear-gradient(180deg,rgba(9,18,21,0.98),rgba(7,13,16,1))] p-3 shadow-[0_18px_44px_rgba(0,0,0,0.22)] backdrop-blur-xl ${
+        focused ? "border-[#7fc7ba]/55" : "border-white/6"
+      } ${compact ? "mx-auto w-full max-w-5xl" : "w-full"}`}
     >
       {attachments.length > 0 ? (
-        <div className="mb-2 flex flex-wrap gap-2">
+        <div className="mb-3 flex flex-wrap gap-2">
           {attachments.map((file, index) => (
             <div
               key={`${file}-${index}`}
-              className="inline-flex max-w-full items-center gap-2 rounded-full border border-[#274149] bg-[#102126] px-3 py-1 text-xs text-[#dceae7]"
+              className="inline-flex max-w-full items-center gap-2 rounded-full border border-white/8 bg-white/[0.04] px-3 py-1.5 text-xs text-[#e0efec]"
             >
-              <span className="max-w-[160px] truncate sm:max-w-[220px]">{file}</span>
-              <button type="button" onClick={() => onRemoveAttachment(index)}>
+              <span className="max-w-[180px] truncate sm:max-w-[240px]">{file}</span>
+              <button type="button" onClick={() => onRemoveAttachment(index)} className="text-[#abc3be] hover:text-white">
                 <X className="h-3.5 w-3.5" />
               </button>
             </div>
@@ -70,154 +89,122 @@ export function Composer({
         </div>
       ) : null}
 
-      <textarea
-        ref={textareaRef}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" && !event.shiftKey) {
-            event.preventDefault();
-            onSend();
-          }
-        }}
-        placeholder="Ask Luna for strategy, research, writing, or execution support..."
-        disabled={disabled}
-        className="luna-scrollbar w-full resize-none overflow-y-auto bg-transparent px-2 py-1 text-[15px] text-[#eef6f3] outline-none placeholder:text-[#6b817d] sm:text-sm"
-      />
-      <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-2">
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            className="hidden"
-            onChange={(event) => {
-              const files = Array.from(event.target.files || []).map((item) => item.name);
-              if (files.length) onAttach(files);
-              event.target.value = "";
-            }}
-          />
+      <div className="rounded-[28px] border border-white/6 bg-[#0a1518]/90 p-3">
+        <textarea
+          ref={textareaRef}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && !event.shiftKey) {
+              event.preventDefault();
+              onSend();
+            }
+          }}
+          placeholder="Ask Luna for strategy, research, writing, image prompts, debugging, or execution support..."
+          disabled={disabled}
+          className="luna-scrollbar min-h-[56px] w-full resize-none overflow-y-auto bg-transparent px-1 py-2 text-[15px] leading-7 text-[#eef7f4] outline-none placeholder:text-[#6e8781]"
+        />
 
-          <motion.button
-            whileTap={{ scale: 0.97 }}
-            type="button"
-            onClick={() => { triggerHaptic(); fileInputRef.current?.click(); }}
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#35535a] bg-[#102126] p-2 text-[#edf6f3] shadow-[0_8px_18px_rgba(0,0,0,0.18)] transition hover:border-[#7fc7ba]"
-            title="Attach file"
-          >
-            <Paperclip className="h-4 w-4" />
-          </motion.button>
+        <div className="mt-3 flex flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              className="hidden"
+              onChange={(event) => {
+                const files = Array.from(event.target.files || []).map((item) => item.name);
+                if (files.length) onAttach(files);
+                event.target.value = "";
+              }}
+            />
 
-          <motion.button
-            whileTap={{ scale: 0.97 }}
-            type="button"
-            onClick={onToggleWebSearch}
-            className={`inline-flex min-h-10 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition ${
-              webSearch
-                ? "border-[#7fc7ba] bg-[#143038] text-[#f5fbf9]"
-                : "border-[#35535a] bg-[#102126] text-[#e3f0ed] hover:border-[#7fc7ba]/70"
-            }`}
-            title="Use live web results in this reply"
-          >
-            <Globe className="h-3.5 w-3.5" />
-            Live web
-          </motion.button>
+            <motion.button
+              whileTap={{ scale: 0.98 }}
+              type="button"
+              onClick={() => {
+                triggerHaptic();
+                fileInputRef.current?.click();
+              }}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/8 bg-white/[0.03] text-[#edf6f3] transition hover:border-[#7fc7ba]/50 hover:bg-white/[0.05]"
+              title="Attach file"
+            >
+              <Paperclip className="h-4 w-4" />
+            </motion.button>
 
-          <motion.button
-            whileTap={{ scale: 0.97 }}
-            type="button"
-            onClick={onToggleResearchMode}
-            className={`inline-flex min-h-10 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition ${
-              researchMode
-                ? "border-[#7fc7ba] bg-[#143038] text-[#f5fbf9]"
-                : "border-[#35535a] bg-[#102126] text-[#e3f0ed] hover:border-[#7fc7ba]/70"
-            }`}
-            title={isPro ? "Research mode" : "Luna Pro feature"}
-          >
-            {isPro ? <Sparkles className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
-            Research
-          </motion.button>
+            <ModeButton active={webSearch} onClick={onToggleWebSearch} title="Use live web results" icon={<Globe className="h-3.5 w-3.5" />}>
+              Live web
+            </ModeButton>
+            <ModeButton
+              active={researchMode}
+              onClick={onToggleResearchMode}
+              title={isPro ? "Research mode" : "Luna Pro feature"}
+              icon={isPro ? <Sparkles className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
+            >
+              Research
+            </ModeButton>
+            <ModeButton active={imageMode} onClick={() => { triggerHaptic(); onToggleImageMode(); }} title="Create image" icon={<ImageIcon className="h-3.5 w-3.5" />}>
+              Image
+            </ModeButton>
+          </div>
 
-          <motion.button
-            whileTap={{ scale: 0.97 }}
-            type="button"
-            onClick={() => { triggerHaptic(); onToggleImageMode(); }}
-            className={`inline-flex min-h-10 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition ${
-              imageMode
-                ? "border-[#7fc7ba] bg-[#143038] text-[#f5fbf9]"
-                : "border-[#35535a] bg-[#102126] text-[#e3f0ed] hover:border-[#7fc7ba]/70"
-            }`}
-          >
-            <ImageIcon className="h-3.5 w-3.5" />
-            Create image
-          </motion.button>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/8 bg-white/[0.03] px-3 py-1.5 text-[11px] text-[#86a09a]">
+              <Command className="h-3.5 w-3.5" />
+              Enter to send, Shift+Enter for a new line
+            </div>
+
+            <div className="flex items-center gap-2">
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                type="button"
+                onClick={onExport}
+                disabled={!isPro}
+                className={`inline-flex h-11 min-w-11 items-center justify-center rounded-2xl border px-3 transition ${
+                  isPro
+                    ? "border-white/8 bg-white/[0.03] text-[#edf6f3] hover:border-[#7fc7ba]/50 hover:bg-white/[0.05]"
+                    : "border-white/6 bg-white/[0.02] text-[#6c837e]"
+                }`}
+                title={isPro ? "Export this chat" : "Luna Pro feature"}
+              >
+                {isPro ? <Download className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+              </motion.button>
+
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                type="button"
+                onClick={onToggleVoice}
+                disabled={transcribing}
+                className={`inline-flex h-11 min-w-11 items-center justify-center rounded-2xl border px-3 transition ${
+                  voiceActive
+                    ? "border-emerald-400/65 bg-emerald-500/15 text-emerald-100"
+                    : "border-white/8 bg-white/[0.03] text-[#edf6f3] hover:border-[#7fc7ba]/50 hover:bg-white/[0.05]"
+                } ${transcribing ? "opacity-75" : ""}`}
+                title={voiceActive ? "Stop recording" : "Voice input"}
+              >
+                {transcribing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mic className="h-4 w-4" />}
+              </motion.button>
+
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                whileHover={{ scale: value.trim() && !sendDisabled ? 1.03 : 1 }}
+                type="button"
+                onClick={onSend}
+                disabled={sendDisabled || !value.trim()}
+                className={`inline-flex h-11 min-w-11 items-center justify-center rounded-2xl px-4 text-sm font-semibold transition ${
+                  value.trim() && !sendDisabled
+                    ? "bg-[linear-gradient(135deg,#f1ca78,#b88d3a)] text-[#102126] shadow-[0_14px_28px_rgba(184,141,58,0.26)]"
+                    : "bg-[#22373d] text-[#8ba39e]"
+                }`}
+                title="Send"
+              >
+                <Send className="h-4 w-4" />
+              </motion.button>
+            </div>
+          </div>
         </div>
-
-        <div className="flex items-center justify-end gap-2 self-end sm:self-auto">
-          <motion.button
-            whileTap={{ scale: 0.97 }}
-            type="button"
-            onClick={onExport}
-            disabled={!isPro}
-            className={`inline-flex h-10 min-w-10 shrink-0 items-center justify-center rounded-full border px-2 transition ${
-              isPro
-                ? "border-[#35535a] bg-[#102126] text-[#edf6f3] hover:border-[#7fc7ba]/70"
-                : "border-[#24363a] bg-[#0f1f24]/70 text-[#68817b] opacity-80"
-            }`}
-            title={isPro ? "Export this chat" : "Luna Pro feature"}
-          >
-            {isPro ? <Download className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
-          </motion.button>
-
-          <motion.button
-            whileTap={{ scale: 0.97 }}
-            type="button"
-            onClick={onToggleVoice}
-            disabled={transcribing}
-            className={`relative inline-flex h-10 min-w-10 shrink-0 items-center justify-center rounded-full border px-2 transition ${
-              voiceActive
-                ? "border-emerald-400/70 bg-emerald-500/15 text-emerald-200"
-                : "border-[#35535a] bg-[#102126] text-[#edf6f3] hover:border-[#7fc7ba]/70"
-            } ${transcribing ? "opacity-70" : ""}`}
-            title={voiceActive ? "Stop recording" : "Voice input"}
-          >
-            {transcribing ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            {!transcribing && voiceActive ? (
-              <div className="flex h-4 items-end gap-[2px]">
-                <span className="h-2 w-[3px] rounded bg-emerald-300 luna-wave" />
-                <span className="h-3 w-[3px] rounded bg-emerald-300 luna-wave [animation-delay:0.1s]" />
-                <span className="h-4 w-[3px] rounded bg-emerald-300 luna-wave [animation-delay:0.2s]" />
-                <span className="h-3 w-[3px] rounded bg-emerald-300 luna-wave [animation-delay:0.3s]" />
-              </div>
-            ) : null}
-            {!transcribing && !voiceActive ? <Mic className="h-4 w-4" /> : null}
-          </motion.button>
-
-          <motion.button
-            whileTap={{ scale: 0.97 }}
-            whileHover={{ scale: value.trim() ? 1.08 : 1 }}
-            type="button"
-            onClick={onSend}
-            disabled={sendDisabled || !value.trim()}
-            className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition ${
-              value.trim() && !sendDisabled
-                ? "bg-[linear-gradient(135deg,#e1ba6d,#9e7b33)] text-[#102126] shadow-[0_0_0_8px_rgba(225,186,109,0.14)]"
-                : "bg-[#284148] text-[#a5c0bb]"
-            }`}
-            title="Send"
-          >
-            <Send className="h-4 w-4" />
-          </motion.button>
-        </div>
-      </div>
-      <div className="mt-2 flex flex-wrap items-center justify-between gap-2 px-2 text-[11px] text-[#6f8682]">
-        <span className="inline-flex items-center gap-1">
-          <Command className="h-3.5 w-3.5" />
-          Enter to send, Shift+Enter for a new line
-        </span>
-        <span>{attachments.length ? `${attachments.length} attachment${attachments.length > 1 ? "s" : ""}` : "No attachments"}</span>
       </div>
     </div>
   );

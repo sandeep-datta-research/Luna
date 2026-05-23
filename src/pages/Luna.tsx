@@ -436,7 +436,7 @@ export default function Luna() {
         .luna-fade-lift { animation: lunaFadeLift 0.42s cubic-bezier(0.22, 1, 0.36, 1); }
       `}</style>
 
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_18%,rgba(71,120,112,0.25),transparent_28%),radial-gradient(circle_at_85%_15%,rgba(225,186,109,0.12),transparent_24%),radial-gradient(circle_at_50%_45%,rgba(18,47,51,0.65),transparent_58%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_16%,rgba(127,199,186,0.14),transparent_24%),radial-gradient(circle_at_88%_14%,rgba(225,186,109,0.12),transparent_20%),radial-gradient(circle_at_50%_38%,rgba(20,45,49,0.6),transparent_54%),linear-gradient(180deg,#061114,#071317)]" />
 
       <div className="relative z-10 flex min-h-[100dvh]">
         <Sidebar
@@ -458,13 +458,13 @@ export default function Luna() {
         />
 
         <section className="relative flex min-w-0 flex-1 flex-col">
-          <div className="flex items-center justify-between gap-3 border-b border-white/6 px-3 py-3 md:hidden">
+          <div className="flex items-center justify-between gap-3 border-b border-white/6 bg-black/10 px-3 py-3 backdrop-blur md:hidden">
             <div className="flex min-w-0 items-center gap-2">
-              <button onClick={() => setMobileSidebarOpen(true)} className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-[#274149] bg-[#0f1f24] text-[#d2e7e2]">
+              <button onClick={() => setMobileSidebarOpen(true)} className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/8 bg-white/[0.04] text-[#d2e7e2]">
                 <Menu className="h-4 w-4" />
               </button>
               <div className="min-w-0">
-                <p className="text-[11px] uppercase tracking-[0.16em] text-[#7a938e]">Luna Workspace</p>
+                <p className="text-[11px] uppercase tracking-[0.18em] text-[#7a938e]">Luna Workspace</p>
                 <h1 className="truncate text-base font-semibold text-[#f4f8f7]" style={{ fontFamily: "'Syne', sans-serif" }}>
                   {activeSession?.title || "New chat"}
                 </h1>
@@ -472,39 +472,39 @@ export default function Luna() {
             </div>
             <div className="flex items-center gap-2">
               {(canInstallApp || showIosInstallHint) && <InstallLunaButton compact onInstall={handleInstallLuna} disabled={installingApp} />}
-              <button onClick={() => createFreshSession()} className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-[#274149] bg-[#0f1f24] text-[#d2e7e2]">
+              <button onClick={() => createFreshSession()} className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/8 bg-white/[0.04] text-[#d2e7e2]">
                 <Plus className="h-4 w-4" />
               </button>
               <ModelSelector selectedModel={selectedModel} onSelect={setSelectedModel} />
             </div>
           </div>
 
-          <div className="mx-auto w-full max-w-7xl px-3 pt-3 md:px-6 md:pt-4">
+          <div className="mx-auto w-full max-w-[1560px] px-3 pt-3 md:px-6 md:pt-5">
             <AnnouncementBanner className="mb-3" />
           </div>
           
-          <div className="mx-auto hidden w-full max-w-7xl items-center justify-between px-3 md:flex md:px-6">
-            <div className="flex min-w-0 items-center gap-4">
+          <div className="mx-auto hidden w-full max-w-[1560px] items-center justify-between px-3 md:flex md:px-6">
+            <div className="flex min-w-0 items-center gap-5">
               <div className="min-w-0">
-                <p className="text-[11px] uppercase tracking-[0.18em] text-[#78938d]">Workspace briefing</p>
-                <h1 className="truncate text-2xl font-semibold text-[#f5f8f7]" style={{ fontFamily: "'Syne', sans-serif" }}>
+                <p className="text-[11px] uppercase tracking-[0.2em] text-[#78938d]">Workspace briefing</p>
+                <h1 className="truncate text-[1.7rem] font-semibold text-[#f5f8f7]" style={{ fontFamily: "'Syne', sans-serif" }}>
                   {activeSession?.title || "New chat"}
                 </h1>
               </div>
-              <div className="hidden lg:flex items-center gap-2">
-                {modePills.map((pill) => <span key={pill} className="rounded-full border border-[#274149] bg-[#0f1f24] px-3 py-1 text-xs text-[#d0e2de]">{pill}</span>)}
+              <div className="hidden xl:flex items-center gap-2">
+                {modePills.slice(0, 3).map((pill) => <span key={pill} className="rounded-full border border-white/8 bg-white/[0.03] px-3 py-1.5 text-xs text-[#d0e2de]">{pill}</span>)}
               </div>
             </div>
             <div className="flex items-center gap-3">
               {(canInstallApp || showIosInstallHint) && <InstallLunaButton onInstall={handleInstallLuna} disabled={installingApp} />}
-              <div className="rounded-full border border-[#274149] bg-[#0f1f24] px-3 py-1.5 text-xs text-[#8fb0aa]">{formatDateLabel()}</div>
+              <div className="rounded-full border border-white/8 bg-white/[0.03] px-3 py-1.5 text-xs text-[#8fb0aa]">{formatDateLabel()}</div>
               <ModelSelector selectedModel={selectedModel} onSelect={setSelectedModel} />
             </div>
           </div>
 
-          <div className="relative flex-1 overflow-hidden px-3 pb-3 pt-2 md:px-6">
+          <div className="relative flex-1 overflow-hidden px-3 pb-3 pt-3 md:px-6 md:pt-4">
             {!onboardingState.loading && !onboardingState.answered && (
-              <div className="mb-6 flex justify-center"><OnboardingFlow onComplete={() => setOnboardingState({ loading: false, answered: true })} /></div>
+              <div className="mb-6"><OnboardingFlow onComplete={() => setOnboardingState({ loading: false, answered: true })} /></div>
             )}
             <AnimatePresence mode="wait">
               {!visibleMain ? (
@@ -562,8 +562,8 @@ export default function Luna() {
           </div>
 
           {visibleMain && (
-            <div className="border-t border-white/6 bg-[#071013]/92 px-3 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:px-6">
-              <div className="mx-auto max-w-5xl xl:max-w-7xl">
+            <div className="border-t border-white/6 bg-[linear-gradient(180deg,rgba(7,17,20,0.82),rgba(7,17,20,0.96))] px-3 py-3 pb-[calc(0.9rem+env(safe-area-inset-bottom))] backdrop-blur md:px-6">
+              <div className="mx-auto max-w-[1560px]">
                 <Composer
                   value={inputValue}
                   onChange={setInputValue}

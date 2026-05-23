@@ -1,6 +1,6 @@
-import React, { useRef, useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Zap, Clock3, Loader2, ArrowDown } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { ArrowDown, Clock3, Loader2, Sparkles, Zap } from "lucide-react";
 import { MessageBubble } from "./MessageBubble";
 import { TypingIndicator } from "./TypingIndicator";
 import { CharacterCards } from "./CharacterCards";
@@ -28,22 +28,27 @@ interface ChatViewProps {
 
 function ChatSkeleton() {
   return (
-    <div className="flex flex-col gap-6 animate-pulse px-2 py-4">
+    <div className="space-y-5 px-1 py-4">
       <div className="flex justify-end">
-        <div className="h-14 w-[60%] md:w-[40%] rounded-3xl rounded-br-sm bg-[linear-gradient(145deg,#327d74,#184f49)] opacity-40 shadow-sm" />
+        <div className="h-14 w-[65%] rounded-[26px] rounded-br-md bg-[linear-gradient(135deg,rgba(127,199,186,0.22),rgba(60,115,105,0.22))]" />
       </div>
-      <div className="flex justify-start">
-        <div className="flex w-[85%] flex-col gap-2 items-start">
-          <div className="mb-0.5 ml-1 flex items-center gap-2">
-            <div className="h-[26px] w-[26px] rounded-full bg-[#1f3135]/50" />
-            <div className="h-3 w-20 rounded bg-[#1f3135]/50" />
-          </div>
-          <div className="h-24 w-full md:w-[70%] rounded-3xl rounded-bl-sm bg-[linear-gradient(180deg,rgba(18,27,31,0.6),rgba(12,20,23,0.6))] border border-[#1f3135]/30" />
-        </div>
+      <div className="w-[88%] space-y-2">
+        <div className="h-4 w-28 rounded-full bg-white/8" />
+        <div className="h-24 rounded-[28px] rounded-bl-md bg-white/[0.04]" />
       </div>
       <div className="flex justify-end">
-        <div className="h-10 w-[45%] md:w-[30%] rounded-3xl rounded-br-sm bg-[linear-gradient(145deg,#327d74,#184f49)] opacity-40 shadow-sm" />
+        <div className="h-12 w-[46%] rounded-[26px] rounded-br-md bg-[linear-gradient(135deg,rgba(127,199,186,0.22),rgba(60,115,105,0.22))]" />
       </div>
+    </div>
+  );
+}
+
+function RailCard({ title, body, children }: { title: string; body?: string; children?: React.ReactNode }) {
+  return (
+    <div className="rounded-[30px] border border-white/6 bg-[linear-gradient(180deg,rgba(10,20,24,0.94),rgba(7,14,17,0.98))] p-4 shadow-[0_18px_44px_rgba(0,0,0,0.18)]">
+      <p className="text-[11px] uppercase tracking-[0.2em] text-[#7f9a94]">{title}</p>
+      {body ? <p className="mt-2 text-sm leading-6 text-[#96afa9]">{body}</p> : null}
+      {children ? <div className="mt-4">{children}</div> : null}
     </div>
   );
 }
@@ -69,181 +74,168 @@ export function ChatView({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [showScrollBottom, setShowScrollBottom] = useState(false);
   const [hasNewMessage, setHasNewMessage] = useState(false);
-  const [isMobileSwitchboardOpen, setIsMobileSwitchboardOpen] = useState(false);
-
-  const prevMessageCountRef = useRef(activeMessages.length);
+  const [showMobileRail, setShowMobileRail] = useState(false);
+  const previousCountRef = useRef(activeMessages.length);
 
   useEffect(() => {
-    // If a new message arrives and we are not at the bottom, flash the button
-    if (activeMessages.length > prevMessageCountRef.current) {
-      if (showScrollBottom) {
-        setHasNewMessage(true);
-      }
+    if (activeMessages.length > previousCountRef.current && showScrollBottom) {
+      setHasNewMessage(true);
     }
-    prevMessageCountRef.current = activeMessages.length;
+    previousCountRef.current = activeMessages.length;
   }, [activeMessages.length, showScrollBottom]);
 
   const handleScroll = () => {
-    if (!scrollContainerRef.current) return;
-    const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
-    const distanceToBottom = scrollHeight - scrollTop - clientHeight;
-    const isAtBottom = distanceToBottom < 120;
-    
-    setShowScrollBottom(!isAtBottom);
-    if (isAtBottom) {
-      setHasNewMessage(false);
-    }
+    const node = scrollContainerRef.current;
+    if (!node) return;
+    const distanceToBottom = node.scrollHeight - node.scrollTop - node.clientHeight;
+    const isNearBottom = distanceToBottom < 120;
+    setShowScrollBottom(!isNearBottom);
+    if (isNearBottom) setHasNewMessage(false);
   };
 
   const scrollToBottom = () => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTo({
-        top: scrollContainerRef.current.scrollHeight,
-        behavior: "smooth"
-      });
-    }
+    const node = scrollContainerRef.current;
+    if (!node) return;
+    node.scrollTo({ top: node.scrollHeight, behavior: "smooth" });
     setHasNewMessage(false);
   };
 
   return (
     <motion.div
-      key={activeSession?.id || "messages"}
-      initial={{ opacity: 0, y: 14 }}
+      key={activeSession?.id || "chat-view"}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 14 }}
-      transition={{ duration: 0.25 }}
+      exit={{ opacity: 0, y: 12 }}
+      transition={{ duration: 0.24 }}
       ref={scrollContainerRef}
       onScroll={handleScroll}
-      className="luna-scrollbar relative h-full overflow-y-auto pr-1"
+      className="luna-scrollbar relative h-full overflow-y-auto"
     >
-      <div className="mx-auto grid w-full max-w-7xl gap-4 pb-6 pt-3 xl:grid-cols-[minmax(0,1.65fr)_360px] xl:items-start md:pb-8">
-        <div className="min-w-0 relative">
-          <div className="luna-fade-lift sticky top-0 z-10 mb-2 rounded-[28px] border border-[#1f3135] bg-[linear-gradient(180deg,rgba(9,16,19,0.95),rgba(7,12,14,0.9))] px-4 py-4 backdrop-blur xl:px-5">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-              <div className="min-w-0">
-                <div className="mb-2 flex flex-wrap items-center gap-2">
-                  <span className="inline-flex items-center gap-2 rounded-full border border-[#274149] bg-[#102126] px-3 py-1 text-[11px] uppercase tracking-[0.15em] text-[#89aba4]">
-                    <Zap className="h-3.5 w-3.5" />
-                    Active workspace
-                  </span>
-                  <span className="inline-flex items-center gap-2 rounded-full border border-[#6f5624] bg-[#2d2413] px-3 py-1 text-[11px] text-[#f0d79b]">
-                    <Clock3 className="h-3.5 w-3.5" />
-                    Updated {formatHistoryTime(activeSession?.updatedAt)}
-                  </span>
+      <div className="mx-auto grid w-full max-w-[1560px] gap-5 pb-8 pt-2 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="min-w-0">
+          <section className="sticky top-0 z-10 mb-4 rounded-[34px] border border-white/6 bg-[linear-gradient(180deg,rgba(9,18,21,0.94),rgba(7,14,17,0.9))] p-4 shadow-[0_18px_44px_rgba(0,0,0,0.18)] backdrop-blur-xl md:p-5">
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="min-w-0">
+                  <div className="mb-3 flex flex-wrap items-center gap-2">
+                    <span className="inline-flex items-center gap-2 rounded-full border border-[#2b4348] bg-[#11252a] px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-[#8faca6]">
+                      <Zap className="h-3.5 w-3.5" />
+                      Live workspace
+                    </span>
+                    <span className="inline-flex items-center gap-2 rounded-full border border-[#5a4d2b] bg-[#2a2215] px-3 py-1 text-[11px] text-[#f0d79b]">
+                      <Clock3 className="h-3.5 w-3.5" />
+                      Updated {formatHistoryTime(activeSession?.updatedAt)}
+                    </span>
+                  </div>
+                  <h2 className="max-w-[22ch] text-2xl font-semibold leading-tight text-[#f6fbfa] md:text-[2rem]" style={{ fontFamily: "'Syne', sans-serif" }}>
+                    {activeSession?.title || "New chat"}
+                  </h2>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-[#8ea7a1]">
+                    A cleaner execution surface for research, writing, strategy, and multimode replies. Switch tone, modes, and characters without breaking the thread.
+                  </p>
                 </div>
-                <h2 className="truncate text-2xl font-semibold text-[#f4f8f7]" style={{ fontFamily: "'Syne', sans-serif" }}>
-                  {activeSession?.title || "New chat"}
-                </h2>
-                <p className="mt-1 text-sm text-[#89a49f]">
-                  Use the controls below to shift between research, drafting, and media generation without leaving the thread.
-                </p>
-                <div className="mt-3 inline-flex max-w-full items-center gap-3 overflow-hidden rounded-2xl border border-[#274149] bg-[#0f1f24] py-1 pl-1 pr-4">
-                  <span className="inline-flex h-10 w-10 shrink-0 overflow-hidden rounded-full border border-white/10">
-                    <img
-                      src={activeCharacter.portrait}
-                      alt={activeCharacter.name}
-                      className="h-full w-full object-cover"
-                    />
+
+                <div className="flex min-w-0 flex-wrap gap-2 lg:max-w-[40%] lg:justify-end">
+                  {modePills.map((pill) => (
+                    <span key={pill} className="rounded-full border border-white/8 bg-white/[0.03] px-3 py-1.5 text-xs text-[#d5e7e3]">
+                      {pill}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="inline-flex min-w-0 items-center gap-3 rounded-[22px] border border-[#2c454b] bg-[#102126] px-3 py-2">
+                  <span className="inline-flex h-11 w-11 shrink-0 overflow-hidden rounded-2xl border border-white/10">
+                    <img src={activeCharacter.portrait} alt={activeCharacter.name} className="h-full w-full object-cover" />
                   </span>
                   <div className="min-w-0">
-                    <p className="text-[11px] uppercase tracking-[0.16em] text-[#84a7a0]">Character</p>
-                    <p className="truncate text-sm font-medium text-[#edf5f2]">{activeCharacter.name}</p>
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-[#84a7a0]">Active character</p>
+                    <p className="truncate text-sm font-semibold text-[#eef7f4]">{activeCharacter.name}</p>
                   </div>
                 </div>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                {modePills.map((pill) => (
-                  <span key={pill} className="rounded-full border border-[#274149] bg-[#0f1f24] px-3 py-1.5 text-xs text-[#d4e6e2] transition duration-300 hover:-translate-y-0.5 hover:border-[#4f7c75] hover:bg-[#102126]">
-                    {pill}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-          {historyLoading ? (
-            <div className="flex items-center gap-3 rounded-2xl border border-[#1f3135] bg-[#0b1518] px-4 py-3 text-sm text-[#d6e8e4]">
-              <Loader2 className="h-4 w-4 animate-spin text-[#7fc7ba]" />
-              Loading your chats...
-            </div>
-          ) : null}
-          <div className="mb-2 rounded-[28px] border border-[#1f3135] bg-[linear-gradient(180deg,rgba(9,16,19,0.92),rgba(7,12,14,0.98))] p-4 xl:hidden">
-            <button
-              onClick={() => setIsMobileSwitchboardOpen(!isMobileSwitchboardOpen)}
-              className="flex w-full items-center justify-between text-left"
-            >
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.18em] text-[#84a7a0]">Character Switchboard</p>
-                <p className="mt-1 text-sm text-[#97b0ab]">
-                  Current: {activeCharacter.name}
-                </p>
-              </div>
-              <span className="text-xs text-[#d7e8e5] bg-[#1a2b2f] px-3 py-1 rounded-full border border-[#274149]">
-                {isMobileSwitchboardOpen ? "Close" : "Change"}
-              </span>
-            </button>
-            <AnimatePresence>
-              {isMobileSwitchboardOpen && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0, marginTop: 0 }}
-                  animate={{ height: "auto", opacity: 1, marginTop: 16 }}
-                  exit={{ height: 0, opacity: 0, marginTop: 0 }}
-                  className="overflow-hidden"
+
+                <button
+                  type="button"
+                  onClick={() => setShowMobileRail((prev) => !prev)}
+                  className="inline-flex items-center gap-2 rounded-[22px] border border-white/8 bg-white/[0.03] px-3 py-2 text-sm text-[#d7ebe7] xl:hidden"
                 >
-                  <div className="mb-3">
-                    <input
-                      value={characterSearchQuery}
-                      onChange={(event) => setCharacterSearchQuery(event.target.value)}
-                      placeholder="Search character board..."
-                      className="w-full rounded-2xl border border-[#274149] bg-[#0c1719] px-4 py-2.5 text-sm text-[#e7f0ee] outline-none placeholder:text-[#69807b]"
-                    />
-                  </div>
+                  <Sparkles className="h-4 w-4" />
+                  {showMobileRail ? "Hide controls" : "Open controls"}
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <AnimatePresence>
+            {showMobileRail ? (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                className="mb-4 space-y-4 xl:hidden"
+              >
+                <RailCard title="Character Board" body={`This thread currently speaks as ${activeCharacter.name}.`}>
+                  <input
+                    value={characterSearchQuery}
+                    onChange={(event) => setCharacterSearchQuery(event.target.value)}
+                    placeholder="Search character board"
+                    className="mb-3 w-full rounded-[18px] border border-white/8 bg-[#0b171a] px-4 py-3 text-sm text-[#e7f1ef] outline-none focus:border-[#7fc7ba]/70"
+                  />
                   <CharacterCards
                     options={filteredCharacterOptions}
                     selectedCharacterId={activeSession?.characterId}
-                    onSelect={(c) => { handleSelectCharacter(c); setIsMobileSwitchboardOpen(false); }}
+                    onSelect={handleSelectCharacter}
                     isPro={membershipPlan === "pro"}
                   />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-          <div aria-live="polite" aria-atomic="false">
-            {activeMessages.map((message) => (
-              <MessageBubble
-                key={message.id}
-                message={message}
-                showLunaHeader={message.role === "assistant"}
-                isLatestAssistant={message.id === latestAssistantId}
-                onCopy={copyMessage}
-                onRegenerate={regenerateLatest}
-                character={activeCharacter}
-              />
-            ))}
-          </div>
+                </RailCard>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
 
-          {showTyping ? <TypingIndicator character={activeCharacter} /> : null}
-          <div ref={listEndRef} className="h-2" />
+          <section className="rounded-[36px] border border-white/6 bg-[linear-gradient(180deg,rgba(8,16,19,0.98),rgba(7,13,16,1))] px-3 py-4 shadow-[0_18px_44px_rgba(0,0,0,0.2)] md:px-5 md:py-5">
+            {historyLoading ? (
+              <div className="mb-4 flex items-center gap-3 rounded-[22px] border border-white/6 bg-white/[0.03] px-4 py-3 text-sm text-[#dcece9]">
+                <Loader2 className="h-4 w-4 animate-spin text-[#7fc7ba]" />
+                Loading your chats...
+              </div>
+            ) : null}
+
+            {activeMessages.length === 0 && !historyLoading ? <ChatSkeleton /> : null}
+
+            <div aria-live="polite" aria-atomic="false" className="space-y-1">
+              {activeMessages.map((message) => (
+                <MessageBubble
+                  key={message.id}
+                  message={message}
+                  showLunaHeader={message.role === "assistant"}
+                  isLatestAssistant={message.id === latestAssistantId}
+                  onCopy={copyMessage}
+                  onRegenerate={regenerateLatest}
+                  character={activeCharacter}
+                />
+              ))}
+            </div>
+
+            {showTyping ? <TypingIndicator character={activeCharacter} /> : null}
+            <div ref={listEndRef} className="h-2" />
+          </section>
         </div>
+
         <aside className="hidden xl:block">
           <div className="sticky top-3 space-y-4">
-            <div className="rounded-[28px] border border-[#1f3135] bg-[linear-gradient(180deg,rgba(9,16,19,0.95),rgba(7,12,14,0.98))] p-4">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-[#84a7a0]">Character Switchboard</p>
-              <p className="mt-1 text-sm text-[#97b0ab]">
-                This thread speaks as {activeCharacter.name}. Switch styles without leaving desktop chat.
-              </p>
-              <div className="mt-3 rounded-[24px] border border-[#274149] bg-[#0f1f24] p-3">
+            <RailCard
+              title="Character Board"
+              body={`This thread currently speaks as ${activeCharacter.name}. Swap voice, prompts, and style without leaving the conversation.`}
+            >
+              <div className="rounded-[24px] border border-white/8 bg-white/[0.03] p-3">
                 <div className="flex items-center gap-3">
-                  <span className="inline-flex h-16 w-14 shrink-0 overflow-hidden rounded-[16px] border border-white/10">
-                    <img
-                      src={activeCharacter.portrait}
-                      alt={activeCharacter.name}
-                      className="h-full w-full object-cover"
-                    />
+                  <span className="inline-flex h-16 w-14 shrink-0 overflow-hidden rounded-[18px] border border-white/10">
+                    <img src={activeCharacter.portrait} alt={activeCharacter.name} className="h-full w-full object-cover" />
                   </span>
                   <div className="min-w-0">
-                    <p className="text-[11px] uppercase tracking-[0.16em] text-[#84a7a0]">Active character</p>
-                    <p className="truncate text-base font-semibold text-[#edf5f2]">{activeCharacter.name}</p>
-                    <p className="mt-1 text-xs text-[#9ab3ae]">{activeCharacter.tagline}</p>
+                    <p className="truncate text-base font-semibold text-[#eef7f4]">{activeCharacter.name}</p>
+                    <p className="mt-1 text-xs leading-5 text-[#8ca59f]">{activeCharacter.tagline}</p>
                   </div>
                 </div>
                 <CharacterStarterPrompts
@@ -251,14 +243,14 @@ export function ChatView({
                   onSelect={(prompt: string) => setInputValue(prompt)}
                 />
               </div>
-              <div className="mt-3">
-                <input
-                  value={characterSearchQuery}
-                  onChange={(event) => setCharacterSearchQuery(event.target.value)}
-                  placeholder="Search character board..."
-                  className="w-full rounded-2xl border border-[#274149] bg-[#0c1719] px-4 py-2.5 text-sm text-[#e7f0ee] outline-none placeholder:text-[#69807b]"
-                />
-              </div>
+
+              <input
+                value={characterSearchQuery}
+                onChange={(event) => setCharacterSearchQuery(event.target.value)}
+                placeholder="Search character board"
+                className="mt-3 w-full rounded-[18px] border border-white/8 bg-[#0b171a] px-4 py-3 text-sm text-[#e7f1ef] outline-none focus:border-[#7fc7ba]/70"
+              />
+
               <div className="mt-3">
                 <CharacterCards
                   options={filteredCharacterOptions}
@@ -267,30 +259,24 @@ export function ChatView({
                   isPro={membershipPlan === "pro"}
                 />
               </div>
-            </div>
+            </RailCard>
           </div>
         </aside>
       </div>
 
       <AnimatePresence>
-        {showScrollBottom && (
+        {showScrollBottom ? (
           <motion.button
-            initial={{ opacity: 0, scale: 0.8, y: 10 }}
+            initial={{ opacity: 0, scale: 0.84, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.8, y: 10 }}
+            exit={{ opacity: 0, scale: 0.84, y: 10 }}
             onClick={scrollToBottom}
-            className={`fixed bottom-[calc(6.5rem+env(safe-area-inset-bottom))] right-4 z-50 flex h-10 w-10 items-center justify-center rounded-full border border-[#2d474e] bg-[#112024] text-[#a4b5b2] shadow-[0_8px_20px_rgba(0,0,0,0.3)] transition-all hover:border-[#4f7c75] hover:text-[#e4f0ed] md:right-6 xl:right-[380px] ${hasNewMessage ? "ring-2 ring-emerald-500/50" : ""}`}
+            className={`fixed bottom-[calc(7rem+env(safe-area-inset-bottom))] right-4 z-40 inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#325057] bg-[#143038] text-[#edf7f4] shadow-[0_14px_34px_rgba(0,0,0,0.28)] transition hover:border-[#7fc7ba] md:right-6 xl:right-[388px] ${hasNewMessage ? "ring-2 ring-[#7fc7ba]/50" : ""}`}
             title="Scroll to bottom"
           >
-            <ArrowDown className="h-5 w-5" />
-            {hasNewMessage && (
-              <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-              </span>
-            )}
+            <ArrowDown className="h-4 w-4" />
           </motion.button>
-        )}
+        ) : null}
       </AnimatePresence>
     </motion.div>
   );

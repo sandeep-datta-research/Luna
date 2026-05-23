@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Copy, RotateCcw, Globe } from "lucide-react";
+import { Copy, Globe, RotateCcw } from "lucide-react";
 import MarkdownMessage from "@/components/ui/chat/MarkdownMessage";
 import lunaLogo from "@/assets/luna-logo.svg";
 import { CHARACTER_OPTIONS } from "../constants";
@@ -64,91 +64,95 @@ export function MessageBubble({
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: 16, scale: 0.98 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ type: "spring", stiffness: 320, damping: 28 }}
-      className={`group flex mb-4 ${isUser ? "justify-end" : "justify-start"}`}
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: "spring", stiffness: 260, damping: 26 }}
+      className={`group mb-5 flex ${isUser ? "justify-end" : "justify-start"}`}
     >
-      <div className={`flex max-w-full flex-col gap-1.5 ${isUser ? "items-end md:max-w-[75%]" : "items-start md:max-w-[85%]"}`}>
+      <div className={`w-full ${isUser ? "max-w-[92%] md:max-w-[74%]" : "max-w-[96%] md:max-w-[86%]"}`}>
         {!isUser && showLunaHeader ? (
-          <div className="mb-0.5 ml-1 flex max-w-full items-center gap-2 text-[13px] text-[#a4b5b2]">
-            <span className="inline-flex h-[26px] w-[26px] shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-[#122125] shadow-sm">
+          <div className="mb-2 flex items-center gap-3 pl-1">
+            <span className="inline-flex h-9 w-9 shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-[#122125] shadow-[0_12px_26px_rgba(0,0,0,0.18)]">
               <img src={assistantCharacter.portrait || lunaLogo} alt={assistantCharacter.name} className="h-full w-full object-cover" />
             </span>
-            <span className="truncate font-semibold tracking-wide" style={{ fontFamily: "'Syne', sans-serif" }}>{assistantCharacter.name}</span>
-          </div>
-        ) : null}
-
-        <div
-          className={`relative max-w-full overflow-hidden rounded-3xl px-5 py-3.5 text-[15px] leading-relaxed break-words transition-colors ${
-            isUser
-              ? "rounded-br-sm bg-[linear-gradient(145deg,#327d74,#184f49)] text-[#f4f9f8] shadow-[0_12px_32px_rgba(24,79,73,0.3)] ring-1 ring-inset ring-white/10"
-              : "rounded-bl-sm border border-[#21353a] bg-[linear-gradient(180deg,rgba(18,27,31,0.96),rgba(12,20,23,0.98))] text-[#e4f0ed] shadow-[0_14px_36px_rgba(0,0,0,0.22)] hover:border-[#2f4950]"
-          }`}
-        >
-          {isUser ? message.content : <MarkdownMessage content={message.content} />}
-        </div>
-
-        {!isUser ? (
-          <div className="flex w-full items-center gap-2 pl-1 md:w-auto md:pl-0">
-            <div className="flex items-center gap-2 md:pointer-events-auto md:opacity-80 md:transition-all md:duration-200 md:group-hover:opacity-100">
-              <button
-                type="button"
-                onClick={() => onCopy(message.content)}
-                className="flex h-8 w-8 items-center justify-center rounded-full border border-[#44666d] bg-[#143038] text-[#edf6f3] shadow-sm transition hover:scale-105 hover:border-[#7fc7ba] hover:text-white"
-                title="Copy"
-              >
-                <Copy className="h-4 w-4" />
-              </button>
-              {isLatestAssistant && onRegenerate ? (
-                <button
-                  type="button"
-                  onClick={onRegenerate}
-                  className="flex h-8 w-8 items-center justify-center rounded-full border border-[#44666d] bg-[#143038] text-[#edf6f3] shadow-sm transition hover:scale-105 hover:border-[#7fc7ba] hover:text-white"
-                  title="Regenerate"
-                >
-                  <RotateCcw className="h-4 w-4" />
-                </button>
-              ) : null}
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-[#eef7f4]" style={{ fontFamily: "'Syne', sans-serif" }}>
+                {assistantCharacter.name}
+              </p>
+              <p className="text-[11px] uppercase tracking-[0.18em] text-[#6d8882]">Assistant</p>
             </div>
           </div>
         ) : null}
 
+        <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
+          <div
+            className={`relative max-w-full overflow-hidden rounded-[30px] px-5 py-4 text-[15px] leading-7 break-words shadow-[0_16px_40px_rgba(0,0,0,0.18)] ${
+              isUser
+                ? "rounded-br-lg bg-[linear-gradient(135deg,#1d675f,#143d3a)] text-[#f4fbf8] ring-1 ring-inset ring-white/10"
+                : "rounded-bl-lg border border-white/6 bg-[linear-gradient(180deg,rgba(18,29,33,0.98),rgba(11,19,22,1))] text-[#e5f0ed]"
+            }`}
+          >
+            {isUser ? <p className="whitespace-pre-wrap">{message.content}</p> : <MarkdownMessage content={message.content} />}
+          </div>
+        </div>
+
+        {!isUser ? (
+          <div className="mt-2 flex flex-wrap items-center gap-2 pl-1">
+            <button
+              type="button"
+              onClick={() => onCopy(message.content)}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/8 bg-white/[0.03] text-[#dcece8] transition hover:border-[#7fc7ba]/50 hover:bg-white/[0.05] hover:text-white"
+              title="Copy response"
+            >
+              <Copy className="h-4 w-4" />
+            </button>
+            {isLatestAssistant && onRegenerate ? (
+              <button
+                type="button"
+                onClick={onRegenerate}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/8 bg-white/[0.03] text-[#dcece8] transition hover:border-[#7fc7ba]/50 hover:bg-white/[0.05] hover:text-white"
+                title="Regenerate response"
+              >
+                <RotateCcw className="h-4 w-4" />
+              </button>
+            ) : null}
+
+            <span className="text-[11px] text-[#6e8781]">{formatTime(message.createdAt)}</span>
+            {!isUser && totalTokens > 0 ? (
+              <span className="text-[11px] text-[#6e8781]">
+                {completionTokens > 0 ? `${completionTokens} output tokens` : `${totalTokens} total tokens`}
+                {usage?.provider ? ` via ${usage.provider}` : ""}
+              </span>
+            ) : null}
+          </div>
+        ) : (
+          <div className="mt-2 pr-1 text-right text-[11px] text-[#6e8781]">{formatTime(message.createdAt)}</div>
+        )}
+
         {!isUser && sources.length > 0 ? (
-          <div className="mt-1 grid w-full gap-2">
+          <div className="mt-3 grid gap-2 pl-1">
             {sources.map((source, index) => (
               <a
                 key={source.id || source.link || index}
                 href={source.link || source.url}
                 target="_blank"
                 rel="noreferrer"
-                className="group/source block rounded-[20px] border border-[#21353a] bg-[#0d171a]/90 px-4 py-3 text-left transition hover:border-[#4f7c75] hover:bg-[#122126]"
+                className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3 transition hover:border-[#7fc7ba]/45 hover:bg-white/[0.05]"
               >
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6b8b85] transition-colors group-hover/source:text-[#8fc4ba]">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#7f9c96]">
                     [{index + 1}] {source.source || "Source"}
                   </span>
-                  <Globe className="h-3.5 w-3.5 text-[#5e7874] transition-colors group-hover/source:text-[#8fc4ba]" />
+                  <Globe className="h-3.5 w-3.5 text-[#8eaaa4]" />
                 </div>
-                <p className="mt-1.5 text-[13px] font-medium text-[#d4e4e0] group-hover/source:text-[#f4f9f8]">{source.title}</p>
+                <p className="mt-2 text-sm font-medium text-[#eef7f4]">{source.title}</p>
                 {source.snippet || source.summary ? (
-                  <p className="mt-1 line-clamp-2 text-[12px] leading-relaxed text-[#869f9a] group-hover/source:text-[#a0bfba]">{source.snippet || source.summary}</p>
+                  <p className="mt-1 text-xs leading-6 text-[#8ca6a0]">{source.snippet || source.summary}</p>
                 ) : null}
               </a>
             ))}
           </div>
         ) : null}
-
-        {!isUser && totalTokens > 0 ? (
-          <div className="pl-1 text-[10px] text-[#6f8682]">
-            {completionTokens > 0 ? `${completionTokens} output tokens` : `${totalTokens} total tokens`}
-            {usage?.provider ? ` via ${usage.provider}` : ""}
-          </div>
-        ) : null}
-
-        <span className={`text-[10px] font-medium text-[#647c78] ${isUser ? "pr-1" : "pl-1"}`}>
-          {formatTime(message.createdAt)}
-        </span>
       </div>
     </motion.div>
   );

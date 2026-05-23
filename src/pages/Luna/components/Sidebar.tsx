@@ -1,15 +1,15 @@
 import React from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { 
-  ChevronRight, 
-  ChevronDown, 
-  Search, 
-  Home, 
-  PenSquare, 
-  Settings, 
-  Trash2, 
-  UserCircle2, 
-  X 
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Home,
+  PenSquare,
+  Search,
+  Settings,
+  Trash2,
+  UserCircle2,
+  X,
 } from "lucide-react";
 import { SidebarButton } from "./SidebarButton";
 import { formatHistoryTime } from "../utils";
@@ -33,6 +33,28 @@ interface SidebarProps {
   historyLoading?: boolean;
 }
 
+function ProfileBlock({ user, collapsed = false }) {
+  return (
+    <div className={`flex items-center ${collapsed ? "justify-center" : "gap-3"} overflow-hidden rounded-[22px] border border-white/8 bg-white/[0.03] p-3`}>
+      {user.picture ? (
+        <span className="inline-flex h-10 w-10 shrink-0 overflow-hidden rounded-2xl border border-white/10">
+          <img src={user.picture} alt={user.name} className="h-full w-full object-cover" />
+        </span>
+      ) : (
+        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-[#142428] text-[#dceae7]">
+          <UserCircle2 className="h-5 w-5" />
+        </span>
+      )}
+      {!collapsed ? (
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold text-[#eef6f3]">{user.name}</p>
+          <p className="truncate text-[11px] text-[#7f9792]">{user.email}</p>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function Sidebar({
   isSidebarOpen,
   setIsSidebarOpen,
@@ -50,144 +72,97 @@ export function Sidebar({
   setMobileSidebarOpen,
   historyLoading = false,
 }: SidebarProps) {
+  const desktopWidth = isSidebarOpen ? "w-[288px]" : "w-[92px]";
+
   return (
     <>
-      {/* Desktop Sidebar */}
       <aside
-        className={`hidden h-full flex-col overflow-hidden border-r border-white/6 bg-[linear-gradient(180deg,rgba(7,14,16,0.98),rgba(10,20,23,0.96))] shadow-[inset_-1px_0_0_rgba(255,255,255,0.04)] transition-[width] duration-300 md:flex ${
-          isSidebarOpen ? "w-[260px]" : "w-[82px]"
-        }`}
+        className={`hidden ${desktopWidth} border-r border-white/6 bg-[linear-gradient(180deg,#071317,#09191d)] md:flex md:min-h-[100dvh] md:flex-col`}
       >
-        <div className="flex h-full flex-col">
-          <div className="border-b border-white/6 p-3">
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <div className={`flex items-center gap-2 ${isSidebarOpen ? "" : "justify-center w-full"}`}>
-                <motion.div
-                  animate={{
-                    boxShadow: [
-                      "0 0 0 rgba(255,255,255,0.08)",
-                      "0 0 18px rgba(255,255,255,0.25)",
-                      "0 0 0 rgba(255,255,255,0.08)",
-                    ],
-                  }}
-                  transition={{ repeat: Infinity, duration: 2.4, ease: "easeInOut" }}
-                  className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-[#0f2124]"
-                >
-                  <img src={brandLogo} alt="Luna logo" className="h-full w-full object-cover rounded-[inherit] drop-shadow-[0_0_8px_rgba(255,255,255,0.45)]" />
-                </motion.div>
-                {isSidebarOpen ? (
-                  <h1 className="text-xl font-semibold tracking-tight" style={{ fontFamily: "'Syne', sans-serif" }}>
+        <div className="flex h-full flex-col gap-4 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className={`flex min-w-0 items-center gap-3 ${isSidebarOpen ? "" : "w-full justify-center"}`}>
+              <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-[#102126] shadow-[0_14px_36px_rgba(0,0,0,0.28)]">
+                <img src={brandLogo} alt="Luna logo" className="h-full w-full object-cover" />
+              </span>
+              {isSidebarOpen ? (
+                <div className="min-w-0">
+                  <p className="text-[11px] uppercase tracking-[0.22em] text-[#7d9993]">Workspace</p>
+                  <h1 className="truncate text-xl font-semibold text-[#f6fbfa]" style={{ fontFamily: "'Syne', sans-serif" }}>
                     Luna
                   </h1>
-                ) : null}
-              </div>
-
-              {isSidebarOpen ? (
-                <button
-                  type="button"
-                  onClick={() => setIsSidebarOpen(false)}
-                  className="rounded-xl border border-[#274149] bg-[#0f1f24] p-1.5 text-[#cbe0dc] transition duration-300 hover:-translate-y-0.5 hover:border-[#4f7c75]"
-                  title="Collapse"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setIsSidebarOpen(true)}
-                  className="mx-auto rounded-xl border border-[#274149] bg-[#0f1f24] p-1.5 text-[#cbe0dc] transition duration-300 hover:-translate-y-0.5 hover:border-[#4f7c75]"
-                  title="Expand"
-                >
-                  <ChevronDown className="h-4 w-4" />
-                </button>
-              )}
+                </div>
+              ) : null}
             </div>
-
-            {isSidebarOpen ? (
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6f8682]" />
-                <input
-                  value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                  placeholder="Search chats..."
-                  className="w-full rounded-2xl border border-[#1f3135] bg-[#0c1719] py-2 pl-9 pr-3 text-sm text-[#e7f0ee] outline-none transition focus:border-[#4f7c75] focus:shadow-[0_0_0_2px_rgba(79,124,117,0.2)]"
-                />
-              </div>
-            ) : null}
+            <button
+              type="button"
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-[#294249] bg-[#102126] text-[#d7ebe7] transition hover:border-[#7fc7ba]/70 ${isSidebarOpen ? "" : "mx-auto"}`}
+              title={isSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+            >
+              {isSidebarOpen ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            </button>
           </div>
 
-          <div className="luna-scrollbar flex-1 overflow-y-auto px-3 py-3">
-            <motion.div
-              initial="hidden"
-              animate="show"
-              variants={{
-                hidden: {},
-                show: {
-                  transition: { staggerChildren: 0.04 },
-                },
-              }}
-              className="space-y-2"
-            >
-              <motion.div variants={{ hidden: { opacity: 0, x: -20 }, show: { opacity: 1, x: 0 } }}>
-                <SidebarButton icon={Home} label="Home" collapsed={!isSidebarOpen} onClick={() => navigate("/")} />
-              </motion.div>
+          {isSidebarOpen ? (
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6f8682]" />
+              <input
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Search saved chats"
+                className="w-full rounded-[20px] border border-white/8 bg-[#0c171a] py-3 pl-11 pr-4 text-sm text-[#edf5f2] outline-none transition focus:border-[#7fc7ba]/70"
+              />
+            </div>
+          ) : null}
 
-              <motion.div variants={{ hidden: { opacity: 0, x: -20 }, show: { opacity: 1, x: 0 } }}>
-                <SidebarButton icon={PenSquare} label="New Chat" collapsed={!isSidebarOpen} onClick={() => createFreshSession()} />
-              </motion.div>
+          <div className="space-y-2">
+            <SidebarButton icon={PenSquare} label="New Chat" collapsed={!isSidebarOpen} onClick={() => createFreshSession()} />
+            <SidebarButton icon={Home} label="Home" collapsed={!isSidebarOpen} onClick={() => navigate("/")} />
+            <SidebarButton icon={Settings} label="Settings" collapsed={!isSidebarOpen} onClick={() => navigate("/profile")} />
+          </div>
 
-              <motion.div variants={{ hidden: { opacity: 0, x: -20 }, show: { opacity: 1, x: 0 } }}>
-                <SidebarButton icon={Settings} label="Settings" collapsed={!isSidebarOpen} onClick={() => navigate("/profile")} />
-              </motion.div>
-            </motion.div>
-
+          <div className="min-h-0 flex-1 overflow-hidden">
             {isSidebarOpen ? (
-              <>
-                <div className="mb-2 mt-5 px-1 text-[11px] uppercase tracking-[0.14em] text-[#6f8682]">Recent Chats</div>
-                <div className="luna-scrollbar max-h-[400px] space-y-2 overflow-y-auto pr-1">
+              <div className="flex h-full flex-col overflow-hidden rounded-[26px] border border-white/6 bg-[#0a1417]/90">
+                <div className="border-b border-white/6 px-4 py-3">
+                  <p className="text-[11px] uppercase tracking-[0.2em] text-[#76918b]">Recent Chats</p>
+                </div>
+                <div className="luna-scrollbar flex-1 space-y-2 overflow-y-auto p-3">
                   {historyLoading ? (
-                    Array.from({ length: 5 }).map((_, i) => (
-                      <div key={i} className="px-2 py-2 space-y-2">
-                        <Skeleton width="80%" height="14px" />
-                        <Skeleton width="40%" height="10px" />
+                    Array.from({ length: 6 }).map((_, index) => (
+                      <div key={index} className="rounded-[18px] border border-white/5 bg-white/[0.02] p-3">
+                        <Skeleton width="78%" height="14px" />
+                        <div className="mt-2">
+                          <Skeleton width="40%" height="10px" />
+                        </div>
                       </div>
                     ))
                   ) : historyList.length === 0 ? (
-                    <p className="px-2 py-2 text-xs text-[#7a938e]">No chats found.</p>
+                    <div className="rounded-[18px] border border-dashed border-white/10 px-4 py-5 text-sm text-[#7c928d]">
+                      No chats yet. Start a new thread.
+                    </div>
                   ) : (
                     historyList.map((session) => {
                       const active = session.id === activeSession?.id;
-
                       return (
                         <div
                           key={session.id}
-                          className={`group relative rounded-xl border px-2.5 py-2 transition ${
+                          className={`group relative rounded-[18px] border p-3 transition ${
                             active
-                              ? "border-[#4f7c75] bg-[#102126]"
-                              : "border-transparent bg-[#0c1719] hover:border-[#274149]"
+                              ? "border-[#7fc7ba]/40 bg-[linear-gradient(180deg,#102126,#0f1d21)] shadow-[0_10px_30px_rgba(0,0,0,0.22)]"
+                              : "border-transparent bg-white/[0.02] hover:border-white/10 hover:bg-white/[0.04]"
                           }`}
                         >
-                          {active ? (
-                            <motion.span
-                              layoutId="luna-active-session"
-                              className="absolute left-0 top-1/2 h-[70%] w-[3px] -translate-y-1/2 rounded-r-full bg-[#e1ba6d]"
-                            />
-                          ) : null}
-
-                          <button
-                            type="button"
-                            onClick={() => handleSelectSession(session.id)}
-                            className="w-full text-left"
-                          >
-                            <p className="truncate pr-6 text-sm text-[#ecf5f3] font-medium">{session.title}</p>
-                            <p className="text-[11px] text-[#7a938e]">{formatHistoryTime(session.updatedAt)}</p>
+                          <button type="button" onClick={() => handleSelectSession(session.id)} className="block w-full pr-8 text-left">
+                            <p className="truncate text-sm font-medium text-[#ecf5f2]">{session.title}</p>
+                            <p className="mt-1 text-[11px] text-[#78918b]">{formatHistoryTime(session.updatedAt)}</p>
                           </button>
-
                           <button
                             type="button"
                             onClick={() => handleDeleteSession(session.id)}
-                            className="absolute right-1.5 top-1.5 rounded-md p-1 text-[#9ab7b1] opacity-0 transition group-hover:opacity-100 hover:bg-[#102126]"
-                            title="Delete"
+                            className="absolute right-2 top-2 inline-flex h-8 w-8 items-center justify-center rounded-xl text-[#91ada7] opacity-0 transition hover:bg-white/[0.06] hover:text-white group-hover:opacity-100"
+                            title="Delete chat"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
@@ -196,123 +171,140 @@ export function Sidebar({
                     })
                   )}
                 </div>
-              </>
-            ) : null}
-          </div>
-
-          <div className="border-t border-white/6 p-3">
-            {isSidebarOpen ? (
-              <div className="flex items-center gap-2 overflow-hidden rounded-2xl border border-[#1f3135] bg-[#0c1719]/95 px-2.5 py-2.5 shadow-lg">
-                {user.picture ? (
-                  <span className="inline-flex h-9 w-9 shrink-0 overflow-hidden rounded-full border border-white/10">
-                    <img src={user.picture} alt={user.name} className="h-full w-full object-cover" />
-                  </span>
-                ) : (
-                  <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#102126] text-[#d5ebe6] border border-white/10">
-                    <UserCircle2 className="h-5 w-5" />
-                  </span>
-                )}
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[13px] font-semibold text-[#f0f6f5]">{user.name}</p>
-                  <p className="truncate text-[11px] text-[#6f8682]">{user.email}</p>
-                </div>
               </div>
             ) : (
-              <div className="flex justify-center">
-                {user.picture ? (
-                  <span className="inline-flex h-9 w-9 shrink-0 overflow-hidden rounded-full border border-white/10">
-                    <img src={user.picture} alt={user.name} className="h-full w-full object-cover" />
-                  </span>
-                ) : (
-                  <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#102126] text-[#d5ebe6] border border-white/10">
-                    <UserCircle2 className="h-5 w-5" />
-                  </span>
-                )}
+              <div className="flex h-full flex-col items-center gap-3 pt-2">
+                {historyList.slice(0, 6).map((session) => {
+                  const active = session.id === activeSession?.id;
+                  return (
+                    <button
+                      key={session.id}
+                      type="button"
+                      onClick={() => handleSelectSession(session.id)}
+                      className={`h-10 w-10 rounded-2xl border transition ${active ? "border-[#7fc7ba]/50 bg-[#143038]" : "border-white/8 bg-white/[0.03] hover:border-white/14"}`}
+                      title={session.title}
+                    />
+                  );
+                })}
               </div>
             )}
           </div>
+
+          <ProfileBlock user={user} collapsed={!isSidebarOpen} />
         </div>
       </aside>
 
-      {/* Mobile Sidebar */}
       <AnimatePresence>
         {mobileSidebarOpen ? (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm md:hidden"
+            className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm md:hidden"
             onClick={() => setMobileSidebarOpen(false)}
           >
-            <motion.div
-              initial={{ x: -22, opacity: 0 }}
+            <motion.aside
+              initial={{ x: -32, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
-              exit={{ x: -22, opacity: 0 }}
-              className="h-full w-[90vw] max-w-[340px] border-r border-white/6 bg-[linear-gradient(180deg,rgba(7,14,16,0.98),rgba(10,20,23,0.96))]"
+              exit={{ x: -32, opacity: 0 }}
+              className="flex h-full w-[92vw] max-w-[360px] flex-col bg-[linear-gradient(180deg,#071317,#0a191d)] p-4"
               onClick={(event) => event.stopPropagation()}
             >
-              <div className="flex h-14 items-center justify-between border-b border-white/6 px-3">
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex h-7 w-7 items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-[#0f2124]">
-                    <img src={brandLogo} alt="Luna logo" className="h-full w-full object-cover rounded-[inherit]" />
+              <div className="mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-[#102126]">
+                    <img src={brandLogo} alt="Luna logo" className="h-full w-full object-cover" />
                   </span>
-                  <h2 style={{ fontFamily: "'Syne', sans-serif" }} className="text-lg font-semibold">Luna</h2>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.22em] text-[#7d9993]">Workspace</p>
+                    <h2 className="text-lg font-semibold text-white" style={{ fontFamily: "'Syne', sans-serif" }}>Luna</h2>
+                  </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setMobileSidebarOpen(false)}
-                  className="rounded-xl border border-[#274149] bg-[#0f1f24] p-1.5 transition duration-300 hover:-translate-y-0.5 hover:border-[#4f7c75]"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-[#294249] bg-[#102126] text-[#dcece8]"
                 >
                   <X className="h-4 w-4" />
                 </button>
               </div>
 
-              <div className="luna-scrollbar h-[calc(100%-56px)] overflow-y-auto p-3">
-                <div className="relative mb-4">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6f8682]" />
-                  <input
-                    value={searchQuery}
-                    onChange={(event) => setSearchQuery(event.target.value)}
-                    placeholder="Search chats..."
-                    className="w-full rounded-2xl border border-[#1f3135] bg-[#0c1719] py-2 pl-9 pr-3 text-sm text-[#e7f0ee] outline-none"
-                  />
-                </div>
+              <div className="relative mb-4">
+                <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6f8682]" />
+                <input
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder="Search saved chats"
+                  className="w-full rounded-[20px] border border-white/8 bg-[#0c171a] py-3 pl-11 pr-4 text-sm text-[#edf5f2] outline-none transition focus:border-[#7fc7ba]/70"
+                />
+              </div>
 
-                <div className="space-y-2">
-                  <SidebarButton icon={Home} label="Home" onClick={() => { navigate("/"); setMobileSidebarOpen(false); }} />
-                  <SidebarButton icon={PenSquare} label="New Chat" onClick={() => { createFreshSession(); setMobileSidebarOpen(false); }} />
-                  <SidebarButton icon={Settings} label="Settings" onClick={() => { navigate("/profile"); setMobileSidebarOpen(false); }} />
-                </div>
+              <div className="space-y-2">
+                <SidebarButton icon={PenSquare} label="New Chat" onClick={() => { createFreshSession(); setMobileSidebarOpen(false); }} />
+                <SidebarButton icon={Home} label="Home" onClick={() => { navigate("/"); setMobileSidebarOpen(false); }} />
+                <SidebarButton icon={Settings} label="Settings" onClick={() => { navigate("/profile"); setMobileSidebarOpen(false); }} />
+              </div>
 
-                <div className="mb-2 mt-6 text-[11px] uppercase tracking-[0.14em] text-[#6f8682] px-1">Recent Chats</div>
-                <div className="space-y-1.5">
+              <div className="mt-4 min-h-0 flex-1 overflow-hidden rounded-[26px] border border-white/6 bg-[#0a1417]/90">
+                <div className="border-b border-white/6 px-4 py-3">
+                  <p className="text-[11px] uppercase tracking-[0.2em] text-[#76918b]">Recent Chats</p>
+                </div>
+                <div className="luna-scrollbar flex-1 space-y-2 overflow-y-auto p-3">
                   {historyLoading ? (
-                    Array.from({ length: 4 }).map((_, i) => (
-                      <div key={i} className="px-2 py-2 space-y-2">
-                        <Skeleton width="90%" height="14px" />
-                        <Skeleton width="50%" height="10px" />
+                    Array.from({ length: 5 }).map((_, index) => (
+                      <div key={index} className="rounded-[18px] border border-white/5 bg-white/[0.02] p-3">
+                        <Skeleton width="78%" height="14px" />
+                        <div className="mt-2">
+                          <Skeleton width="40%" height="10px" />
+                        </div>
                       </div>
                     ))
+                  ) : historyList.length === 0 ? (
+                    <div className="rounded-[18px] border border-dashed border-white/10 px-4 py-5 text-sm text-[#7c928d]">
+                      No chats yet. Start a new thread.
+                    </div>
                   ) : (
-                    historyList.map((session) => (
-                      <button
-                        key={session.id}
-                        type="button"
-                        onClick={() => handleSelectSession(session.id)}
-                        className={`block w-full rounded-xl px-3 py-2.5 text-left text-sm transition ${
-                          session.id === activeSession?.id
-                            ? "bg-[#102126] text-[#ecf5f3] border border-[#4f7c75]/50"
-                            : "bg-[#0c1719] text-[#d5e6e3] border border-transparent"
-                        }`}
-                      >
-                        <p className="truncate font-medium">{session.title}</p>
-                        <p className="text-[11px] text-[#7a938e]">{formatHistoryTime(session.updatedAt)}</p>
-                      </button>
-                    ))
+                    historyList.map((session) => {
+                      const active = session.id === activeSession?.id;
+                      return (
+                        <div
+                          key={session.id}
+                          className={`group relative rounded-[18px] border p-3 transition ${
+                            active
+                              ? "border-[#7fc7ba]/40 bg-[linear-gradient(180deg,#102126,#0f1d21)]"
+                              : "border-transparent bg-white/[0.02] hover:border-white/10 hover:bg-white/[0.04]"
+                          }`}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleSelectSession(session.id);
+                              setMobileSidebarOpen(false);
+                            }}
+                            className="block w-full pr-8 text-left"
+                          >
+                            <p className="truncate text-sm font-medium text-[#ecf5f2]">{session.title}</p>
+                            <p className="mt-1 text-[11px] text-[#78918b]">{formatHistoryTime(session.updatedAt)}</p>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteSession(session.id)}
+                            className="absolute right-2 top-2 inline-flex h-8 w-8 items-center justify-center rounded-xl text-[#91ada7] hover:bg-white/[0.06] hover:text-white"
+                            title="Delete chat"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      );
+                    })
                   )}
                 </div>
               </div>
-            </motion.div>
+
+              <div className="mt-4">
+                <ProfileBlock user={user} />
+              </div>
+            </motion.aside>
           </motion.div>
         ) : null}
       </AnimatePresence>
