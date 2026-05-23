@@ -458,20 +458,23 @@ export default function Luna() {
         />
 
         <section className="relative flex min-w-0 flex-1 flex-col">
-          <div className="flex items-center justify-between gap-3 border-b border-white/6 bg-black/10 px-3 py-3 backdrop-blur md:hidden">
+          <div className="flex items-center justify-between gap-3 border-b border-white/6 bg-black/10 px-3 py-3 backdrop-blur">
             <div className="flex min-w-0 items-center gap-2">
               <button onClick={() => setMobileSidebarOpen(true)} className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/8 bg-white/[0.04] text-[#d2e7e2]">
                 <Menu className="h-4 w-4" />
               </button>
               <div className="min-w-0">
                 <p className="text-[11px] uppercase tracking-[0.18em] text-[#7a938e]">Luna Workspace</p>
-                <h1 className="truncate text-base font-semibold text-[#f4f8f7]" style={{ fontFamily: "'Syne', sans-serif" }}>
+                <h1 className="truncate text-base font-semibold text-[#f4f8f7] md:text-[1.05rem]" style={{ fontFamily: "'Syne', sans-serif" }}>
                   {activeSession?.title || "New chat"}
                 </h1>
               </div>
             </div>
             <div className="flex items-center gap-2">
               {(canInstallApp || showIosInstallHint) && <InstallLunaButton compact onInstall={handleInstallLuna} disabled={installingApp} />}
+              <div className="hidden md:block">
+                <div className="rounded-full border border-white/8 bg-white/[0.03] px-3 py-1.5 text-xs text-[#8fb0aa]">{formatDateLabel()}</div>
+              </div>
               <button onClick={() => createFreshSession()} className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/8 bg-white/[0.04] text-[#d2e7e2]">
                 <Plus className="h-4 w-4" />
               </button>
@@ -481,25 +484,6 @@ export default function Luna() {
 
           <div className="mx-auto w-full max-w-[1560px] px-3 pt-3 md:px-6 md:pt-5">
             <AnnouncementBanner className="mb-3" />
-          </div>
-          
-          <div className="mx-auto hidden w-full max-w-[1560px] items-center justify-between px-3 md:flex md:px-6">
-            <div className="flex min-w-0 items-center gap-5">
-              <div className="min-w-0">
-                <p className="text-[11px] uppercase tracking-[0.2em] text-[#78938d]">Workspace briefing</p>
-                <h1 className="truncate text-[1.7rem] font-semibold text-[#f5f8f7]" style={{ fontFamily: "'Syne', sans-serif" }}>
-                  {activeSession?.title || "New chat"}
-                </h1>
-              </div>
-              <div className="hidden xl:flex items-center gap-2">
-                {modePills.slice(0, 3).map((pill) => <span key={pill} className="rounded-full border border-white/8 bg-white/[0.03] px-3 py-1.5 text-xs text-[#d0e2de]">{pill}</span>)}
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              {(canInstallApp || showIosInstallHint) && <InstallLunaButton onInstall={handleInstallLuna} disabled={installingApp} />}
-              <div className="rounded-full border border-white/8 bg-white/[0.03] px-3 py-1.5 text-xs text-[#8fb0aa]">{formatDateLabel()}</div>
-              <ModelSelector selectedModel={selectedModel} onSelect={setSelectedModel} />
-            </div>
           </div>
 
           <div className="relative flex-1 overflow-hidden px-3 pb-3 pt-3 md:px-6 md:pt-4">

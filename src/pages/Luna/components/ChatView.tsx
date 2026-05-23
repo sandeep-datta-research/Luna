@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowDown, Clock3, Loader2, Sparkles, Zap } from "lucide-react";
+import { ArrowDown, Loader2, Sparkles } from "lucide-react";
 import { MessageBubble } from "./MessageBubble";
 import { TypingIndicator } from "./TypingIndicator";
 import { CharacterCards } from "./CharacterCards";
@@ -113,54 +113,36 @@ export function ChatView({
     >
       <div className="mx-auto grid w-full max-w-[1560px] gap-5 pb-8 pt-2 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="min-w-0">
-          <section className="sticky top-0 z-10 mb-4 rounded-[34px] border border-white/6 bg-[linear-gradient(180deg,rgba(9,18,21,0.94),rgba(7,14,17,0.9))] p-4 shadow-[0_18px_44px_rgba(0,0,0,0.18)] backdrop-blur-xl md:p-5">
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                <div className="min-w-0">
-                  <div className="mb-3 flex flex-wrap items-center gap-2">
-                    <span className="inline-flex items-center gap-2 rounded-full border border-[#2b4348] bg-[#11252a] px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-[#8faca6]">
-                      <Zap className="h-3.5 w-3.5" />
-                      Live workspace
-                    </span>
-                    <span className="inline-flex items-center gap-2 rounded-full border border-[#5a4d2b] bg-[#2a2215] px-3 py-1 text-[11px] text-[#f0d79b]">
-                      <Clock3 className="h-3.5 w-3.5" />
-                      Updated {formatHistoryTime(activeSession?.updatedAt)}
-                    </span>
-                  </div>
-                  <h2 className="max-w-[22ch] text-2xl font-semibold leading-tight text-[#f6fbfa] md:text-[2rem]" style={{ fontFamily: "'Syne', sans-serif" }}>
-                    {activeSession?.title || "New chat"}
-                  </h2>
-                  <p className="mt-2 max-w-2xl text-sm leading-6 text-[#8ea7a1]">
-                    A cleaner execution surface for research, writing, strategy, and multimode replies. Switch tone, modes, and characters without breaking the thread.
-                  </p>
-                </div>
-
-                <div className="flex min-w-0 flex-wrap gap-2 lg:max-w-[40%] lg:justify-end">
-                  {modePills.map((pill) => (
-                    <span key={pill} className="rounded-full border border-white/8 bg-white/[0.03] px-3 py-1.5 text-xs text-[#d5e7e3]">
-                      {pill}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="inline-flex min-w-0 items-center gap-3 rounded-[22px] border border-[#2c454b] bg-[#102126] px-3 py-2">
-                  <span className="inline-flex h-11 w-11 shrink-0 overflow-hidden rounded-2xl border border-white/10">
+          <section className="mb-4 rounded-[30px] border border-white/6 bg-[linear-gradient(180deg,rgba(9,18,21,0.9),rgba(7,14,17,0.86))] p-3 shadow-[0_18px_44px_rgba(0,0,0,0.16)] backdrop-blur-xl md:p-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex min-w-0 flex-wrap items-center gap-2.5">
+                <div className="inline-flex min-w-0 items-center gap-3 rounded-[20px] border border-[#2c454b] bg-[#102126] px-3 py-2">
+                  <span className="inline-flex h-10 w-10 shrink-0 overflow-hidden rounded-2xl border border-white/10">
                     <img src={activeCharacter.portrait} alt={activeCharacter.name} className="h-full w-full object-cover" />
                   </span>
                   <div className="min-w-0">
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-[#84a7a0]">Active character</p>
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-[#84a7a0]">Thread voice</p>
                     <p className="truncate text-sm font-semibold text-[#eef7f4]">{activeCharacter.name}</p>
                   </div>
                 </div>
 
+                <span className="rounded-full border border-white/8 bg-white/[0.03] px-3 py-1.5 text-xs text-[#90aaa5]">
+                  Updated {formatHistoryTime(activeSession?.updatedAt)}
+                </span>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+                {modePills.map((pill) => (
+                  <span key={pill} className="rounded-full border border-white/8 bg-white/[0.03] px-3 py-1.5 text-xs text-[#d5e7e3]">
+                    {pill}
+                  </span>
+                ))}
                 <button
                   type="button"
                   onClick={() => setShowMobileRail((prev) => !prev)}
-                  className="inline-flex items-center gap-2 rounded-[22px] border border-white/8 bg-white/[0.03] px-3 py-2 text-sm text-[#d7ebe7] xl:hidden"
+                  className="inline-flex items-center gap-2 rounded-full border border-white/8 bg-white/[0.03] px-3 py-1.5 text-xs text-[#d7ebe7] xl:hidden"
                 >
-                  <Sparkles className="h-4 w-4" />
+                  <Sparkles className="h-3.5 w-3.5" />
                   {showMobileRail ? "Hide controls" : "Open controls"}
                 </button>
               </div>
