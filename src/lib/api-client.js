@@ -24,16 +24,32 @@ function normalizeApiBase(input) {
   return value.replace(/\/$/, "");
 }
 
+function isLikelyStaticFrontendHost(hostname) {
+  const value = typeof hostname === "string" ? hostname.trim().toLowerCase() : "";
+  if (!value) return false;
+
+  return (
+    value.endsWith(".github.io") ||
+    value.endsWith(".vercel.app") ||
+    value.endsWith(".netlify.app") ||
+    value.endsWith(".pages.dev")
+  );
+}
+
 const API_BASE_URL = normalizeApiBase(import.meta.env.VITE_API_URL || "");
 const FALLBACK_API_BASE_URLS = [
   normalizeApiBase(import.meta.env.VITE_API_FALLBACK_URL || ""),
   normalizeApiBase("https://luna-backend-yc4e.onrender.com"),
 ];
+const SHOULD_TRY_SAME_ORIGIN_API =
+  IS_LOCAL_HOST ||
+  (IS_BROWSER && !isLikelyStaticFrontendHost(window.location.hostname || ""));
 
 const DEFAULT_BASES = [
   API_BASE_URL,
   ...(!IS_LOCAL_HOST ? FALLBACK_API_BASE_URLS : []),
-  ...(IS_LOCAL_HOST ? ["", "http://localhost:5108", "http://localhost:5112", "http://localhost:5000"] : [""]),
+  ...(SHOULD_TRY_SAME_ORIGIN_API ? [""] : []),
+  ...(IS_LOCAL_HOST ? ["http://localhost:5108", "http://localhost:5112", "http://localhost:5000"] : []),
 ].map((base) => (typeof base === "string" ? base.replace(/\/$/, "") : ""));
 
 export const API_BASE_URLS = [...new Set(DEFAULT_BASES.filter((value) => value !== null && value !== undefined))];
@@ -160,7 +176,7 @@ export async function fetchApi(path, options = {}, headerMode = { includeAuth: t
     return {
       ...lastResult,
       message: API_BASE_URLS.some((base) => /^https?:\/\//i.test(base))
-        ? "Cannot reach backend API. Check VITE_API_URL and backend availability."
+        ? "Cannot reach backend API. Check VITE_API_URL, backend availability, and backend CORS allowed origins."
         : "Cannot reach backend API. Start backend with: cd server && npm start (default port 5108).",
     };
   }
@@ -350,7 +366,9 @@ export async function streamApi(path, options = {}, handlers = {}, headerMode = 
   if (lastResult.status === 0) {
     return {
       ...lastResult,
-      message: "Cannot reach backend API. Start backend with: cd server && npm start (default port 5108).",
+      message: API_BASE_URLS.some((base) => /^https?:\/\//i.test(base))
+        ? "Cannot reach backend API. Check VITE_API_URL, backend availability, and backend CORS allowed origins."
+        : "Cannot reach backend API. Start backend with: cd server && npm start (default port 5108).",
     };
   }
 
