@@ -89,7 +89,7 @@ export function MessageBubble({
             className={`relative min-w-0 max-w-full overflow-hidden rounded-[28px] px-4 py-4 text-[15px] leading-7 break-words shadow-[0_16px_40px_rgba(0,0,0,0.16)] md:px-5 ${
               isUser
                 ? "rounded-br-lg bg-[linear-gradient(135deg,#1d675f,#143d3a)] text-[#f4fbf8] ring-1 ring-inset ring-white/10"
-                : "rounded-bl-lg border border-white/6 bg-[linear-gradient(180deg,rgba(16,27,31,0.98),rgba(10,18,21,1))] text-[#e5f0ed]"
+                : "rounded-bl-lg border border-[#21343a] bg-[#102126] text-[#edf7f4]"
             }`}
           >
             {isUser ? <p className="whitespace-pre-wrap">{message.content}</p> : <MarkdownMessage content={message.content} />}
@@ -101,7 +101,7 @@ export function MessageBubble({
             <button
               type="button"
               onClick={() => onCopy(message.content)}
-              className="inline-flex h-9 items-center justify-center gap-2 rounded-full border border-white/8 bg-white/[0.03] px-3 text-[#dcece8] transition hover:border-[#7fc7ba]/50 hover:bg-white/[0.05] hover:text-white"
+              className="inline-flex h-9 items-center justify-center gap-2 rounded-full border border-[#21343a] bg-[#0f1b1f] px-3 text-[#eef7f4] transition hover:border-[#7fc7ba]/50 hover:bg-[#13242a] hover:text-white"
               title="Copy response"
             >
               <Copy className="h-4 w-4" />
@@ -111,7 +111,7 @@ export function MessageBubble({
               <button
                 type="button"
                 onClick={onRegenerate}
-                className="inline-flex h-9 items-center justify-center gap-2 rounded-full border border-white/8 bg-white/[0.03] px-3 text-[#dcece8] transition hover:border-[#7fc7ba]/50 hover:bg-white/[0.05] hover:text-white"
+                className="inline-flex h-9 items-center justify-center gap-2 rounded-full border border-[#21343a] bg-[#0f1b1f] px-3 text-[#eef7f4] transition hover:border-[#7fc7ba]/50 hover:bg-[#13242a] hover:text-white"
                 title="Regenerate response"
               >
                 <RotateCcw className="h-4 w-4" />
@@ -119,16 +119,16 @@ export function MessageBubble({
               </button>
             ) : null}
 
-            <span className="text-[11px] text-[#6e8781]">{formatTime(message.createdAt)}</span>
+            <span className="text-[11px] text-[#a0b4b0]">{formatTime(message.createdAt)}</span>
             {!isUser && totalTokens > 0 ? (
-              <span className="text-[11px] text-[#6e8781]">
+              <span className="text-[11px] text-[#a0b4b0]">
                 {completionTokens > 0 ? `${completionTokens} output tokens` : `${totalTokens} total tokens`}
                 {usage?.provider ? ` via ${usage.provider}` : ""}
               </span>
             ) : null}
           </div>
         ) : (
-          <div className="mt-2 pr-1 text-right text-[11px] text-[#6e8781]">{formatTime(message.createdAt)}</div>
+          <div className="mt-2 pr-1 text-right text-[11px] text-[#a0b4b0]">{formatTime(message.createdAt)}</div>
         )}
 
         {!isUser && sources.length > 0 ? (
@@ -139,7 +139,7 @@ export function MessageBubble({
                 href={source.link || source.url}
                 target="_blank"
                 rel="noreferrer"
-                className="min-w-0 rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3 transition hover:border-[#7fc7ba]/45 hover:bg-white/[0.05]"
+                className="min-w-0 rounded-[20px] border border-[#21343a] bg-[#0f1b1f] px-4 py-3 transition hover:border-[#7fc7ba]/45 hover:bg-[#13242a]"
               >
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#7f9c96]">

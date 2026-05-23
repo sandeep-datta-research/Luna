@@ -13,7 +13,7 @@ export function ModelSelector({ selectedModel, onSelect }) {
         whileTap={{ scale: 0.97 }}
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="inline-flex min-h-10 max-w-full items-center gap-2 rounded-full border border-[#36545a] bg-[#102126] px-3 py-1.5 text-sm text-[#f2f6f7] shadow-[0_8px_20px_rgba(0,0,0,0.22)] transition-all duration-150 hover:border-[#7fc7ba]/70"
+        className="inline-flex min-h-11 max-w-full items-center gap-2 rounded-2xl border border-[#21343a] bg-[#0f1d21] px-3 py-2 text-sm text-[#f2f6f7] shadow-[0_8px_20px_rgba(0,0,0,0.18)] transition-all duration-150 hover:border-[#7fc7ba]/70"
       >
         <span className="truncate">{selected.label}</span>
         <ChevronDown className="h-4 w-4 shrink-0 text-[#d9ebe7]" />
@@ -25,7 +25,7 @@ export function ModelSelector({ selectedModel, onSelect }) {
             initial={{ opacity: 0, y: -8, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.98 }}
-            className="absolute right-0 z-40 mt-2 w-56 overflow-hidden rounded-2xl border border-white/10 bg-[#091316] p-1 shadow-[0_18px_44px_rgba(0,0,0,0.45)]"
+            className="absolute right-0 z-40 mt-2 w-56 overflow-hidden rounded-2xl border border-[#21343a] bg-[#0c171a] p-1 shadow-[0_18px_44px_rgba(0,0,0,0.32)]"
           >
             {MODEL_OPTIONS.map((model) => (
               <button
@@ -39,8 +39,8 @@ export function ModelSelector({ selectedModel, onSelect }) {
                 }}
                 className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition-colors ${
                   model.available
-                    ? "text-[#e6eff0] hover:bg-[#102126]"
-                    : "cursor-not-allowed text-[#6f8380]"
+                    ? "text-[#eef6f4] hover:bg-[#13242a]"
+                    : "cursor-not-allowed text-[#90a39f]"
                 }`}
               >
                 <span>{model.label}</span>

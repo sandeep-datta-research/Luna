@@ -436,7 +436,7 @@ export default function Luna() {
         .luna-fade-lift { animation: lunaFadeLift 0.42s cubic-bezier(0.22, 1, 0.36, 1); }
       `}</style>
 
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_16%,rgba(127,199,186,0.14),transparent_24%),radial-gradient(circle_at_88%_14%,rgba(225,186,109,0.12),transparent_20%),radial-gradient(circle_at_50%_38%,rgba(20,45,49,0.6),transparent_54%),linear-gradient(180deg,#061114,#071317)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_10%_12%,rgba(127,199,186,0.08),transparent_20%),radial-gradient(circle_at_90%_10%,rgba(225,186,109,0.07),transparent_18%),linear-gradient(180deg,#061114,#081417)]" />
 
       <div className="relative z-10 flex min-h-[100dvh]">
         <Sidebar
@@ -458,28 +458,30 @@ export default function Luna() {
         />
 
         <section className="relative flex min-w-0 flex-1 flex-col">
-          <div className="flex items-center justify-between gap-3 border-b border-white/6 bg-black/10 px-3 py-3 backdrop-blur">
+          <div className="border-b border-[#16262b] bg-[#081417] px-3 py-3 md:px-6">
+            <div className="mx-auto flex w-full max-w-[1560px] flex-wrap items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2">
-              <button onClick={() => setMobileSidebarOpen(true)} className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/8 bg-white/[0.04] text-[#d2e7e2]">
+              <button onClick={() => setMobileSidebarOpen(true)} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[#21343a] bg-[#0f1d21] text-[#e3f0ed] md:hidden">
                 <Menu className="h-4 w-4" />
               </button>
               <div className="min-w-0">
-                <p className="text-[11px] uppercase tracking-[0.18em] text-[#7a938e]">Luna Workspace</p>
-                <h1 className="truncate text-base font-semibold text-[#f4f8f7] md:text-[1.05rem]" style={{ fontFamily: "'Syne', sans-serif" }}>
+                <p className="text-[11px] uppercase tracking-[0.18em] text-[#95b0aa]">Luna Workspace</p>
+                <h1 className="truncate text-base font-semibold text-[#f6fbfa] md:text-[1.05rem]" style={{ fontFamily: "'Syne', sans-serif" }}>
                   {activeSession?.title || "New chat"}
                 </h1>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center justify-end gap-2">
               {(canInstallApp || showIosInstallHint) && <InstallLunaButton compact onInstall={handleInstallLuna} disabled={installingApp} />}
               <div className="hidden md:block">
-                <div className="rounded-full border border-white/8 bg-white/[0.03] px-3 py-1.5 text-xs text-[#8fb0aa]">{formatDateLabel()}</div>
+                <div className="rounded-full border border-[#21343a] bg-[#0f1d21] px-3 py-1.5 text-xs text-[#c8dad6]">{formatDateLabel()}</div>
               </div>
-              <button onClick={() => createFreshSession()} className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/8 bg-white/[0.04] text-[#d2e7e2]">
+              <button onClick={() => createFreshSession()} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[#21343a] bg-[#0f1d21] text-[#e3f0ed]">
                 <Plus className="h-4 w-4" />
               </button>
               <ModelSelector selectedModel={selectedModel} onSelect={setSelectedModel} />
             </div>
+          </div>
           </div>
 
           <div className="mx-auto w-full max-w-[1560px] px-3 pt-3 md:px-6 md:pt-5">
@@ -546,7 +548,7 @@ export default function Luna() {
           </div>
 
           {visibleMain && (
-            <div className="border-t border-white/6 bg-[linear-gradient(180deg,rgba(7,17,20,0.82),rgba(7,17,20,0.96))] px-3 py-3 pb-[calc(0.9rem+env(safe-area-inset-bottom))] backdrop-blur md:px-6">
+            <div className="border-t border-[#16262b] bg-[#081417] px-3 py-3 pb-[calc(0.9rem+env(safe-area-inset-bottom))] md:px-6">
               <div className="mx-auto max-w-[1560px] xl:pr-[380px]">
                 <div className="max-w-[960px]">
                 <Composer

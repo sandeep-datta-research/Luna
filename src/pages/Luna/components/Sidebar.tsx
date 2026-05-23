@@ -35,7 +35,7 @@ interface SidebarProps {
 
 function ProfileBlock({ user, collapsed = false }) {
   return (
-    <div className={`flex items-center ${collapsed ? "justify-center" : "gap-3"} overflow-hidden rounded-[22px] border border-white/8 bg-white/[0.03] p-3`}>
+    <div className={`flex items-center ${collapsed ? "justify-center" : "gap-3"} overflow-hidden rounded-[20px] border border-[#1d3036] bg-[#0f1b1f] p-3`}>
       {user.picture ? (
         <span className="inline-flex h-10 w-10 shrink-0 overflow-hidden rounded-2xl border border-white/10">
           <img src={user.picture} alt={user.name} className="h-full w-full object-cover" />
@@ -77,17 +77,17 @@ export function Sidebar({
   return (
     <>
       <aside
-        className={`hidden ${desktopWidth} border-r border-white/6 bg-[linear-gradient(180deg,#071317,#09191d)] md:flex md:min-h-[100dvh] md:flex-col`}
+        className={`hidden ${desktopWidth} border-r border-[#16262b] bg-[#081417] md:flex md:min-h-[100dvh] md:flex-col`}
       >
         <div className="flex h-full flex-col gap-4 p-4">
           <div className="flex items-center justify-between gap-3">
             <div className={`flex min-w-0 items-center gap-3 ${isSidebarOpen ? "" : "w-full justify-center"}`}>
-              <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-[#102126] shadow-[0_14px_36px_rgba(0,0,0,0.28)]">
+              <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[#21343a] bg-[#102126] shadow-[0_10px_24px_rgba(0,0,0,0.24)]">
                 <img src={brandLogo} alt="Luna logo" className="h-full w-full object-cover" />
               </span>
               {isSidebarOpen ? (
                 <div className="min-w-0">
-                  <p className="text-[11px] uppercase tracking-[0.22em] text-[#7d9993]">Workspace</p>
+                  <p className="text-[11px] uppercase tracking-[0.22em] text-[#95b0aa]">Workspace</p>
                   <h1 className="truncate text-xl font-semibold text-[#f6fbfa]" style={{ fontFamily: "'Syne', sans-serif" }}>
                     Luna
                   </h1>
@@ -97,7 +97,7 @@ export function Sidebar({
             <button
               type="button"
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-[#294249] bg-[#102126] text-[#d7ebe7] transition hover:border-[#7fc7ba]/70 ${isSidebarOpen ? "" : "mx-auto"}`}
+              className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-[#21343a] bg-[#102126] text-[#e0eeeb] transition hover:border-[#7fc7ba]/70 ${isSidebarOpen ? "" : "mx-auto"}`}
               title={isSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
             >
               {isSidebarOpen ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
@@ -111,7 +111,7 @@ export function Sidebar({
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
                 placeholder="Search saved chats"
-                className="w-full rounded-[20px] border border-white/8 bg-[#0c171a] py-3 pl-11 pr-4 text-sm text-[#edf5f2] outline-none transition focus:border-[#7fc7ba]/70"
+                className="w-full rounded-[18px] border border-[#21343a] bg-[#0f1b1f] py-3 pl-11 pr-4 text-sm text-[#edf5f2] outline-none transition focus:border-[#7fc7ba]/70"
               />
             </div>
           ) : null}
@@ -124,14 +124,14 @@ export function Sidebar({
 
           <div className="min-h-0 flex-1 overflow-hidden">
             {isSidebarOpen ? (
-              <div className="flex h-full flex-col overflow-hidden rounded-[26px] border border-white/6 bg-[#0a1417]/90">
-                <div className="border-b border-white/6 px-4 py-3">
-                  <p className="text-[11px] uppercase tracking-[0.2em] text-[#76918b]">Recent Chats</p>
+              <div className="flex h-full flex-col overflow-hidden rounded-[24px] border border-[#1d3036] bg-[#0c171a]">
+                <div className="border-b border-[#16262b] px-4 py-3">
+                  <p className="text-[11px] uppercase tracking-[0.2em] text-[#95b0aa]">Recent Chats</p>
                 </div>
                 <div className="luna-scrollbar flex-1 space-y-2 overflow-y-auto p-3">
                   {historyLoading ? (
                     Array.from({ length: 6 }).map((_, index) => (
-                      <div key={index} className="rounded-[18px] border border-white/5 bg-white/[0.02] p-3">
+                        <div key={index} className="rounded-[18px] border border-[#16262b] bg-[#0f1b1f] p-3">
                         <Skeleton width="78%" height="14px" />
                         <div className="mt-2">
                           <Skeleton width="40%" height="10px" />
@@ -139,7 +139,7 @@ export function Sidebar({
                       </div>
                     ))
                   ) : historyList.length === 0 ? (
-                    <div className="rounded-[18px] border border-dashed border-white/10 px-4 py-5 text-sm text-[#7c928d]">
+                    <div className="rounded-[18px] border border-dashed border-[#294249] px-4 py-5 text-sm text-[#a6bcb7]">
                       No chats yet. Start a new thread.
                     </div>
                   ) : (
@@ -150,13 +150,13 @@ export function Sidebar({
                           key={session.id}
                           className={`group relative rounded-[18px] border p-3 transition ${
                             active
-                              ? "border-[#7fc7ba]/40 bg-[linear-gradient(180deg,#102126,#0f1d21)] shadow-[0_10px_30px_rgba(0,0,0,0.22)]"
-                              : "border-transparent bg-white/[0.02] hover:border-white/10 hover:bg-white/[0.04]"
+                              ? "border-[#7fc7ba]/45 bg-[#13242a] shadow-[0_10px_24px_rgba(0,0,0,0.18)]"
+                              : "border-[#16262b] bg-[#0f1b1f] hover:border-[#294249] hover:bg-[#122127]"
                           }`}
                         >
                           <button type="button" onClick={() => handleSelectSession(session.id)} className="block w-full pr-8 text-left">
                             <p className="truncate text-sm font-medium text-[#ecf5f2]">{session.title}</p>
-                            <p className="mt-1 text-[11px] text-[#78918b]">{formatHistoryTime(session.updatedAt)}</p>
+                            <p className="mt-1 text-[11px] text-[#9ab1ac]">{formatHistoryTime(session.updatedAt)}</p>
                           </button>
                           <button
                             type="button"
@@ -181,7 +181,7 @@ export function Sidebar({
                       key={session.id}
                       type="button"
                       onClick={() => handleSelectSession(session.id)}
-                      className={`h-10 w-10 rounded-2xl border transition ${active ? "border-[#7fc7ba]/50 bg-[#143038]" : "border-white/8 bg-white/[0.03] hover:border-white/14"}`}
+                      className={`h-10 w-10 rounded-2xl border transition ${active ? "border-[#7fc7ba]/50 bg-[#143038]" : "border-[#21343a] bg-[#0f1b1f] hover:border-[#36545a]"}`}
                       title={session.title}
                     />
                   );
@@ -200,14 +200,14 @@ export function Sidebar({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm md:hidden"
+            className="fixed inset-0 z-50 bg-black/72 md:hidden"
             onClick={() => setMobileSidebarOpen(false)}
           >
             <motion.aside
               initial={{ x: -32, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: -32, opacity: 0 }}
-              className="flex h-full w-[92vw] max-w-[360px] flex-col bg-[linear-gradient(180deg,#071317,#0a191d)] p-4"
+              className="flex h-full w-[92vw] max-w-[360px] flex-col border-r border-[#16262b] bg-[#081417] p-4"
               onClick={(event) => event.stopPropagation()}
             >
               <div className="mb-4 flex items-center justify-between">
@@ -216,14 +216,14 @@ export function Sidebar({
                     <img src={brandLogo} alt="Luna logo" className="h-full w-full object-cover" />
                   </span>
                   <div>
-                    <p className="text-[11px] uppercase tracking-[0.22em] text-[#7d9993]">Workspace</p>
+                    <p className="text-[11px] uppercase tracking-[0.22em] text-[#95b0aa]">Workspace</p>
                     <h2 className="text-lg font-semibold text-white" style={{ fontFamily: "'Syne', sans-serif" }}>Luna</h2>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setMobileSidebarOpen(false)}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-[#294249] bg-[#102126] text-[#dcece8]"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-[#21343a] bg-[#102126] text-[#dcece8]"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -235,7 +235,7 @@ export function Sidebar({
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
                   placeholder="Search saved chats"
-                  className="w-full rounded-[20px] border border-white/8 bg-[#0c171a] py-3 pl-11 pr-4 text-sm text-[#edf5f2] outline-none transition focus:border-[#7fc7ba]/70"
+                  className="w-full rounded-[18px] border border-[#21343a] bg-[#0f1b1f] py-3 pl-11 pr-4 text-sm text-[#edf5f2] outline-none transition focus:border-[#7fc7ba]/70"
                 />
               </div>
 
@@ -245,14 +245,14 @@ export function Sidebar({
                 <SidebarButton icon={Settings} label="Settings" onClick={() => { navigate("/profile"); setMobileSidebarOpen(false); }} />
               </div>
 
-              <div className="mt-4 min-h-0 flex-1 overflow-hidden rounded-[26px] border border-white/6 bg-[#0a1417]/90">
-                <div className="border-b border-white/6 px-4 py-3">
-                  <p className="text-[11px] uppercase tracking-[0.2em] text-[#76918b]">Recent Chats</p>
+              <div className="mt-4 min-h-0 flex-1 overflow-hidden rounded-[24px] border border-[#1d3036] bg-[#0c171a]">
+                <div className="border-b border-[#16262b] px-4 py-3">
+                  <p className="text-[11px] uppercase tracking-[0.2em] text-[#95b0aa]">Recent Chats</p>
                 </div>
                 <div className="luna-scrollbar flex-1 space-y-2 overflow-y-auto p-3">
                   {historyLoading ? (
                     Array.from({ length: 5 }).map((_, index) => (
-                      <div key={index} className="rounded-[18px] border border-white/5 bg-white/[0.02] p-3">
+                      <div key={index} className="rounded-[18px] border border-[#16262b] bg-[#0f1b1f] p-3">
                         <Skeleton width="78%" height="14px" />
                         <div className="mt-2">
                           <Skeleton width="40%" height="10px" />
@@ -260,7 +260,7 @@ export function Sidebar({
                       </div>
                     ))
                   ) : historyList.length === 0 ? (
-                    <div className="rounded-[18px] border border-dashed border-white/10 px-4 py-5 text-sm text-[#7c928d]">
+                    <div className="rounded-[18px] border border-dashed border-[#294249] px-4 py-5 text-sm text-[#a6bcb7]">
                       No chats yet. Start a new thread.
                     </div>
                   ) : (
@@ -271,8 +271,8 @@ export function Sidebar({
                           key={session.id}
                           className={`group relative rounded-[18px] border p-3 transition ${
                             active
-                              ? "border-[#7fc7ba]/40 bg-[linear-gradient(180deg,#102126,#0f1d21)]"
-                              : "border-transparent bg-white/[0.02] hover:border-white/10 hover:bg-white/[0.04]"
+                              ? "border-[#7fc7ba]/45 bg-[#13242a]"
+                              : "border-[#16262b] bg-[#0f1b1f] hover:border-[#294249] hover:bg-[#122127]"
                           }`}
                         >
                           <button
@@ -284,7 +284,7 @@ export function Sidebar({
                             className="block w-full pr-8 text-left"
                           >
                             <p className="truncate text-sm font-medium text-[#ecf5f2]">{session.title}</p>
-                            <p className="mt-1 text-[11px] text-[#78918b]">{formatHistoryTime(session.updatedAt)}</p>
+                            <p className="mt-1 text-[11px] text-[#9ab1ac]">{formatHistoryTime(session.updatedAt)}</p>
                           </button>
                           <button
                             type="button"

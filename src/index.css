@@ -293,9 +293,11 @@
 
 
 .luna-markdown {
-  font-size: 0.875rem;
-  line-height: 1.65;
+  font-size: 0.95rem;
+  line-height: 1.72;
   color: inherit;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .luna-markdown > :first-child {
@@ -325,7 +327,7 @@
 }
 
 .luna-markdown p {
-  margin: 0.25rem 0;
+  margin: 0.35rem 0;
 }
 
 .luna-markdown strong {
@@ -355,11 +357,11 @@
 }
 
 .luna-code-block {
-  margin: 0.5rem 0;
-  padding: 0.75rem 0.9rem;
+  margin: 0.7rem 0;
+  padding: 0.85rem 1rem;
   border-radius: 0.85rem;
-  background: #0a1417;
-  border: 1px solid #21353a;
+  background: #0b171a;
+  border: 1px solid #294249;
   overflow-x: auto;
 }
 
@@ -373,8 +375,8 @@
   font-size: 0.82rem;
   padding: 0.1rem 0.35rem;
   border-radius: 0.4rem;
-  background: #102126;
-  border: 1px solid #274149;
+  background: #13242a;
+  border: 1px solid #36545a;
 }
 
 .luna-markdown .katex {
@@ -384,4 +386,23 @@
 .luna-markdown .katex-display {
   overflow-x: auto;
   padding: 0.4rem 0;
+}
+
+@media (max-width: 767px) {
+  .luna-markdown {
+    font-size: 0.92rem;
+    line-height: 1.68;
+  }
+
+  .luna-markdown h1 {
+    font-size: 1.18rem;
+  }
+
+  .luna-markdown h2 {
+    font-size: 1.08rem;
+  }
+
+  .luna-markdown h3 {
+    font-size: 1rem;
+  }
 }

@@ -69,8 +69,8 @@ export function Composer({
 
   return (
     <div
-      className={`rounded-[34px] border bg-[linear-gradient(180deg,rgba(9,18,21,0.98),rgba(7,13,16,1))] p-3 shadow-[0_18px_44px_rgba(0,0,0,0.22)] backdrop-blur-xl ${
-        focused ? "border-[#7fc7ba]/55" : "border-white/6"
+      className={`rounded-[28px] border bg-[#0c171a] p-3 shadow-[0_12px_30px_rgba(0,0,0,0.2)] ${
+        focused ? "border-[#7fc7ba]/55" : "border-[#1d3036]"
       } ${compact ? "mx-auto w-full max-w-5xl" : "w-full"}`}
     >
       {attachments.length > 0 ? (
@@ -78,7 +78,7 @@ export function Composer({
           {attachments.map((file, index) => (
             <div
               key={`${file}-${index}`}
-              className="inline-flex max-w-full items-center gap-2 rounded-full border border-white/8 bg-white/[0.04] px-3 py-1.5 text-xs text-[#e0efec]"
+              className="inline-flex max-w-full items-center gap-2 rounded-full border border-[#21343a] bg-[#102126] px-3 py-1.5 text-xs text-[#eef7f4]"
             >
               <span className="max-w-[180px] truncate sm:max-w-[240px]">{file}</span>
               <button type="button" onClick={() => onRemoveAttachment(index)} className="text-[#abc3be] hover:text-white">
@@ -89,7 +89,7 @@ export function Composer({
         </div>
       ) : null}
 
-      <div className="rounded-[28px] border border-white/6 bg-[#0a1518]/90 p-3">
+      <div className="rounded-[24px] border border-[#21343a] bg-[#0f1b1f] p-3">
         <textarea
           ref={textareaRef}
           value={value}
@@ -104,7 +104,7 @@ export function Composer({
           }}
           placeholder="Ask Luna for strategy, research, writing, image prompts, debugging, or execution support..."
           disabled={disabled}
-          className="luna-scrollbar min-h-[56px] w-full resize-none overflow-y-auto bg-transparent px-1 py-2 text-[15px] leading-7 text-[#eef7f4] outline-none placeholder:text-[#6e8781]"
+          className="luna-scrollbar min-h-[56px] w-full resize-none overflow-y-auto bg-transparent px-1 py-2 text-[15px] leading-7 text-[#f3faf8] outline-none placeholder:text-[#91a7a2]"
         />
 
         <div className="mt-3 flex flex-col gap-3">
@@ -128,7 +128,7 @@ export function Composer({
                 triggerHaptic();
                 fileInputRef.current?.click();
               }}
-              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/8 bg-white/[0.03] text-[#edf6f3] transition hover:border-[#7fc7ba]/50 hover:bg-white/[0.05]"
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[#21343a] bg-[#102126] text-[#edf6f3] transition hover:border-[#7fc7ba]/50 hover:bg-[#13242a]"
               title="Attach file"
             >
               <Paperclip className="h-4 w-4" />
@@ -151,7 +151,7 @@ export function Composer({
           </div>
 
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/8 bg-white/[0.03] px-3 py-1.5 text-[11px] text-[#86a09a]">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#21343a] bg-[#102126] px-3 py-1.5 text-[11px] text-[#c0d4d0]">
               <Command className="h-3.5 w-3.5" />
               Enter to send, Shift+Enter for a new line
             </div>
@@ -164,8 +164,8 @@ export function Composer({
                 disabled={!isPro}
                 className={`inline-flex h-11 min-w-11 items-center justify-center rounded-2xl border px-3 transition sm:w-auto ${
                   isPro
-                    ? "border-white/8 bg-white/[0.03] text-[#edf6f3] hover:border-[#7fc7ba]/50 hover:bg-white/[0.05]"
-                    : "border-white/6 bg-white/[0.02] text-[#6c837e]"
+                    ? "border-[#21343a] bg-[#102126] text-[#edf6f3] hover:border-[#7fc7ba]/50 hover:bg-[#13242a]"
+                    : "border-[#1d3036] bg-[#0d181b] text-[#93a7a3]"
                 }`}
                 title={isPro ? "Export this chat" : "Luna Pro feature"}
               >
@@ -180,7 +180,7 @@ export function Composer({
                 className={`inline-flex h-11 min-w-11 items-center justify-center rounded-2xl border px-3 transition sm:w-auto ${
                   voiceActive
                     ? "border-emerald-400/65 bg-emerald-500/15 text-emerald-100"
-                    : "border-white/8 bg-white/[0.03] text-[#edf6f3] hover:border-[#7fc7ba]/50 hover:bg-white/[0.05]"
+                    : "border-[#21343a] bg-[#102126] text-[#edf6f3] hover:border-[#7fc7ba]/50 hover:bg-[#13242a]"
                 } ${transcribing ? "opacity-75" : ""}`}
                 title={voiceActive ? "Stop recording" : "Voice input"}
               >
@@ -196,7 +196,7 @@ export function Composer({
                 className={`inline-flex h-11 min-w-11 items-center justify-center rounded-2xl px-4 text-sm font-semibold transition sm:w-auto ${
                   value.trim() && !sendDisabled
                     ? "bg-[linear-gradient(135deg,#f1ca78,#b88d3a)] text-[#102126] shadow-[0_14px_28px_rgba(184,141,58,0.26)]"
-                    : "bg-[#22373d] text-[#8ba39e]"
+                    : "bg-[#22373d] text-[#bfd0cc]"
                 }`}
                 title="Send"
               >

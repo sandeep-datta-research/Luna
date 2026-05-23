@@ -113,7 +113,7 @@ export function ChatView({
     >
       <div className="mx-auto grid w-full max-w-[1560px] gap-6 pb-8 pt-2 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="min-w-0">
-          <section className="sticky top-0 z-20 mb-4 rounded-[28px] border border-white/6 bg-[linear-gradient(180deg,rgba(9,18,21,0.94),rgba(7,14,17,0.9))] p-3 shadow-[0_14px_32px_rgba(0,0,0,0.14)] backdrop-blur-xl md:p-4">
+          <section className="sticky top-0 z-20 mb-4 rounded-[24px] border border-[#1d3036] bg-[#0c171a] p-3 shadow-[0_10px_24px_rgba(0,0,0,0.14)] md:p-4">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex min-w-0 flex-wrap items-center gap-2.5">
                 <div className="inline-flex min-w-0 items-center gap-3 rounded-[20px] border border-[#2c454b] bg-[#102126] px-3 py-2">
@@ -126,21 +126,21 @@ export function ChatView({
                   </div>
                 </div>
 
-                <span className="rounded-full border border-white/8 bg-white/[0.03] px-3 py-1.5 text-xs text-[#90aaa5]">
+                  <span className="rounded-full border border-[#21343a] bg-[#102126] px-3 py-1.5 text-xs text-[#c5d9d5]">
                   Updated {formatHistoryTime(activeSession?.updatedAt)}
                 </span>
               </div>
 
               <div className="flex flex-wrap items-center gap-2 lg:justify-end">
                 {modePills.map((pill) => (
-                  <span key={pill} className="rounded-full border border-white/8 bg-white/[0.03] px-3 py-1.5 text-xs text-[#d5e7e3]">
+                  <span key={pill} className="rounded-full border border-[#21343a] bg-[#102126] px-3 py-1.5 text-xs text-[#eef7f4]">
                     {pill}
                   </span>
                 ))}
                 <button
                   type="button"
                   onClick={() => setShowMobileRail((prev) => !prev)}
-                  className="inline-flex items-center gap-2 rounded-full border border-white/8 bg-white/[0.03] px-3 py-1.5 text-xs text-[#d7ebe7] xl:hidden"
+                  className="inline-flex items-center gap-2 rounded-full border border-[#21343a] bg-[#102126] px-3 py-1.5 text-xs text-[#eef7f4] xl:hidden"
                 >
                   <Sparkles className="h-3.5 w-3.5" />
                   {showMobileRail ? "Hide controls" : "Open controls"}
@@ -162,7 +162,7 @@ export function ChatView({
                     value={characterSearchQuery}
                     onChange={(event) => setCharacterSearchQuery(event.target.value)}
                     placeholder="Search character board"
-                    className="mb-3 w-full rounded-[18px] border border-white/8 bg-[#0b171a] px-4 py-3 text-sm text-[#e7f1ef] outline-none focus:border-[#7fc7ba]/70"
+                    className="mb-3 w-full rounded-[18px] border border-[#21343a] bg-[#0f1b1f] px-4 py-3 text-sm text-[#eef7f4] outline-none focus:border-[#7fc7ba]/70"
                   />
                   <CharacterCards
                     options={filteredCharacterOptions}
@@ -177,7 +177,7 @@ export function ChatView({
 
           <section className="mx-auto max-w-[960px] pb-12">
             {historyLoading ? (
-              <div className="mb-5 flex items-center gap-3 rounded-[22px] border border-white/6 bg-white/[0.03] px-4 py-3 text-sm text-[#dcece9]">
+              <div className="mb-5 flex items-center gap-3 rounded-[20px] border border-[#21343a] bg-[#102126] px-4 py-3 text-sm text-[#eef7f4]">
                 <Loader2 className="h-4 w-4 animate-spin text-[#7fc7ba]" />
                 Loading your chats...
               </div>
@@ -210,7 +210,7 @@ export function ChatView({
               title="Character Board"
               body={`This thread currently speaks as ${activeCharacter.name}. Swap voice, prompts, and style without leaving the conversation.`}
             >
-              <div className="rounded-[24px] border border-white/8 bg-white/[0.03] p-3">
+                <div className="rounded-[22px] border border-[#21343a] bg-[#102126] p-3">
                 <div className="flex items-center gap-3">
                   <span className="inline-flex h-16 w-14 shrink-0 overflow-hidden rounded-[18px] border border-white/10">
                     <img src={activeCharacter.portrait} alt={activeCharacter.name} className="h-full w-full object-cover" />
@@ -230,7 +230,7 @@ export function ChatView({
                 value={characterSearchQuery}
                 onChange={(event) => setCharacterSearchQuery(event.target.value)}
                 placeholder="Search character board"
-                className="mt-3 w-full rounded-[18px] border border-white/8 bg-[#0b171a] px-4 py-3 text-sm text-[#e7f1ef] outline-none focus:border-[#7fc7ba]/70"
+                className="mt-3 w-full rounded-[18px] border border-[#21343a] bg-[#0f1b1f] px-4 py-3 text-sm text-[#eef7f4] outline-none focus:border-[#7fc7ba]/70"
               />
 
               <div className="mt-3">
