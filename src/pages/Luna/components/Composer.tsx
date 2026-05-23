@@ -22,7 +22,7 @@ function ModeButton({ active, children, icon, onClick, title }) {
       type="button"
       onClick={onClick}
       title={title}
-      className={`inline-flex min-h-11 items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-medium transition ${
+      className={`inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-medium transition ${
         active
           ? "border-[#7fc7ba] bg-[#16363d] text-[#f5fbfa] shadow-[0_10px_24px_rgba(0,0,0,0.18)]"
           : "border-white/8 bg-white/[0.03] text-[#dcebe8] hover:border-[#7fc7ba]/50 hover:bg-white/[0.05]"
@@ -108,7 +108,7 @@ export function Composer({
         />
 
         <div className="mt-3 flex flex-col gap-3">
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="luna-scrollbar -mx-1 flex items-center gap-2 overflow-x-auto px-1 pb-1">
             <input
               ref={fileInputRef}
               type="file"
@@ -128,7 +128,7 @@ export function Composer({
                 triggerHaptic();
                 fileInputRef.current?.click();
               }}
-              className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/8 bg-white/[0.03] text-[#edf6f3] transition hover:border-[#7fc7ba]/50 hover:bg-white/[0.05]"
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/8 bg-white/[0.03] text-[#edf6f3] transition hover:border-[#7fc7ba]/50 hover:bg-white/[0.05]"
               title="Attach file"
             >
               <Paperclip className="h-4 w-4" />
@@ -150,19 +150,19 @@ export function Composer({
             </ModeButton>
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="inline-flex items-center gap-2 rounded-full border border-white/8 bg-white/[0.03] px-3 py-1.5 text-[11px] text-[#86a09a]">
               <Command className="h-3.5 w-3.5" />
               Enter to send, Shift+Enter for a new line
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-end">
               <motion.button
                 whileTap={{ scale: 0.98 }}
                 type="button"
                 onClick={onExport}
                 disabled={!isPro}
-                className={`inline-flex h-11 min-w-11 items-center justify-center rounded-2xl border px-3 transition ${
+                className={`inline-flex h-11 min-w-11 items-center justify-center rounded-2xl border px-3 transition sm:w-auto ${
                   isPro
                     ? "border-white/8 bg-white/[0.03] text-[#edf6f3] hover:border-[#7fc7ba]/50 hover:bg-white/[0.05]"
                     : "border-white/6 bg-white/[0.02] text-[#6c837e]"
@@ -177,7 +177,7 @@ export function Composer({
                 type="button"
                 onClick={onToggleVoice}
                 disabled={transcribing}
-                className={`inline-flex h-11 min-w-11 items-center justify-center rounded-2xl border px-3 transition ${
+                className={`inline-flex h-11 min-w-11 items-center justify-center rounded-2xl border px-3 transition sm:w-auto ${
                   voiceActive
                     ? "border-emerald-400/65 bg-emerald-500/15 text-emerald-100"
                     : "border-white/8 bg-white/[0.03] text-[#edf6f3] hover:border-[#7fc7ba]/50 hover:bg-white/[0.05]"
@@ -193,7 +193,7 @@ export function Composer({
                 type="button"
                 onClick={onSend}
                 disabled={sendDisabled || !value.trim()}
-                className={`inline-flex h-11 min-w-11 items-center justify-center rounded-2xl px-4 text-sm font-semibold transition ${
+                className={`inline-flex h-11 min-w-11 items-center justify-center rounded-2xl px-4 text-sm font-semibold transition sm:w-auto ${
                   value.trim() && !sendDisabled
                     ? "bg-[linear-gradient(135deg,#f1ca78,#b88d3a)] text-[#102126] shadow-[0_14px_28px_rgba(184,141,58,0.26)]"
                     : "bg-[#22373d] text-[#8ba39e]"

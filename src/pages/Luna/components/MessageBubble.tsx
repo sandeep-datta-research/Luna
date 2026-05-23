@@ -67,11 +67,11 @@ export function MessageBubble({
       initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: "spring", stiffness: 260, damping: 26 }}
-      className={`group mb-5 flex ${isUser ? "justify-end" : "justify-start"}`}
+      className={`group flex ${isUser ? "justify-end" : "justify-start"}`}
     >
-      <div className={`w-full ${isUser ? "max-w-[92%] md:max-w-[74%]" : "max-w-[96%] md:max-w-[86%]"}`}>
+      <div className={`w-full min-w-0 ${isUser ? "max-w-[92%] md:max-w-[46rem]" : "max-w-full md:max-w-[46rem]"}`}>
         {!isUser && showLunaHeader ? (
-          <div className="mb-2 flex items-center gap-3 pl-1">
+          <div className="mb-3 flex items-center gap-3 pl-1">
             <span className="inline-flex h-9 w-9 shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-[#122125] shadow-[0_12px_26px_rgba(0,0,0,0.18)]">
               <img src={assistantCharacter.portrait || lunaLogo} alt={assistantCharacter.name} className="h-full w-full object-cover" />
             </span>
@@ -86,10 +86,10 @@ export function MessageBubble({
 
         <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
           <div
-            className={`relative max-w-full overflow-hidden rounded-[30px] px-5 py-4 text-[15px] leading-7 break-words shadow-[0_16px_40px_rgba(0,0,0,0.18)] ${
+            className={`relative min-w-0 max-w-full overflow-hidden rounded-[28px] px-4 py-4 text-[15px] leading-7 break-words shadow-[0_16px_40px_rgba(0,0,0,0.16)] md:px-5 ${
               isUser
                 ? "rounded-br-lg bg-[linear-gradient(135deg,#1d675f,#143d3a)] text-[#f4fbf8] ring-1 ring-inset ring-white/10"
-                : "rounded-bl-lg border border-white/6 bg-[linear-gradient(180deg,rgba(18,29,33,0.98),rgba(11,19,22,1))] text-[#e5f0ed]"
+                : "rounded-bl-lg border border-white/6 bg-[linear-gradient(180deg,rgba(16,27,31,0.98),rgba(10,18,21,1))] text-[#e5f0ed]"
             }`}
           >
             {isUser ? <p className="whitespace-pre-wrap">{message.content}</p> : <MarkdownMessage content={message.content} />}
@@ -97,23 +97,25 @@ export function MessageBubble({
         </div>
 
         {!isUser ? (
-          <div className="mt-2 flex flex-wrap items-center gap-2 pl-1">
+          <div className="mt-3 flex flex-wrap items-center gap-2 pl-1">
             <button
               type="button"
               onClick={() => onCopy(message.content)}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/8 bg-white/[0.03] text-[#dcece8] transition hover:border-[#7fc7ba]/50 hover:bg-white/[0.05] hover:text-white"
+              className="inline-flex h-9 items-center justify-center gap-2 rounded-full border border-white/8 bg-white/[0.03] px-3 text-[#dcece8] transition hover:border-[#7fc7ba]/50 hover:bg-white/[0.05] hover:text-white"
               title="Copy response"
             >
               <Copy className="h-4 w-4" />
+              <span className="text-xs">Copy</span>
             </button>
             {isLatestAssistant && onRegenerate ? (
               <button
                 type="button"
                 onClick={onRegenerate}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/8 bg-white/[0.03] text-[#dcece8] transition hover:border-[#7fc7ba]/50 hover:bg-white/[0.05] hover:text-white"
+                className="inline-flex h-9 items-center justify-center gap-2 rounded-full border border-white/8 bg-white/[0.03] px-3 text-[#dcece8] transition hover:border-[#7fc7ba]/50 hover:bg-white/[0.05] hover:text-white"
                 title="Regenerate response"
               >
                 <RotateCcw className="h-4 w-4" />
+                <span className="text-xs">Retry</span>
               </button>
             ) : null}
 
@@ -130,14 +132,14 @@ export function MessageBubble({
         )}
 
         {!isUser && sources.length > 0 ? (
-          <div className="mt-3 grid gap-2 pl-1">
+          <div className="mt-4 grid gap-2 pl-1">
             {sources.map((source, index) => (
               <a
                 key={source.id || source.link || index}
                 href={source.link || source.url}
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3 transition hover:border-[#7fc7ba]/45 hover:bg-white/[0.05]"
+                className="min-w-0 rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3 transition hover:border-[#7fc7ba]/45 hover:bg-white/[0.05]"
               >
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#7f9c96]">
@@ -145,9 +147,9 @@ export function MessageBubble({
                   </span>
                   <Globe className="h-3.5 w-3.5 text-[#8eaaa4]" />
                 </div>
-                <p className="mt-2 text-sm font-medium text-[#eef7f4]">{source.title}</p>
+                <p className="mt-2 break-words text-sm font-medium text-[#eef7f4]">{source.title}</p>
                 {source.snippet || source.summary ? (
-                  <p className="mt-1 text-xs leading-6 text-[#8ca6a0]">{source.snippet || source.summary}</p>
+                  <p className="mt-1 break-words text-xs leading-6 text-[#8ca6a0]">{source.snippet || source.summary}</p>
                 ) : null}
               </a>
             ))}

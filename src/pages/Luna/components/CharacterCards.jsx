@@ -4,7 +4,7 @@ import { normalizeCharacterId } from "../utils";
 
 export function CharacterCards({ options = CHARACTER_OPTIONS, selectedCharacterId, onSelect, compact = false, isPro = false }) {
   return (
-    <div className={`luna-scrollbar flex gap-3 overflow-x-auto pb-1 ${compact ? "" : ""}`}>
+    <div className="luna-scrollbar flex gap-3 overflow-x-auto pb-1">
       {options.map((character) => {
         const active = character.id === normalizeCharacterId(selectedCharacterId, options);
         const locked = character.access === "pro" && !isPro;
@@ -15,18 +15,18 @@ export function CharacterCards({ options = CHARACTER_OPTIONS, selectedCharacterI
             whileTap={{ scale: 0.985 }}
             type="button"
             onClick={() => onSelect(character)}
-            className={`group relative min-w-[272px] max-w-[272px] overflow-hidden rounded-[26px] border text-left transition ${
+            className={`group relative min-w-[240px] max-w-[240px] overflow-hidden rounded-[24px] border text-left transition md:min-w-[256px] md:max-w-[256px] ${
               active
                 ? "border-[#7fc7ba]/80 bg-[#102126] shadow-[0_16px_40px_rgba(18,49,56,0.35)]"
                 : "border-[#1f3135] bg-[#0b1518] hover:border-[#35545b] hover:bg-[#0e1b1f]"
             } ${locked ? "opacity-80" : ""}`}
           >
             <div
-              className="absolute inset-x-0 top-0 h-24 opacity-90"
+              className="absolute inset-x-0 top-0 h-20 opacity-90 md:h-24"
               style={{ backgroundImage: `linear-gradient(135deg, ${character.accentStart}, ${character.accentEnd})` }}
             />
             <div className="relative flex items-start gap-3 p-3">
-              <span className="inline-flex h-24 w-20 shrink-0 overflow-hidden rounded-[18px] border border-white/10 shadow-[0_14px_24px_rgba(0,0,0,0.25)]">
+              <span className="inline-flex h-20 w-16 shrink-0 overflow-hidden rounded-[16px] border border-white/10 shadow-[0_14px_24px_rgba(0,0,0,0.25)] md:h-24 md:w-20 md:rounded-[18px]">
                 <img
                   src={character.portrait}
                   alt={character.name}
@@ -37,7 +37,7 @@ export function CharacterCards({ options = CHARACTER_OPTIONS, selectedCharacterI
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <p className="text-[11px] uppercase tracking-[0.18em] text-[#8badab]">Character</p>
-                    <h3 className="mt-1 text-base font-semibold text-[#edf5f2]" style={{ fontFamily: "'Syne', sans-serif" }}>
+                    <h3 className="mt-1 text-sm font-semibold text-[#edf5f2] md:text-base" style={{ fontFamily: "'Syne', sans-serif" }}>
                       {character.name}
                     </h3>
                   </div>
@@ -52,7 +52,7 @@ export function CharacterCards({ options = CHARACTER_OPTIONS, selectedCharacterI
                   </span>
                 </div>
                 <p className="mt-2 text-xs font-medium text-[#d9ece7]">{character.tagline}</p>
-                <p className="mt-1 text-xs leading-5 text-[#8ba39f]">{character.description}</p>
+                <p className="mt-1 line-clamp-4 text-xs leading-5 text-[#8ba39f]">{character.description}</p>
                 {locked ? <p className="mt-2 text-[11px] text-[#f0d79b]">Upgrade to unlock this character.</p> : null}
               </div>
             </div>

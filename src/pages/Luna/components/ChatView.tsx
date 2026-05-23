@@ -111,9 +111,9 @@ export function ChatView({
       onScroll={handleScroll}
       className="luna-scrollbar relative h-full overflow-y-auto"
     >
-      <div className="mx-auto grid w-full max-w-[1560px] gap-5 pb-8 pt-2 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="mx-auto grid w-full max-w-[1560px] gap-6 pb-8 pt-2 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="min-w-0">
-          <section className="mb-4 rounded-[30px] border border-white/6 bg-[linear-gradient(180deg,rgba(9,18,21,0.9),rgba(7,14,17,0.86))] p-3 shadow-[0_18px_44px_rgba(0,0,0,0.16)] backdrop-blur-xl md:p-4">
+          <section className="sticky top-0 z-20 mb-4 rounded-[28px] border border-white/6 bg-[linear-gradient(180deg,rgba(9,18,21,0.94),rgba(7,14,17,0.9))] p-3 shadow-[0_14px_32px_rgba(0,0,0,0.14)] backdrop-blur-xl md:p-4">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex min-w-0 flex-wrap items-center gap-2.5">
                 <div className="inline-flex min-w-0 items-center gap-3 rounded-[20px] border border-[#2c454b] bg-[#102126] px-3 py-2">
@@ -175,9 +175,9 @@ export function ChatView({
             ) : null}
           </AnimatePresence>
 
-          <section className="rounded-[36px] border border-white/6 bg-[linear-gradient(180deg,rgba(8,16,19,0.98),rgba(7,13,16,1))] px-3 py-4 shadow-[0_18px_44px_rgba(0,0,0,0.2)] md:px-5 md:py-5">
+          <section className="mx-auto max-w-[960px] pb-12">
             {historyLoading ? (
-              <div className="mb-4 flex items-center gap-3 rounded-[22px] border border-white/6 bg-white/[0.03] px-4 py-3 text-sm text-[#dcece9]">
+              <div className="mb-5 flex items-center gap-3 rounded-[22px] border border-white/6 bg-white/[0.03] px-4 py-3 text-sm text-[#dcece9]">
                 <Loader2 className="h-4 w-4 animate-spin text-[#7fc7ba]" />
                 Loading your chats...
               </div>
@@ -185,7 +185,7 @@ export function ChatView({
 
             {activeMessages.length === 0 && !historyLoading ? <ChatSkeleton /> : null}
 
-            <div aria-live="polite" aria-atomic="false" className="space-y-1">
+            <div aria-live="polite" aria-atomic="false" className="space-y-6">
               {activeMessages.map((message) => (
                 <MessageBubble
                   key={message.id}

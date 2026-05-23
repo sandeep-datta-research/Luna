@@ -547,7 +547,8 @@ export default function Luna() {
 
           {visibleMain && (
             <div className="border-t border-white/6 bg-[linear-gradient(180deg,rgba(7,17,20,0.82),rgba(7,17,20,0.96))] px-3 py-3 pb-[calc(0.9rem+env(safe-area-inset-bottom))] backdrop-blur md:px-6">
-              <div className="mx-auto max-w-[1560px]">
+              <div className="mx-auto max-w-[1560px] xl:pr-[380px]">
+                <div className="max-w-[960px]">
                 <Composer
                   value={inputValue}
                   onChange={setInputValue}
@@ -569,6 +570,7 @@ export default function Luna() {
                   onRemoveAttachment={(i) => setAttachments((p) => p.filter((_, idx) => idx !== i))}
                   isPro={membershipPlan === "pro"}
                 />
+                </div>
               </div>
             </div>
           )}
