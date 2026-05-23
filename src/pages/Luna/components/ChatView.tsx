@@ -137,12 +137,14 @@ export function ChatView({
                 <p className="mt-1 text-sm text-[#89a49f]">
                   Use the controls below to shift between research, drafting, and media generation without leaving the thread.
                 </p>
-                <div className="mt-3 inline-flex items-center gap-3 rounded-full border border-[#274149] bg-[#0f1f24] py-1 pl-1 pr-4">
-                  <img
-                    src={activeCharacter.portrait}
-                    alt={activeCharacter.name}
-                    className="h-10 w-10 rounded-full border border-white/10 object-cover"
-                  />
+                <div className="mt-3 inline-flex max-w-full items-center gap-3 overflow-hidden rounded-2xl border border-[#274149] bg-[#0f1f24] py-1 pl-1 pr-4">
+                  <span className="inline-flex h-10 w-10 shrink-0 overflow-hidden rounded-full border border-white/10">
+                    <img
+                      src={activeCharacter.portrait}
+                      alt={activeCharacter.name}
+                      className="h-full w-full object-cover"
+                    />
+                  </span>
                   <div className="min-w-0">
                     <p className="text-[11px] uppercase tracking-[0.16em] text-[#84a7a0]">Character</p>
                     <p className="truncate text-sm font-medium text-[#edf5f2]">{activeCharacter.name}</p>
@@ -231,11 +233,13 @@ export function ChatView({
               </p>
               <div className="mt-3 rounded-[24px] border border-[#274149] bg-[#0f1f24] p-3">
                 <div className="flex items-center gap-3">
-                  <img
-                    src={activeCharacter.portrait}
-                    alt={activeCharacter.name}
-                    className="h-16 w-14 rounded-[16px] border border-white/10 object-cover"
-                  />
+                  <span className="inline-flex h-16 w-14 shrink-0 overflow-hidden rounded-[16px] border border-white/10">
+                    <img
+                      src={activeCharacter.portrait}
+                      alt={activeCharacter.name}
+                      className="h-full w-full object-cover"
+                    />
+                  </span>
                   <div className="min-w-0">
                     <p className="text-[11px] uppercase tracking-[0.16em] text-[#84a7a0]">Active character</p>
                     <p className="truncate text-base font-semibold text-[#edf5f2]">{activeCharacter.name}</p>

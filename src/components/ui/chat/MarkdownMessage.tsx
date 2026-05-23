@@ -45,12 +45,15 @@ export default function MarkdownMessage({ content }) {
           }
 
           return (
-            <pre className="luna-code-block">
+            <pre className="luna-code-block overflow-x-auto">
               <code className={className} {...props}>
                 {children}
               </code>
             </pre>
           );
+        },
+        img({ src, alt, ...props }) {
+          return <img src={src} alt={alt || ""} className="max-w-full rounded-2xl object-cover" {...props} />;
         },
       }}
     >

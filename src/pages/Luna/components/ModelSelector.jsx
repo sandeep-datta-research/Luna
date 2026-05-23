@@ -13,10 +13,10 @@ export function ModelSelector({ selectedModel, onSelect }) {
         whileTap={{ scale: 0.97 }}
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-[#0f1b1d]/90 px-3 py-1.5 text-sm text-[#f2f6f7] transition-all duration-150 hover:border-[#4f7c75]/70"
+        className="inline-flex min-h-10 max-w-full items-center gap-2 rounded-full border border-[#36545a] bg-[#102126] px-3 py-1.5 text-sm text-[#f2f6f7] shadow-[0_8px_20px_rgba(0,0,0,0.22)] transition-all duration-150 hover:border-[#7fc7ba]/70"
       >
-        <span>{selected.label}</span>
-        <ChevronDown className="h-4 w-4 text-[#8fa6a2]" />
+        <span className="truncate">{selected.label}</span>
+        <ChevronDown className="h-4 w-4 shrink-0 text-[#d9ebe7]" />
       </motion.button>
 
       <AnimatePresence>

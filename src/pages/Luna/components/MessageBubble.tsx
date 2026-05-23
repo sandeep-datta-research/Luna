@@ -71,16 +71,16 @@ export function MessageBubble({
     >
       <div className={`flex max-w-full flex-col gap-1.5 ${isUser ? "items-end md:max-w-[75%]" : "items-start md:max-w-[85%]"}`}>
         {!isUser && showLunaHeader ? (
-          <div className="mb-0.5 ml-1 flex items-center gap-2 text-[13px] text-[#a4b5b2]">
-            <span className="inline-flex h-[26px] w-[26px] items-center justify-center overflow-hidden rounded-full border border-white/10 bg-[#122125] shadow-sm">
-              <img src={assistantCharacter.portrait || lunaLogo} alt={assistantCharacter.name} className="h-full w-full rounded-[inherit] object-cover" />
+          <div className="mb-0.5 ml-1 flex max-w-full items-center gap-2 text-[13px] text-[#a4b5b2]">
+            <span className="inline-flex h-[26px] w-[26px] shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-[#122125] shadow-sm">
+              <img src={assistantCharacter.portrait || lunaLogo} alt={assistantCharacter.name} className="h-full w-full object-cover" />
             </span>
-            <span className="font-semibold tracking-wide" style={{ fontFamily: "'Syne', sans-serif" }}>{assistantCharacter.name}</span>
+            <span className="truncate font-semibold tracking-wide" style={{ fontFamily: "'Syne', sans-serif" }}>{assistantCharacter.name}</span>
           </div>
         ) : null}
 
         <div
-          className={`relative max-w-full rounded-3xl px-5 py-3.5 text-[15px] leading-relaxed transition-colors ${
+          className={`relative max-w-full overflow-hidden rounded-3xl px-5 py-3.5 text-[15px] leading-relaxed break-words transition-colors ${
             isUser
               ? "rounded-br-sm bg-[linear-gradient(145deg,#327d74,#184f49)] text-[#f4f9f8] shadow-[0_12px_32px_rgba(24,79,73,0.3)] ring-1 ring-inset ring-white/10"
               : "rounded-bl-sm border border-[#21353a] bg-[linear-gradient(180deg,rgba(18,27,31,0.96),rgba(12,20,23,0.98))] text-[#e4f0ed] shadow-[0_14px_36px_rgba(0,0,0,0.22)] hover:border-[#2f4950]"
@@ -91,11 +91,11 @@ export function MessageBubble({
 
         {!isUser ? (
           <div className="flex w-full items-center gap-2 pl-1 md:w-auto md:pl-0">
-            <div className="flex items-center gap-2 md:pointer-events-none md:-translate-y-1 md:opacity-0 md:transition-all md:duration-200 md:group-hover:pointer-events-auto md:group-hover:translate-y-0 md:group-hover:opacity-100">
+            <div className="flex items-center gap-2 md:pointer-events-auto md:opacity-80 md:transition-all md:duration-200 md:group-hover:opacity-100">
               <button
                 type="button"
                 onClick={() => onCopy(message.content)}
-                className="flex h-8 w-8 items-center justify-center rounded-full border border-[#2d474e] bg-[#112024] text-[#a4b5b2] shadow-sm transition hover:scale-105 hover:border-[#4f7c75] hover:text-[#e4f0ed]"
+                className="flex h-8 w-8 items-center justify-center rounded-full border border-[#44666d] bg-[#143038] text-[#edf6f3] shadow-sm transition hover:scale-105 hover:border-[#7fc7ba] hover:text-white"
                 title="Copy"
               >
                 <Copy className="h-4 w-4" />
@@ -104,7 +104,7 @@ export function MessageBubble({
                 <button
                   type="button"
                   onClick={onRegenerate}
-                  className="flex h-8 w-8 items-center justify-center rounded-full border border-[#2d474e] bg-[#112024] text-[#a4b5b2] shadow-sm transition hover:scale-105 hover:border-[#4f7c75] hover:text-[#e4f0ed]"
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-[#44666d] bg-[#143038] text-[#edf6f3] shadow-sm transition hover:scale-105 hover:border-[#7fc7ba] hover:text-white"
                   title="Regenerate"
                 >
                   <RotateCcw className="h-4 w-4" />

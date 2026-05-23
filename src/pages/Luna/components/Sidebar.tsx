@@ -202,11 +202,13 @@ export function Sidebar({
 
           <div className="border-t border-white/6 p-3">
             {isSidebarOpen ? (
-              <div className="flex items-center gap-2 rounded-2xl border border-[#1f3135] bg-[#0c1719]/95 px-2.5 py-2.5 shadow-lg">
+              <div className="flex items-center gap-2 overflow-hidden rounded-2xl border border-[#1f3135] bg-[#0c1719]/95 px-2.5 py-2.5 shadow-lg">
                 {user.picture ? (
-                  <img src={user.picture} alt={user.name} className="h-9 w-9 rounded-full object-cover border border-white/10" />
+                  <span className="inline-flex h-9 w-9 shrink-0 overflow-hidden rounded-full border border-white/10">
+                    <img src={user.picture} alt={user.name} className="h-full w-full object-cover" />
+                  </span>
                 ) : (
-                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#102126] text-[#d5ebe6] border border-white/10">
+                  <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#102126] text-[#d5ebe6] border border-white/10">
                     <UserCircle2 className="h-5 w-5" />
                   </span>
                 )}
@@ -218,9 +220,11 @@ export function Sidebar({
             ) : (
               <div className="flex justify-center">
                 {user.picture ? (
-                  <img src={user.picture} alt={user.name} className="h-9 w-9 rounded-full object-cover border border-white/10" />
+                  <span className="inline-flex h-9 w-9 shrink-0 overflow-hidden rounded-full border border-white/10">
+                    <img src={user.picture} alt={user.name} className="h-full w-full object-cover" />
+                  </span>
                 ) : (
-                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#102126] text-[#d5ebe6] border border-white/10">
+                  <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#102126] text-[#d5ebe6] border border-white/10">
                     <UserCircle2 className="h-5 w-5" />
                   </span>
                 )}

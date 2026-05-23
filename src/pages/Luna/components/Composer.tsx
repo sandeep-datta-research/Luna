@@ -104,7 +104,7 @@ export function Composer({
             whileTap={{ scale: 0.97 }}
             type="button"
             onClick={() => { triggerHaptic(); fileInputRef.current?.click(); }}
-            className="rounded-xl border border-[#274149] bg-[#0f1f24] p-2 text-[#cde3df] transition hover:border-[#4f7c75]"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#35535a] bg-[#102126] p-2 text-[#edf6f3] shadow-[0_8px_18px_rgba(0,0,0,0.18)] transition hover:border-[#7fc7ba]"
             title="Attach file"
           >
             <Paperclip className="h-4 w-4" />
@@ -114,10 +114,10 @@ export function Composer({
             whileTap={{ scale: 0.97 }}
             type="button"
             onClick={onToggleWebSearch}
-            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition ${
+            className={`inline-flex min-h-10 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition ${
               webSearch
-                ? "border-[#4f7c75] bg-[#102126] text-[#eef6f3]"
-                : "border-[#274149] bg-[#0f1f24] text-[#cde3df] hover:border-[#4f7c75]/70"
+                ? "border-[#7fc7ba] bg-[#143038] text-[#f5fbf9]"
+                : "border-[#35535a] bg-[#102126] text-[#e3f0ed] hover:border-[#7fc7ba]/70"
             }`}
             title="Use live web results in this reply"
           >
@@ -129,10 +129,10 @@ export function Composer({
             whileTap={{ scale: 0.97 }}
             type="button"
             onClick={onToggleResearchMode}
-            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition ${
+            className={`inline-flex min-h-10 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition ${
               researchMode
-                ? "border-[#4f7c75] bg-[#102126] text-[#eef6f3]"
-                : "border-[#274149] bg-[#0f1f24] text-[#cde3df] hover:border-[#4f7c75]/70"
+                ? "border-[#7fc7ba] bg-[#143038] text-[#f5fbf9]"
+                : "border-[#35535a] bg-[#102126] text-[#e3f0ed] hover:border-[#7fc7ba]/70"
             }`}
             title={isPro ? "Research mode" : "Luna Pro feature"}
           >
@@ -144,10 +144,10 @@ export function Composer({
             whileTap={{ scale: 0.97 }}
             type="button"
             onClick={() => { triggerHaptic(); onToggleImageMode(); }}
-            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition ${
+            className={`inline-flex min-h-10 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition ${
               imageMode
-                ? "border-[#4f7c75] bg-[#102126] text-[#eef6f3]"
-                : "border-[#274149] bg-[#0f1f24] text-[#cde3df] hover:border-[#4f7c75]/70"
+                ? "border-[#7fc7ba] bg-[#143038] text-[#f5fbf9]"
+                : "border-[#35535a] bg-[#102126] text-[#e3f0ed] hover:border-[#7fc7ba]/70"
             }`}
           >
             <ImageIcon className="h-3.5 w-3.5" />
@@ -155,15 +155,15 @@ export function Composer({
           </motion.button>
         </div>
 
-        <div className="flex items-center justify-end gap-2">
+        <div className="flex items-center justify-end gap-2 self-end sm:self-auto">
           <motion.button
             whileTap={{ scale: 0.97 }}
             type="button"
             onClick={onExport}
             disabled={!isPro}
-            className={`inline-flex h-10 min-w-10 items-center justify-center rounded-full border px-2 transition ${
+            className={`inline-flex h-10 min-w-10 shrink-0 items-center justify-center rounded-full border px-2 transition ${
               isPro
-                ? "border-[#274149] bg-[#0f1f24] text-[#cde3df] hover:border-[#4f7c75]/70"
+                ? "border-[#35535a] bg-[#102126] text-[#edf6f3] hover:border-[#7fc7ba]/70"
                 : "border-[#24363a] bg-[#0f1f24]/70 text-[#68817b] opacity-80"
             }`}
             title={isPro ? "Export this chat" : "Luna Pro feature"}
@@ -176,10 +176,10 @@ export function Composer({
             type="button"
             onClick={onToggleVoice}
             disabled={transcribing}
-            className={`relative inline-flex h-10 min-w-10 items-center justify-center rounded-full border px-2 transition ${
+            className={`relative inline-flex h-10 min-w-10 shrink-0 items-center justify-center rounded-full border px-2 transition ${
               voiceActive
                 ? "border-emerald-400/70 bg-emerald-500/15 text-emerald-200"
-                : "border-[#274149] bg-[#0f1f24] text-[#cde3df] hover:border-[#4f7c75]/70"
+                : "border-[#35535a] bg-[#102126] text-[#edf6f3] hover:border-[#7fc7ba]/70"
             } ${transcribing ? "opacity-70" : ""}`}
             title={voiceActive ? "Stop recording" : "Voice input"}
           >
@@ -201,10 +201,10 @@ export function Composer({
             type="button"
             onClick={onSend}
             disabled={sendDisabled || !value.trim()}
-            className={`inline-flex h-10 w-10 items-center justify-center rounded-full transition ${
+            className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition ${
               value.trim() && !sendDisabled
                 ? "bg-[linear-gradient(135deg,#e1ba6d,#9e7b33)] text-[#102126] shadow-[0_0_0_8px_rgba(225,186,109,0.14)]"
-                : "bg-[#21353a] text-[#77928d]"
+                : "bg-[#284148] text-[#a5c0bb]"
             }`}
             title="Send"
           >

@@ -15,7 +15,7 @@ export function CharacterCards({ options = CHARACTER_OPTIONS, selectedCharacterI
             whileTap={{ scale: 0.985 }}
             type="button"
             onClick={() => onSelect(character)}
-            className={`group relative min-w-[272px] overflow-hidden rounded-[26px] border text-left transition ${
+            className={`group relative min-w-[272px] max-w-[272px] overflow-hidden rounded-[26px] border text-left transition ${
               active
                 ? "border-[#7fc7ba]/80 bg-[#102126] shadow-[0_16px_40px_rgba(18,49,56,0.35)]"
                 : "border-[#1f3135] bg-[#0b1518] hover:border-[#35545b] hover:bg-[#0e1b1f]"
@@ -26,11 +26,13 @@ export function CharacterCards({ options = CHARACTER_OPTIONS, selectedCharacterI
               style={{ backgroundImage: `linear-gradient(135deg, ${character.accentStart}, ${character.accentEnd})` }}
             />
             <div className="relative flex items-start gap-3 p-3">
-              <img
-                src={character.portrait}
-                alt={character.name}
-                className="h-24 w-20 rounded-[18px] border border-white/10 object-cover shadow-[0_14px_24px_rgba(0,0,0,0.25)]"
-              />
+              <span className="inline-flex h-24 w-20 shrink-0 overflow-hidden rounded-[18px] border border-white/10 shadow-[0_14px_24px_rgba(0,0,0,0.25)]">
+                <img
+                  src={character.portrait}
+                  alt={character.name}
+                  className="h-full w-full object-cover"
+                />
+              </span>
               <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-2">
                   <div>
