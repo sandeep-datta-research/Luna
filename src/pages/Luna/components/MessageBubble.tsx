@@ -80,16 +80,18 @@ export function MessageBubble({
         ) : null}
 
         <div
-          className={`relative rounded-3xl px-5 py-3.5 text-[15px] leading-relaxed transition-colors ${
+          className={`relative max-w-full rounded-3xl px-5 py-3.5 text-[15px] leading-relaxed transition-colors ${
             isUser
               ? "rounded-br-sm bg-[linear-gradient(145deg,#327d74,#184f49)] text-[#f4f9f8] shadow-[0_12px_32px_rgba(24,79,73,0.3)] ring-1 ring-inset ring-white/10"
               : "rounded-bl-sm border border-[#21353a] bg-[linear-gradient(180deg,rgba(18,27,31,0.96),rgba(12,20,23,0.98))] text-[#e4f0ed] shadow-[0_14px_36px_rgba(0,0,0,0.22)] hover:border-[#2f4950]"
           }`}
         >
           {isUser ? message.content : <MarkdownMessage content={message.content} />}
+        </div>
 
-          {!isUser ? (
-            <div className="absolute -right-12 top-2 flex flex-col gap-2 opacity-100 transition-all duration-200 md:pointer-events-none md:-translate-x-2 md:opacity-0 md:group-hover:pointer-events-auto md:group-hover:translate-x-0 md:group-hover:opacity-100">
+        {!isUser ? (
+          <div className="flex w-full items-center gap-2 pl-1 md:w-auto md:pl-0">
+            <div className="flex items-center gap-2 md:pointer-events-none md:-translate-y-1 md:opacity-0 md:transition-all md:duration-200 md:group-hover:pointer-events-auto md:group-hover:translate-y-0 md:group-hover:opacity-100">
               <button
                 type="button"
                 onClick={() => onCopy(message.content)}
@@ -109,8 +111,8 @@ export function MessageBubble({
                 </button>
               ) : null}
             </div>
-          ) : null}
-        </div>
+          </div>
+        ) : null}
 
         {!isUser && sources.length > 0 ? (
           <div className="mt-1 grid w-full gap-2">

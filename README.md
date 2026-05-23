@@ -60,7 +60,7 @@ npm start
 Default local ports:
 
 - Frontend: `http://localhost:5173`
-- Backend: `http://localhost:5112` via Vite proxy or direct API access
+- Backend: `http://localhost:5108` via Vite proxy or direct API access
 
 ## Scripts
 

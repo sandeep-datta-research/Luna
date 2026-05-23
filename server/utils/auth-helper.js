@@ -1,7 +1,11 @@
 import { randomUUID } from "crypto";
 import { COOKIE_AUTH_TOKEN } from "../config.js";
 import { readCookie, setGuestCookie } from "./cookie-helper.js";
+import { isAuthenticatedUserContext } from "./common.js";
 import { validateSessionToken } from "../db-adapter.js";
+
+export { readCookie };
+export { isAuthenticatedUserContext };
 
 export function readBearerToken(req) {
   const authHeader = req.get("authorization") || "";

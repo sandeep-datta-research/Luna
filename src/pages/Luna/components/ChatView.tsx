@@ -275,7 +275,7 @@ export function ChatView({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.8, y: 10 }}
             onClick={scrollToBottom}
-            className={`fixed bottom-24 right-6 xl:right-[380px] z-50 flex h-10 w-10 items-center justify-center rounded-full border border-[#2d474e] bg-[#112024] text-[#a4b5b2] shadow-[0_8px_20px_rgba(0,0,0,0.3)] transition-all hover:border-[#4f7c75] hover:text-[#e4f0ed] ${hasNewMessage ? "ring-2 ring-emerald-500/50" : ""}`}
+            className={`fixed bottom-[calc(6.5rem+env(safe-area-inset-bottom))] right-4 z-50 flex h-10 w-10 items-center justify-center rounded-full border border-[#2d474e] bg-[#112024] text-[#a4b5b2] shadow-[0_8px_20px_rgba(0,0,0,0.3)] transition-all hover:border-[#4f7c75] hover:text-[#e4f0ed] md:right-6 xl:right-[380px] ${hasNewMessage ? "ring-2 ring-emerald-500/50" : ""}`}
             title="Scroll to bottom"
           >
             <ArrowDown className="h-5 w-5" />

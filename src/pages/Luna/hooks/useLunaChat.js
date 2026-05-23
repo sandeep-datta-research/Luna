@@ -67,7 +67,9 @@ export function useLunaChat({
 
   const requestLuna = useCallback(
     async (session, prompt, options = { applyToggles: true }) => {
-      let conversationId = text(session?.backendConversationId || session?.id);
+      let conversationId = isSignedIn
+        ? text(session?.backendConversationId)
+        : text(session?.backendConversationId || session?.id);
       if (!conversationId && isSignedIn) {
         const created = await fetchApi(
           "/api/history",
@@ -131,7 +133,9 @@ export function useLunaChat({
 
   const requestLunaStream = useCallback(
     async (session, prompt, handlers = {}, options = { applyToggles: true }) => {
-      let conversationId = text(session?.backendConversationId || session?.id);
+      let conversationId = isSignedIn
+        ? text(session?.backendConversationId)
+        : text(session?.backendConversationId || session?.id);
       if (!conversationId && isSignedIn) {
         const created = await fetchApi(
           "/api/history",

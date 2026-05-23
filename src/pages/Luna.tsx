@@ -91,6 +91,7 @@ export default function Luna() {
 
   // Character Options State
   const [characterOptions, setCharacterOptions] = useState(CHARACTER_OPTIONS);
+  const listEndRef = useRef(null);
 
   const showErrorToast = useCallback((message, retryPayload = null) => {
     setLastRetryPayload(retryPayload);
@@ -358,8 +359,9 @@ export default function Luna() {
   }, [user?.email]);
 
   useEffect(() => {
-    const listEnd = document.getElementById("list-end");
-    if (listEnd) listEnd.scrollIntoView({ behavior: "smooth", block: "end" });
+    const node = listEndRef.current;
+    if (!node) return;
+    node.scrollIntoView({ behavior: activeMessages.length > 0 ? "smooth" : "auto", block: "end" });
   }, [activeMessages, isTyping]);
 
   useEffect(() => {
@@ -455,6 +457,7 @@ export default function Luna() {
           user={user}
           mobileSidebarOpen={mobileSidebarOpen}
           setMobileSidebarOpen={setMobileSidebarOpen}
+          historyLoading={historyLoading}
         />
 
         <section className="relative flex min-w-0 flex-1 flex-col">
@@ -554,7 +557,7 @@ export default function Luna() {
                   copyMessage={(c) => { navigator.clipboard.writeText(c); setToast({ id: createId("t"), message: "Copied" }); }}
                   regenerateLatest={regenerateLatest}
                   showTyping={showTyping}
-                  listEndRef={(el) => { if (el) el.scrollIntoView({ behavior: "smooth" }); }}
+                  listEndRef={listEndRef}
                   setInputValue={setInputValue}
                 />
               )}

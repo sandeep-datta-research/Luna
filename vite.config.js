@@ -5,7 +5,7 @@ import { fileURLToPath, URL } from "node:url";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
-  const apiTarget = (env.VITE_API_URL || "http://localhost:5112").replace(/\/$/, "");
+  const apiTarget = (env.VITE_API_URL || "http://localhost:5108").replace(/\/$/, "");
 
   return {
     base: "./",
