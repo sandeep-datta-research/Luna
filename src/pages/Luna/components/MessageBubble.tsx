@@ -64,92 +64,79 @@ export function MessageBubble({
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: 18 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ type: "spring", stiffness: 260, damping: 26 }}
-      className={`group flex ${isUser ? "justify-end" : "justify-start"}`}
+      transition={{ duration: 0.18 }}
+      className={`flex ${isUser ? "justify-end" : "justify-start"}`}
     >
-      <div className={`w-full min-w-0 ${isUser ? "max-w-[92%] md:max-w-[46rem]" : "max-w-full md:max-w-[46rem]"}`}>
+      <div className={`w-full min-w-0 ${isUser ? "max-w-[92%] md:max-w-[44rem]" : "max-w-full md:max-w-[48rem]"}`}>
         {!isUser && showLunaHeader ? (
-          <div className="mb-3 flex items-center gap-3 pl-1">
-            <span className="inline-flex h-9 w-9 shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-[#122125] shadow-[0_12px_26px_rgba(0,0,0,0.18)]">
+          <div className="mb-3 flex items-center gap-3">
+            <span className="inline-flex h-9 w-9 shrink-0 overflow-hidden rounded-full border border-[#36545a] bg-[#102126]">
               <img src={assistantCharacter.portrait || lunaLogo} alt={assistantCharacter.name} className="h-full w-full object-cover" />
             </span>
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-[#eef7f4]" style={{ fontFamily: "'Syne', sans-serif" }}>
-                {assistantCharacter.name}
-              </p>
-              <p className="text-[11px] uppercase tracking-[0.18em] text-[#6d8882]">Assistant</p>
+              <p className="truncate text-sm font-semibold text-[#f4faf8]">{assistantCharacter.name}</p>
+              <p className="text-[11px] uppercase tracking-[0.16em] text-[#9eb7b2]">Assistant</p>
             </div>
           </div>
         ) : null}
 
-        <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
-          <div
-            className={`relative min-w-0 max-w-full overflow-hidden rounded-[28px] px-4 py-4 text-[15px] leading-7 break-words shadow-[0_16px_40px_rgba(0,0,0,0.16)] md:px-5 ${
-              isUser
-                ? "rounded-br-lg bg-[linear-gradient(135deg,#1d675f,#143d3a)] text-[#f4fbf8] ring-1 ring-inset ring-white/10"
-                : "rounded-bl-lg border border-[#21343a] bg-[#102126] text-[#edf7f4]"
-            }`}
-          >
-            {isUser ? <p className="whitespace-pre-wrap">{message.content}</p> : <MarkdownMessage content={message.content} />}
-          </div>
+        <div className={`rounded-2xl border px-4 py-3 text-[15px] leading-7 shadow-[0_8px_20px_rgba(0,0,0,0.12)] md:px-5 ${isUser ? "border-[#27645d] bg-[#1d675f] text-white" : "border-[#294249] bg-[#102126] text-[#edf7f4]"}`}>
+          {isUser ? <p className="whitespace-pre-wrap break-words">{message.content}</p> : <MarkdownMessage content={message.content} />}
         </div>
 
         {!isUser ? (
-          <div className="mt-3 flex flex-wrap items-center gap-2 pl-1">
+          <div className="mt-3 flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={() => onCopy(message.content)}
-              className="inline-flex h-9 items-center justify-center gap-2 rounded-full border border-[#21343a] bg-[#0f1b1f] px-3 text-[#eef7f4] transition hover:border-[#7fc7ba]/50 hover:bg-[#13242a] hover:text-white"
-              title="Copy response"
+              className="inline-flex min-h-9 items-center gap-2 rounded-full border border-[#294249] bg-[#0f1b1f] px-3 text-xs text-[#eef7f4]"
             >
-              <Copy className="h-4 w-4" />
-              <span className="text-xs">Copy</span>
+              <Copy className="h-3.5 w-3.5" />
+              Copy
             </button>
             {isLatestAssistant && onRegenerate ? (
               <button
                 type="button"
                 onClick={onRegenerate}
-                className="inline-flex h-9 items-center justify-center gap-2 rounded-full border border-[#21343a] bg-[#0f1b1f] px-3 text-[#eef7f4] transition hover:border-[#7fc7ba]/50 hover:bg-[#13242a] hover:text-white"
-                title="Regenerate response"
+                className="inline-flex min-h-9 items-center gap-2 rounded-full border border-[#294249] bg-[#0f1b1f] px-3 text-xs text-[#eef7f4]"
               >
-                <RotateCcw className="h-4 w-4" />
-                <span className="text-xs">Retry</span>
+                <RotateCcw className="h-3.5 w-3.5" />
+                Retry
               </button>
             ) : null}
-
-            <span className="text-[11px] text-[#a0b4b0]">{formatTime(message.createdAt)}</span>
-            {!isUser && totalTokens > 0 ? (
-              <span className="text-[11px] text-[#a0b4b0]">
+            <span className="text-[11px] text-[#adc1bc]">{formatTime(message.createdAt)}</span>
+            {totalTokens > 0 ? (
+              <span className="text-[11px] text-[#adc1bc]">
                 {completionTokens > 0 ? `${completionTokens} output tokens` : `${totalTokens} total tokens`}
                 {usage?.provider ? ` via ${usage.provider}` : ""}
               </span>
             ) : null}
           </div>
         ) : (
-          <div className="mt-2 pr-1 text-right text-[11px] text-[#a0b4b0]">{formatTime(message.createdAt)}</div>
+          <div className="mt-2 text-right text-[11px] text-[#adc1bc]">{formatTime(message.createdAt)}</div>
         )}
 
         {!isUser && sources.length > 0 ? (
-          <div className="mt-4 grid gap-2 pl-1">
+          <div className="mt-4 grid gap-2">
             {sources.map((source, index) => (
               <a
                 key={source.id || source.link || index}
                 href={source.link || source.url}
                 target="_blank"
                 rel="noreferrer"
-                className="min-w-0 rounded-[20px] border border-[#21343a] bg-[#0f1b1f] px-4 py-3 transition hover:border-[#7fc7ba]/45 hover:bg-[#13242a]"
+                className="rounded-2xl border border-[#294249] bg-[#0f1b1f] px-4 py-3"
               >
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#7f9c96]">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9eb7b2]">
                     [{index + 1}] {source.source || "Source"}
                   </span>
-                  <Globe className="h-3.5 w-3.5 text-[#8eaaa4]" />
+                  <Globe className="h-3.5 w-3.5 text-[#9eb7b2]" />
                 </div>
                 <p className="mt-2 break-words text-sm font-medium text-[#eef7f4]">{source.title}</p>
                 {source.snippet || source.summary ? (
-                  <p className="mt-1 break-words text-xs leading-6 text-[#8ca6a0]">{source.snippet || source.summary}</p>
+                  <p className="mt-1 break-words text-xs leading-6 text-[#c4d7d2]">{source.snippet || source.summary}</p>
                 ) : null}
               </a>
             ))}

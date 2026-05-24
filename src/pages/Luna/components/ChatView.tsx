@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowDown, Loader2, Sparkles } from "lucide-react";
+import { ArrowDown, Loader2, PanelRight, Sparkles } from "lucide-react";
 import { MessageBubble } from "./MessageBubble";
 import { TypingIndicator } from "./TypingIndicator";
 import { CharacterCards } from "./CharacterCards";
@@ -26,30 +26,21 @@ interface ChatViewProps {
   setInputValue: (val: string) => void;
 }
 
-function ChatSkeleton() {
+function EmptyThread() {
   return (
-    <div className="space-y-5 px-1 py-4">
-      <div className="flex justify-end">
-        <div className="h-14 w-[65%] rounded-[26px] rounded-br-md bg-[linear-gradient(135deg,rgba(127,199,186,0.22),rgba(60,115,105,0.22))]" />
-      </div>
-      <div className="w-[88%] space-y-2">
-        <div className="h-4 w-28 rounded-full bg-white/8" />
-        <div className="h-24 rounded-[28px] rounded-bl-md bg-white/[0.04]" />
-      </div>
-      <div className="flex justify-end">
-        <div className="h-12 w-[46%] rounded-[26px] rounded-br-md bg-[linear-gradient(135deg,rgba(127,199,186,0.22),rgba(60,115,105,0.22))]" />
-      </div>
+    <div className="rounded-2xl border border-dashed border-[#294249] bg-[#0f1b1f] px-5 py-10 text-center">
+      <p className="text-sm font-medium text-[#edf7f4]">No messages yet.</p>
+      <p className="mt-2 text-sm leading-6 text-[#b8cbc7]">Start the thread with a prompt, a file, or a character starter.</p>
     </div>
   );
 }
 
-function RailCard({ title, body, children }: { title: string; body?: string; children?: React.ReactNode }) {
+function RailCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-[30px] border border-white/6 bg-[linear-gradient(180deg,rgba(10,20,24,0.94),rgba(7,14,17,0.98))] p-4 shadow-[0_18px_44px_rgba(0,0,0,0.18)]">
-      <p className="text-[11px] uppercase tracking-[0.2em] text-[#7f9a94]">{title}</p>
-      {body ? <p className="mt-2 text-sm leading-6 text-[#96afa9]">{body}</p> : null}
-      {children ? <div className="mt-4">{children}</div> : null}
-    </div>
+    <section className="rounded-2xl border border-[#1d3036] bg-[#0c171a] p-4">
+      <p className="text-[11px] uppercase tracking-[0.18em] text-[#9eb7b2]">{title}</p>
+      <div className="mt-4">{children}</div>
+    </section>
   );
 }
 
@@ -72,10 +63,10 @@ export function ChatView({
   setInputValue,
 }: ChatViewProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const previousCountRef = useRef(activeMessages.length);
   const [showScrollBottom, setShowScrollBottom] = useState(false);
   const [hasNewMessage, setHasNewMessage] = useState(false);
   const [showMobileRail, setShowMobileRail] = useState(false);
-  const previousCountRef = useRef(activeMessages.length);
 
   useEffect(() => {
     if (activeMessages.length > previousCountRef.current && showScrollBottom) {
@@ -88,9 +79,9 @@ export function ChatView({
     const node = scrollContainerRef.current;
     if (!node) return;
     const distanceToBottom = node.scrollHeight - node.scrollTop - node.clientHeight;
-    const isNearBottom = distanceToBottom < 120;
-    setShowScrollBottom(!isNearBottom);
-    if (isNearBottom) setHasNewMessage(false);
+    const nearBottom = distanceToBottom < 120;
+    setShowScrollBottom(!nearBottom);
+    if (nearBottom) setHasNewMessage(false);
   };
 
   const scrollToBottom = () => {
@@ -103,48 +94,46 @@ export function ChatView({
   return (
     <motion.div
       key={activeSession?.id || "chat-view"}
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 12 }}
-      transition={{ duration: 0.24 }}
+      exit={{ opacity: 0, y: 8 }}
+      transition={{ duration: 0.2 }}
       ref={scrollContainerRef}
       onScroll={handleScroll}
       className="luna-scrollbar relative h-full overflow-y-auto"
     >
-      <div className="mx-auto grid w-full max-w-[1560px] gap-6 pb-8 pt-2 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="mx-auto grid w-full max-w-[1500px] gap-4 pb-8 pt-1 xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="min-w-0">
-          <section className="sticky top-0 z-20 mb-4 rounded-[24px] border border-[#1d3036] bg-[#0c171a] p-3 shadow-[0_10px_24px_rgba(0,0,0,0.14)] md:p-4">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex min-w-0 flex-wrap items-center gap-2.5">
-                <div className="inline-flex min-w-0 items-center gap-3 rounded-[20px] border border-[#2c454b] bg-[#102126] px-3 py-2">
-                  <span className="inline-flex h-10 w-10 shrink-0 overflow-hidden rounded-2xl border border-white/10">
+          <section className="mb-4 rounded-2xl border border-[#1d3036] bg-[#0c171a] p-4">
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="inline-flex h-12 w-12 shrink-0 overflow-hidden rounded-2xl border border-[#294249] bg-[#102126]">
                     <img src={activeCharacter.portrait} alt={activeCharacter.name} className="h-full w-full object-cover" />
                   </span>
                   <div className="min-w-0">
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-[#84a7a0]">Thread voice</p>
-                    <p className="truncate text-sm font-semibold text-[#eef7f4]">{activeCharacter.name}</p>
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-[#95b0aa]">Active character</p>
+                    <p className="truncate text-base font-semibold text-[#f5fbf9]">{activeCharacter.name}</p>
+                    <p className="truncate text-xs text-[#bfd1cd]">Updated {formatHistoryTime(activeSession?.updatedAt)}</p>
                   </div>
                 </div>
 
-                  <span className="rounded-full border border-[#21343a] bg-[#102126] px-3 py-1.5 text-xs text-[#c5d9d5]">
-                  Updated {formatHistoryTime(activeSession?.updatedAt)}
-                </span>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-                {modePills.map((pill) => (
-                  <span key={pill} className="rounded-full border border-[#21343a] bg-[#102126] px-3 py-1.5 text-xs text-[#eef7f4]">
-                    {pill}
-                  </span>
-                ))}
                 <button
                   type="button"
                   onClick={() => setShowMobileRail((prev) => !prev)}
-                  className="inline-flex items-center gap-2 rounded-full border border-[#21343a] bg-[#102126] px-3 py-1.5 text-xs text-[#eef7f4] xl:hidden"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-[#21343a] bg-[#102126] px-4 text-sm text-[#eef7f4] xl:hidden"
                 >
-                  <Sparkles className="h-3.5 w-3.5" />
-                  {showMobileRail ? "Hide controls" : "Open controls"}
+                  <PanelRight className="h-4 w-4" />
+                  {showMobileRail ? "Hide tools" : "Open tools"}
                 </button>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {modePills.map((pill) => (
+                  <span key={pill} className="rounded-full border border-[#294249] bg-[#102126] px-3 py-1.5 text-xs text-[#eef7f4]">
+                    {pill}
+                  </span>
+                ))}
               </div>
             </div>
           </section>
@@ -155,14 +144,14 @@ export function ChatView({
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
-                className="mb-4 space-y-4 xl:hidden"
+                className="mb-4 xl:hidden"
               >
-                <RailCard title="Character Board" body={`This thread currently speaks as ${activeCharacter.name}.`}>
+                <RailCard title="Character tools">
                   <input
                     value={characterSearchQuery}
                     onChange={(event) => setCharacterSearchQuery(event.target.value)}
-                    placeholder="Search character board"
-                    className="mb-3 w-full rounded-[18px] border border-[#21343a] bg-[#0f1b1f] px-4 py-3 text-sm text-[#eef7f4] outline-none focus:border-[#7fc7ba]/70"
+                    placeholder="Search characters"
+                    className="mb-3 w-full rounded-xl border border-[#294249] bg-[#102126] px-4 py-3 text-sm text-[#eef7f4] outline-none focus:border-[#7fc7ba]"
                   />
                   <CharacterCards
                     options={filteredCharacterOptions}
@@ -170,20 +159,24 @@ export function ChatView({
                     onSelect={handleSelectCharacter}
                     isPro={membershipPlan === "pro"}
                   />
+                  <CharacterStarterPrompts
+                    prompts={activeCharacter.starterPrompts}
+                    onSelect={(prompt: string) => setInputValue(prompt)}
+                  />
                 </RailCard>
               </motion.div>
             ) : null}
           </AnimatePresence>
 
-          <section className="mx-auto max-w-[960px] pb-12">
+          <section className="mx-auto max-w-[880px]">
             {historyLoading ? (
-              <div className="mb-5 flex items-center gap-3 rounded-[20px] border border-[#21343a] bg-[#102126] px-4 py-3 text-sm text-[#eef7f4]">
+              <div className="mb-4 flex items-center gap-3 rounded-2xl border border-[#294249] bg-[#102126] px-4 py-3 text-sm text-[#eef7f4]">
                 <Loader2 className="h-4 w-4 animate-spin text-[#7fc7ba]" />
-                Loading your chats...
+                Loading chat history...
               </div>
             ) : null}
 
-            {activeMessages.length === 0 && !historyLoading ? <ChatSkeleton /> : null}
+            {!historyLoading && activeMessages.length === 0 ? <EmptyThread /> : null}
 
             <div aria-live="polite" aria-atomic="false" className="space-y-6">
               {activeMessages.map((message) => (
@@ -205,32 +198,25 @@ export function ChatView({
         </div>
 
         <aside className="hidden xl:block">
-          <div className="sticky top-3 space-y-4">
-            <RailCard
-              title="Character Board"
-              body={`This thread currently speaks as ${activeCharacter.name}. Swap voice, prompts, and style without leaving the conversation.`}
-            >
-                <div className="rounded-[22px] border border-[#21343a] bg-[#102126] p-3">
+          <div className="sticky top-4 space-y-4">
+            <RailCard title="Character tools">
+              <div className="rounded-2xl border border-[#294249] bg-[#102126] p-4">
                 <div className="flex items-center gap-3">
-                  <span className="inline-flex h-16 w-14 shrink-0 overflow-hidden rounded-[18px] border border-white/10">
+                  <span className="inline-flex h-16 w-14 shrink-0 overflow-hidden rounded-2xl border border-[#36545a]">
                     <img src={activeCharacter.portrait} alt={activeCharacter.name} className="h-full w-full object-cover" />
                   </span>
                   <div className="min-w-0">
-                    <p className="truncate text-base font-semibold text-[#eef7f4]">{activeCharacter.name}</p>
-                    <p className="mt-1 text-xs leading-5 text-[#8ca59f]">{activeCharacter.tagline}</p>
+                    <p className="truncate text-base font-semibold text-[#f5fbf9]">{activeCharacter.name}</p>
+                    <p className="mt-1 text-sm leading-5 text-[#c1d5d0]">{activeCharacter.tagline}</p>
                   </div>
                 </div>
-                <CharacterStarterPrompts
-                  prompts={activeCharacter.starterPrompts}
-                  onSelect={(prompt: string) => setInputValue(prompt)}
-                />
               </div>
 
               <input
                 value={characterSearchQuery}
                 onChange={(event) => setCharacterSearchQuery(event.target.value)}
-                placeholder="Search character board"
-                className="mt-3 w-full rounded-[18px] border border-[#21343a] bg-[#0f1b1f] px-4 py-3 text-sm text-[#eef7f4] outline-none focus:border-[#7fc7ba]/70"
+                placeholder="Search characters"
+                className="mt-3 w-full rounded-xl border border-[#294249] bg-[#102126] px-4 py-3 text-sm text-[#eef7f4] outline-none focus:border-[#7fc7ba]"
               />
 
               <div className="mt-3">
@@ -241,6 +227,21 @@ export function ChatView({
                   isPro={membershipPlan === "pro"}
                 />
               </div>
+
+              <CharacterStarterPrompts
+                prompts={activeCharacter.starterPrompts}
+                onSelect={(prompt: string) => setInputValue(prompt)}
+              />
+            </RailCard>
+
+            <RailCard title="Thread help">
+              <div className="rounded-2xl border border-[#294249] bg-[#102126] px-4 py-3 text-sm leading-6 text-[#d3e3df]">
+                <div className="flex items-center gap-2 text-[#eef7f4]">
+                  <Sparkles className="h-4 w-4 text-[#7fc7ba]" />
+                  <span className="font-medium">Use the same tools, with less noise.</span>
+                </div>
+                <p className="mt-2">Pick a character, use a starter prompt, then send a focused request in the composer below.</p>
+              </div>
             </RailCard>
           </div>
         </aside>
@@ -249,11 +250,11 @@ export function ChatView({
       <AnimatePresence>
         {showScrollBottom ? (
           <motion.button
-            initial={{ opacity: 0, scale: 0.84, y: 10 }}
+            initial={{ opacity: 0, scale: 0.92, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.84, y: 10 }}
+            exit={{ opacity: 0, scale: 0.92, y: 10 }}
             onClick={scrollToBottom}
-            className={`fixed bottom-[calc(7rem+env(safe-area-inset-bottom))] right-4 z-40 inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#325057] bg-[#143038] text-[#edf7f4] shadow-[0_14px_34px_rgba(0,0,0,0.28)] transition hover:border-[#7fc7ba] md:right-6 xl:right-[388px] ${hasNewMessage ? "ring-2 ring-[#7fc7ba]/50" : ""}`}
+            className={`fixed bottom-[calc(7rem+env(safe-area-inset-bottom))] right-4 z-40 inline-flex h-12 w-12 items-center justify-center rounded-full border border-[#36545a] bg-[#143038] text-white shadow-[0_10px_24px_rgba(0,0,0,0.25)] xl:right-[364px] ${hasNewMessage ? "ring-2 ring-[#7fc7ba]/60" : ""}`}
             title="Scroll to bottom"
           >
             <ArrowDown className="h-4 w-4" />

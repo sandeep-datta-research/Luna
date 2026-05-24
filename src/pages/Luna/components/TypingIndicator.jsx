@@ -8,11 +8,11 @@ export function TypingIndicator({ character }) {
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex justify-start"
+      className="mt-6 flex justify-start"
     >
-      <div className="rounded-[18px] rounded-bl-[4px] border border-[#21353a] bg-[linear-gradient(180deg,rgba(14,22,25,0.96),rgba(8,14,17,0.98))] px-4 py-3 text-[#d7e9e5]">
-        <div className="mb-2 flex items-center gap-2 text-xs text-[#86a49d]">
-          <span className="inline-flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border border-white/20 bg-white/5">
+      <div className="rounded-2xl border border-[#294249] bg-[#102126] px-4 py-3 text-[#d7e9e5]">
+        <div className="mb-2 flex items-center gap-2 text-xs text-[#adc1bc]">
+          <span className="inline-flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border border-[#36545a] bg-[#0f1b1f]">
             <img src={assistantCharacter.portrait || lunaLogo} alt={assistantCharacter.name} className="h-full w-full rounded-[inherit] object-cover" />
           </span>
           <span>{assistantCharacter.name}</span>
