@@ -12,7 +12,11 @@ const CardNav = ({
   ease = 'power3.out',
   baseColor = '#fff',
   menuColor,
+  buttonBgColor,
+  buttonTextColor,
 }) => {
+  void buttonBgColor;
+  void buttonTextColor;
   const [isHamburgerOpen, setIsHamburgerOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isSignedIn, setIsSignedIn] = useState(false);

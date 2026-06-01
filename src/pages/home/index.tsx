@@ -77,8 +77,8 @@ export default function Home() {
       return () => window.cancelIdleCallback?.(idleId);
     }
 
-    const timeoutId = window.setTimeout(loadAnalytics, 1800);
-    return () => window.clearTimeout(timeoutId);
+    const timeoutId = globalThis.setTimeout(loadAnalytics, 1800);
+    return () => globalThis.clearTimeout(timeoutId);
   }, []);
 
   useEffect(() => {
@@ -190,10 +190,10 @@ export default function Home() {
       };
     }
 
-    const timer = typeof window !== "undefined" ? window.setTimeout(scheduleLoad, 1200) : null;
+    const timer = globalThis.setTimeout(scheduleLoad, 1200);
     return () => {
       canceled = true;
-      if (timer) window.clearTimeout(timer);
+      globalThis.clearTimeout(timer);
     };
   }, []);
 
@@ -222,10 +222,10 @@ export default function Home() {
       };
     }
 
-    const timer = typeof window !== "undefined" ? window.setTimeout(scheduleLoad, 1200) : null;
+    const timer = globalThis.setTimeout(scheduleLoad, 1200);
     return () => {
       canceled = true;
-      if (timer) window.clearTimeout(timer);
+      globalThis.clearTimeout(timer);
     };
   }, []);
 

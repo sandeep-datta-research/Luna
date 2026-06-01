@@ -3,6 +3,13 @@ import { CHARACTER_OPTIONS } from "../constants";
 import { normalizeCharacterId } from "../utils";
 
 export function CharacterCards({ options = CHARACTER_OPTIONS, selectedCharacterId, onSelect, compact = false, isPro = false }) {
+  const cardSizeClass = compact
+    ? "min-w-[204px] max-w-[204px] md:min-w-[220px] md:max-w-[220px]"
+    : "min-w-[228px] max-w-[228px] md:min-w-[244px] md:max-w-[244px]";
+  const portraitSizeClass = compact
+    ? "h-16 w-14 md:h-[4.5rem] md:w-16"
+    : "h-[4.5rem] w-16 md:h-20 md:w-[4.5rem]";
+
   return (
     <div className="luna-scrollbar flex gap-3 overflow-x-auto pb-1">
       {options.map((character) => {
@@ -15,7 +22,7 @@ export function CharacterCards({ options = CHARACTER_OPTIONS, selectedCharacterI
             whileTap={{ scale: 0.985 }}
             type="button"
             onClick={() => onSelect(character)}
-            className={`group relative min-w-[228px] max-w-[228px] overflow-hidden rounded-2xl border text-left transition md:min-w-[244px] md:max-w-[244px] ${
+            className={`group relative ${cardSizeClass} overflow-hidden rounded-2xl border text-left transition ${
               active
                 ? "border-[#7fc7ba]/70 bg-[#102126] shadow-[0_10px_24px_rgba(18,49,56,0.2)]"
                 : "border-[#294249] bg-[#0f1b1f] hover:border-[#36545a] hover:bg-[#13242a]"
@@ -26,7 +33,7 @@ export function CharacterCards({ options = CHARACTER_OPTIONS, selectedCharacterI
               style={{ backgroundImage: `linear-gradient(135deg, ${character.accentStart}, ${character.accentEnd})` }}
             />
             <div className="relative flex items-start gap-3 p-3">
-              <span className="inline-flex h-[4.5rem] w-16 shrink-0 overflow-hidden rounded-xl border border-[#36545a] md:h-20 md:w-[4.5rem]">
+              <span className={`inline-flex ${portraitSizeClass} shrink-0 overflow-hidden rounded-xl border border-[#36545a]`}>
                 <img
                   src={character.portrait}
                   alt={character.name}

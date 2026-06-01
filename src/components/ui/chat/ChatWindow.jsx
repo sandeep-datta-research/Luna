@@ -55,7 +55,7 @@ function AssistantMessage({ message }) {
       </div>
 
       <div className="min-w-0 max-w-[92%] space-y-1 sm:max-w-[84%]">
-        <div className="rounded-2xl border border-zinc-800/80 bg-zinc-900/80 px-4 py-3 text-sm leading-6 text-zinc-100 whitespace-pre-wrap">
+        <div className="rounded-2xl border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm leading-6 text-zinc-100 whitespace-pre-wrap">
           {message.text}
         </div>
 
@@ -102,7 +102,7 @@ export default function ChatWindow({ messages, isLoading, error }) {
   }, [messages, isLoading, error]);
 
   return (
-    <div className="flex-1 overflow-y-auto bg-[#121314] px-4 py-6 sm:px-6">
+    <div className="flex-1 overflow-y-auto bg-[#0f1011] px-4 py-6 sm:px-6">
       <div className="mx-auto w-full max-w-3xl space-y-6">
         {messages.map((msg) =>
           msg.role === "user" ? (

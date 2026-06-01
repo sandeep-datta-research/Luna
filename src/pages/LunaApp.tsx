@@ -11,7 +11,7 @@ import logo from "@/assets/luna-logo.svg";
 
 export default function LunaApp() {
   const logoSrc = useBrandingLogo(logo);
-  const [installPromptEvent, setInstallPromptEvent] = useState(null);
+  const [installPromptEvent, setInstallPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
   const [installSupported, setInstallSupported] = useState(false);
   const [installingApp, setInstallingApp] = useState(false);
   const [isStandaloneApp, setIsStandaloneApp] = useState(false);
@@ -40,9 +40,9 @@ export default function LunaApp() {
     const isSafari = /Safari/i.test(ua) && !/CriOS|FxiOS|EdgiOS/i.test(ua);
     setShowIosInstallHint(isIos && isSafari && !window.navigator?.standalone);
 
-    const handleBeforeInstallPrompt = (event) => {
+    const handleBeforeInstallPrompt = (event: Event) => {
       event.preventDefault();
-      setInstallPromptEvent(event);
+      setInstallPromptEvent(event as BeforeInstallPromptEvent);
       setInstallSupported(true);
     };
 

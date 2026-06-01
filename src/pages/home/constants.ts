@@ -10,6 +10,7 @@ import {
   CommandMode,
   FeaturePillar,
   MotionStackItem,
+  NavItem,
   SignalItem,
   WorkflowStep,
 } from "./types";
@@ -19,7 +20,7 @@ export const ALLOWED_ADMIN_EMAILS = new Set([
   "sandeepdatta866@gmail.com",
 ]);
 
-export const BASE_CARD_NAV_ITEMS = [
+export const BASE_CARD_NAV_ITEMS: NavItem[] = [
   {
     label: "Home",
     bgColor: "#0D0716",
@@ -52,7 +53,7 @@ export const BASE_CARD_NAV_ITEMS = [
   },
 ];
 
-export const PROFILE_NAV_ITEM = {
+export const PROFILE_NAV_ITEM: NavItem = {
   label: "Profile",
   bgColor: "#2A203B",
   textColor: "#fff",
@@ -87,7 +88,7 @@ export const fadeInUp = {
   initial: { opacity: 0, y: 28 },
   whileInView: { opacity: 1, y: 0 },
   viewport: { once: true, amount: 0.25 },
-  transition: { duration: 0.55, ease: "easeOut" },
+  transition: { duration: 0.55, ease: "easeOut" as const },
 };
 
 export const staggerContainer = {
@@ -110,13 +111,13 @@ export const revealItem = {
     opacity: 1,
     y: 0,
     scale: 1,
-    transition: { duration: 0.65, ease: [0.16, 1, 0.3, 1] },
+    transition: { duration: 0.65, ease: [0.16, 1, 0.3, 1] as const },
   },
 };
 
 export const hoverFloat = {
   whileHover: { y: -6, scale: 1.01 },
-  transition: { type: "spring", stiffness: 240, damping: 22 },
+  transition: { type: "spring" as const, stiffness: 240, damping: 22 },
 };
 
 export const HERO_SIGNAL_ITEMS: SignalItem[] = [

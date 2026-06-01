@@ -9,7 +9,7 @@ interface AudioVisualizerProps {
 
 export function AudioVisualizer({ analyser, active, color = "#7fc7ba", barCount = 12 }: AudioVisualizerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animationRef = useRef<number>();
+  const animationRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!active || !analyser || !canvasRef.current) {

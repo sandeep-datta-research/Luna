@@ -4,7 +4,6 @@ import {
   Menu,
   Plus,
   X,
-  Loader2,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { fetchApi, hydrateUser } from "@/lib/api-client";
@@ -83,7 +82,7 @@ export default function Luna() {
   const [onboardingState, setOnboardingState] = useState({ loading: true, answered: false });
 
   // PWA State
-  const [installPromptEvent, setInstallPromptEvent] = useState<any>(null);
+  const [installPromptEvent, setInstallPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
   const [installSupported, setInstallSupported] = useState(false);
   const [installingApp, setInstallingApp] = useState(false);
   const [isStandaloneApp, setIsStandaloneApp] = useState(false);
@@ -91,7 +90,7 @@ export default function Luna() {
 
   // Character Options State
   const [characterOptions, setCharacterOptions] = useState(CHARACTER_OPTIONS);
-  const listEndRef = useRef(null);
+  const listEndRef = useRef<HTMLDivElement | null>(null);
 
   const showErrorToast = useCallback((message, retryPayload = null) => {
     setLastRetryPayload(retryPayload);
@@ -112,7 +111,7 @@ export default function Luna() {
     createFreshSession,
     handleDeleteSession,
     historyLoading,
-  } = useLunaSession({ user, isSignedIn, projects, showErrorToast });
+  } = useLunaSession({ isSignedIn, projects, showErrorToast });
 
   // Disable incremental token streaming for now. The current chat layout is
   // more stable when assistant replies render as a complete message.
@@ -217,7 +216,7 @@ export default function Luna() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ characterId: nextId }),
-      }, { includeAuth: true }).catch(() => null);
+      }, { includeAuth: true, includeGuest: false }).catch(() => null);
     }
   }, [activeSession, characterOptions, isSignedIn, membershipPlan, showErrorToast, updateSession]);
 
@@ -275,6 +274,7 @@ export default function Luna() {
       regenerate: lastRetryPayload.type === "regenerate",
       applyToggles: lastRetryPayload.type !== "regenerate",
       sessionId: lastRetryPayload.sessionId,
+      inputValue: "",
     });
   }, [lastRetryPayload, sendMessage]);
 
@@ -367,7 +367,7 @@ export default function Luna() {
     const isIos = /iPad|iPhone|iPod/i.test(ua);
     const isSafari = /Safari/i.test(ua) && !/CriOS|FxiOS|EdgiOS/i.test(ua);
     setShowIosInstallHint(isIos && isSafari && !window.navigator?.standalone);
-    const onPrompt = (e) => { e.preventDefault(); setInstallPromptEvent(e); setInstallSupported(true); };
+    const onPrompt = (e: Event) => { e.preventDefault(); setInstallPromptEvent(e as BeforeInstallPromptEvent); setInstallSupported(true); };
     const onInstalled = () => { setInstallPromptEvent(null); setInstallSupported(false); setInstallingApp(false); setIsStandaloneApp(true); };
     window.addEventListener("beforeinstallprompt", onPrompt);
     window.addEventListener("appinstalled", onInstalled);
@@ -384,7 +384,7 @@ export default function Luna() {
     let canceled = false;
     const loadChars = async () => {
       if (!isSignedIn) { setCharacterOptions(CHARACTER_OPTIONS); return; }
-      const res = await fetchApi("/api/characters", {}, { includeAuth: true });
+      const res = await fetchApi("/api/characters", {}, { includeAuth: true, includeGuest: false });
       if (canceled || !res.ok) return;
       setCharacterOptions(hydrateCharacterOptions(res.data?.characters));
       setMembershipPlan(res.data?.membership?.plan === "pro" ? "pro" : "free");
@@ -554,7 +554,7 @@ export default function Luna() {
                 <Composer
                   value={inputValue}
                   onChange={setInputValue}
-                  onSend={() => sendMessage(null, { inputValue })}
+                  onSend={() => sendMessage(null, { regenerate: false, applyToggles: true, sessionId: "", inputValue })}
                   disabled={isTranscribing}
                   sendDisabled={isTyping || isTranscribing}
                   voiceActive={voiceActive}

@@ -417,7 +417,7 @@ export default function ChatInput({ onSend, disabled = false, defaultModel = "nv
   };
 
   return (
-    <div className="relative border-t border-zinc-800/90 bg-zinc-950/90 p-4 backdrop-blur-xl">
+    <div className="relative border-t border-zinc-800 bg-zinc-950 p-4">
       <div className="pointer-events-none absolute inset-0 h-full w-full overflow-hidden">
         <div className="absolute top-0 left-1/4 h-80 w-80 animate-pulse rounded-full bg-sky-500/10 blur-[120px]" />
         <div className="absolute right-1/4 bottom-0 h-80 w-80 animate-pulse rounded-full bg-cyan-400/10 blur-[120px] delay-700" />
@@ -431,7 +431,7 @@ export default function ChatInput({ onSend, disabled = false, defaultModel = "nv
           transition={{ duration: 0.45, ease: "easeOut" }}
         >
           <motion.div
-            className="relative rounded-2xl border border-zinc-700/80 bg-zinc-900/85 shadow-2xl backdrop-blur-2xl"
+            className="relative rounded-2xl border border-zinc-700 bg-zinc-900 shadow-2xl"
             initial={{ scale: 0.98 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.08 }}
@@ -440,7 +440,7 @@ export default function ChatInput({ onSend, disabled = false, defaultModel = "nv
               {paletteOpen ? (
                 <motion.div
                   ref={commandPaletteRef}
-                  className="absolute right-4 bottom-full left-4 z-50 mb-2 overflow-hidden rounded-lg border border-zinc-700 bg-zinc-900/95 shadow-lg backdrop-blur-xl"
+                  className="absolute right-4 bottom-full left-4 z-50 mb-2 overflow-hidden rounded-lg border border-zinc-700 bg-zinc-900 shadow-lg"
                   initial={{ opacity: 0, y: 5 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 5 }}
@@ -728,7 +728,6 @@ if (typeof document !== "undefined" && !document.getElementById("luna-ripple-sty
   style.innerHTML = rippleKeyframes;
   document.head.appendChild(style);
 }
-
 
 
 
