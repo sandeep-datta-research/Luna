@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Menu,
+  Palette,
   Plus,
   X,
 } from "lucide-react";
@@ -46,9 +48,162 @@ import {
   MAX_HISTORY_ITEMS 
 } from "./Luna/constants";
 
+const CHAT_THEMES = [
+  {
+    id: "classic",
+    name: "Classic",
+    description: "Balanced dark workspace",
+    vars: {
+      "--luna-bg": "#071113",
+      "--luna-bg-soft": "#09181c",
+      "--luna-surface": "#0d1d21",
+      "--luna-surface-2": "#13282d",
+      "--luna-panel": "#102126",
+      "--luna-panel-raised": "#142a30",
+      "--luna-border": "#274148",
+      "--luna-border-strong": "#36545a",
+      "--luna-text": "#f4fbf8",
+      "--luna-muted": "#b8cec9",
+      "--luna-subtle": "#90a9a4",
+      "--luna-accent": "#7fc7ba",
+      "--luna-accent-2": "#e1ba6d",
+      "--luna-user": "#1f756d",
+      "--luna-user-border": "#2c9388",
+      "--luna-send": "linear-gradient(135deg,#f1ca78,#b88d3a)",
+      "--luna-send-text": "#102126",
+      "--luna-page-glow": "radial-gradient(circle_at_10%_12%,rgba(127,199,186,0.11),transparent_23%),radial-gradient(circle_at_90%_10%,rgba(225,186,109,0.08),transparent_20%),linear-gradient(180deg,#071113,#09171a)",
+    },
+  },
+  {
+    id: "midnight",
+    name: "Midnight",
+    description: "Deep blue focus",
+    vars: {
+      "--luna-bg": "#070b18",
+      "--luna-bg-soft": "#0a1022",
+      "--luna-surface": "#0f172f",
+      "--luna-surface-2": "#151f3c",
+      "--luna-panel": "#121b35",
+      "--luna-panel-raised": "#18264a",
+      "--luna-border": "#26365e",
+      "--luna-border-strong": "#3d5290",
+      "--luna-text": "#f2f6ff",
+      "--luna-muted": "#bfcae3",
+      "--luna-subtle": "#8f9cbc",
+      "--luna-accent": "#8fb6ff",
+      "--luna-accent-2": "#f0c66d",
+      "--luna-user": "#315fc0",
+      "--luna-user-border": "#5a82df",
+      "--luna-send": "linear-gradient(135deg,#9dbdff,#6d82f0)",
+      "--luna-send-text": "#071020",
+      "--luna-page-glow": "radial-gradient(circle_at_12%_10%,rgba(143,182,255,0.14),transparent_24%),radial-gradient(circle_at_88%_10%,rgba(240,198,109,0.08),transparent_21%),linear-gradient(180deg,#070b18,#0a1022)",
+    },
+  },
+  {
+    id: "frost",
+    name: "Frost",
+    description: "Light high contrast",
+    vars: {
+      "--luna-bg": "#f4f8fb",
+      "--luna-bg-soft": "#eaf1f6",
+      "--luna-surface": "#ffffff",
+      "--luna-surface-2": "#edf4f7",
+      "--luna-panel": "#f8fbfd",
+      "--luna-panel-raised": "#ffffff",
+      "--luna-border": "#c9d8df",
+      "--luna-border-strong": "#9eb5bf",
+      "--luna-text": "#102126",
+      "--luna-muted": "#40575f",
+      "--luna-subtle": "#62777f",
+      "--luna-accent": "#167a83",
+      "--luna-accent-2": "#b5791f",
+      "--luna-user": "#176f79",
+      "--luna-user-border": "#24929f",
+      "--luna-send": "linear-gradient(135deg,#167a83,#2d9ba6)",
+      "--luna-send-text": "#ffffff",
+      "--luna-page-glow": "radial-gradient(circle_at_12%_10%,rgba(22,122,131,0.13),transparent_24%),radial-gradient(circle_at_88%_10%,rgba(181,121,31,0.1),transparent_21%),linear-gradient(180deg,#f4f8fb,#eaf1f6)",
+    },
+  },
+  {
+    id: "ember",
+    name: "Ember",
+    description: "Warm editorial",
+    vars: {
+      "--luna-bg": "#150e0d",
+      "--luna-bg-soft": "#1d1310",
+      "--luna-surface": "#241815",
+      "--luna-surface-2": "#31211d",
+      "--luna-panel": "#2a1b17",
+      "--luna-panel-raised": "#38251f",
+      "--luna-border": "#4b332a",
+      "--luna-border-strong": "#6f4a3c",
+      "--luna-text": "#fff8f2",
+      "--luna-muted": "#dbc8ba",
+      "--luna-subtle": "#b49b8b",
+      "--luna-accent": "#f08f68",
+      "--luna-accent-2": "#f2ce76",
+      "--luna-user": "#9f4934",
+      "--luna-user-border": "#c7684c",
+      "--luna-send": "linear-gradient(135deg,#f2ce76,#e47758)",
+      "--luna-send-text": "#1d120f",
+      "--luna-page-glow": "radial-gradient(circle_at_10%_12%,rgba(240,143,104,0.13),transparent_23%),radial-gradient(circle_at_90%_10%,rgba(242,206,118,0.1),transparent_20%),linear-gradient(180deg,#150e0d,#1d1310)",
+    },
+  },
+  {
+    id: "aurora",
+    name: "Aurora",
+    description: "Premium vivid",
+    vars: {
+      "--luna-bg": "#090812",
+      "--luna-bg-soft": "#0f1020",
+      "--luna-surface": "#151729",
+      "--luna-surface-2": "#1c2038",
+      "--luna-panel": "#17192c",
+      "--luna-panel-raised": "#212541",
+      "--luna-border": "#34395c",
+      "--luna-border-strong": "#565f95",
+      "--luna-text": "#fbfbff",
+      "--luna-muted": "#c9cce3",
+      "--luna-subtle": "#9ea3c2",
+      "--luna-accent": "#84f0d2",
+      "--luna-accent-2": "#ff9edf",
+      "--luna-user": "#6b4bd8",
+      "--luna-user-border": "#9b84ff",
+      "--luna-send": "linear-gradient(135deg,#84f0d2,#ff9edf)",
+      "--luna-send-text": "#11121e",
+      "--luna-page-glow": "radial-gradient(circle_at_10%_12%,rgba(132,240,210,0.13),transparent_23%),radial-gradient(circle_at_90%_10%,rgba(255,158,223,0.12),transparent_20%),linear-gradient(180deg,#090812,#101224)",
+    },
+  },
+];
+
+function ThemeSelector({ themes, activeThemeId, onThemeChange }) {
+  return (
+    <label className="inline-flex h-11 min-w-0 items-center gap-2 rounded-2xl border border-[var(--luna-border)] bg-[var(--luna-panel)] px-3 text-[var(--luna-text)]">
+      <Palette className="h-4 w-4 shrink-0 text-[var(--luna-accent)]" />
+      <span className="hidden text-xs font-medium text-[var(--luna-muted)] sm:inline">Theme</span>
+      <select
+        value={activeThemeId}
+        onChange={(event) => onThemeChange(event.target.value)}
+        className="max-w-[8.5rem] bg-transparent text-xs font-semibold outline-none sm:max-w-none"
+        title="Chat theme"
+      >
+        {themes.map((theme) => (
+          <option key={theme.id} value={theme.id} className="bg-[#0f1720] text-white">
+            {theme.name}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
 export default function Luna() {
   const brandLogo = useBrandingLogo(lunaLogo);
   const navigate = useNavigate();
+  const [chatThemeId, setChatThemeId] = useState(() => {
+    if (typeof window === "undefined") return "classic";
+    return window.localStorage.getItem("luna-chat-theme") || "classic";
+  });
 
   // Basic User/Membership State
   const initialUser = useMemo(() => loadUser(), []);
@@ -181,6 +336,14 @@ export default function Luna() {
   }, [searchQuery, sortedSessions]);
 
   const canInstallApp = installSupported && !isStandaloneApp && !installingApp;
+  const activeChatTheme = useMemo(
+    () => CHAT_THEMES.find((theme) => theme.id === chatThemeId) || CHAT_THEMES[0],
+    [chatThemeId],
+  );
+  const chatThemeStyle = useMemo(
+    () => ({ fontFamily: "'DM Sans', sans-serif", ...activeChatTheme.vars } as CSSProperties),
+    [activeChatTheme],
+  );
 
   const modePills = useMemo(() => {
     const pills = [activeCharacter.name];
@@ -381,6 +544,12 @@ export default function Luna() {
   }, [toast]);
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("luna-chat-theme", activeChatTheme.id);
+    }
+  }, [activeChatTheme.id]);
+
+  useEffect(() => {
     let canceled = false;
     const loadChars = async () => {
       if (!isSignedIn) { setCharacterOptions(CHARACTER_OPTIONS); return; }
@@ -420,14 +589,14 @@ export default function Luna() {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.35, ease: "easeOut" }}
-      className="relative min-h-[100dvh] overflow-hidden bg-[#071013] text-[#eef6f3]"
-      style={{ fontFamily: "'DM Sans', sans-serif" }}
+      className="relative min-h-[100dvh] overflow-hidden bg-[var(--luna-bg)] text-[var(--luna-text)]"
+      style={chatThemeStyle}
     >
       <style>{`
-        .luna-scrollbar { scrollbar-width: thin; scrollbar-color: #21353a transparent; }
+        .luna-scrollbar { scrollbar-width: thin; scrollbar-color: var(--luna-border) transparent; }
         .luna-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
         .luna-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .luna-scrollbar::-webkit-scrollbar-thumb { background: #21353a; border-radius: 999px; }
+        .luna-scrollbar::-webkit-scrollbar-thumb { background: var(--luna-border); border-radius: 999px; }
         @keyframes lunaDot { 0%, 80%, 100% { transform: translateY(0); opacity: 0.4; } 40% { transform: translateY(-4px); opacity: 1; } }
         .luna-dot { animation: lunaDot 1s ease-in-out infinite; }
         @keyframes lunaWave { 0%, 100% { transform: scaleY(0.65); opacity: 0.7; } 50% { transform: scaleY(1); opacity: 1; } }
@@ -436,7 +605,7 @@ export default function Luna() {
         .luna-fade-lift { animation: lunaFadeLift 0.42s cubic-bezier(0.22, 1, 0.36, 1); }
       `}</style>
 
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_10%_12%,rgba(127,199,186,0.08),transparent_20%),radial-gradient(circle_at_90%_10%,rgba(225,186,109,0.07),transparent_18%),linear-gradient(180deg,#061114,#081417)]" />
+      <div className="pointer-events-none absolute inset-0" style={{ background: "var(--luna-page-glow)" }} />
 
       <div className="relative z-10 flex min-h-[100dvh]">
         <Sidebar
@@ -458,25 +627,26 @@ export default function Luna() {
         />
 
         <section className="relative flex min-w-0 flex-1 flex-col">
-          <div className="border-b border-[#16262b] bg-[#081417] px-3 py-3 md:px-6">
+          <div className="border-b border-[var(--luna-border)] bg-[var(--luna-bg-soft)] px-3 py-3 md:px-6">
             <div className="mx-auto flex w-full max-w-[1560px] flex-wrap items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2">
-              <button onClick={() => setMobileSidebarOpen(true)} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[#21343a] bg-[#0f1d21] text-[#e3f0ed] md:hidden">
+              <button onClick={() => setMobileSidebarOpen(true)} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[var(--luna-border)] bg-[var(--luna-panel)] text-[var(--luna-text)] md:hidden">
                 <Menu className="h-4 w-4" />
               </button>
               <div className="min-w-0">
-                <p className="text-[11px] uppercase tracking-[0.18em] text-[#95b0aa]">Luna Workspace</p>
-                <h1 className="truncate text-base font-semibold text-[#f6fbfa] md:text-[1.05rem]" style={{ fontFamily: "'Syne', sans-serif" }}>
+                <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--luna-subtle)]">Luna Workspace</p>
+                <h1 className="truncate text-base font-semibold text-[var(--luna-text)] md:text-[1.05rem]" style={{ fontFamily: "'Syne', sans-serif" }}>
                   {activeSession?.title || "New chat"}
                 </h1>
               </div>
             </div>
             <div className="flex flex-wrap items-center justify-end gap-2">
               {(canInstallApp || showIosInstallHint) && <InstallLunaButton compact onInstall={handleInstallLuna} disabled={installingApp} />}
+              <ThemeSelector themes={CHAT_THEMES} activeThemeId={activeChatTheme.id} onThemeChange={setChatThemeId} />
               <div className="hidden md:block">
-                <div className="rounded-full border border-[#21343a] bg-[#0f1d21] px-3 py-1.5 text-xs text-[#c8dad6]">{formatDateLabel()}</div>
+                <div className="rounded-full border border-[var(--luna-border)] bg-[var(--luna-panel)] px-3 py-1.5 text-xs text-[var(--luna-muted)]">{formatDateLabel()}</div>
               </div>
-              <button onClick={() => createFreshSession()} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[#21343a] bg-[#0f1d21] text-[#e3f0ed]">
+              <button onClick={() => createFreshSession()} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[var(--luna-border)] bg-[var(--luna-panel)] text-[var(--luna-text)]">
                 <Plus className="h-4 w-4" />
               </button>
               <ModelSelector selectedModel={selectedModel} onSelect={setSelectedModel} />
@@ -548,7 +718,7 @@ export default function Luna() {
           </div>
 
           {visibleMain && (
-            <div className="border-t border-[#16262b] bg-[#081417] px-3 py-3 pb-[calc(0.9rem+env(safe-area-inset-bottom))] md:px-6">
+            <div className="border-t border-[var(--luna-border)] bg-[var(--luna-bg-soft)] px-3 py-3 pb-[calc(0.9rem+env(safe-area-inset-bottom))] md:px-6">
               <div className="mx-auto max-w-[1560px] xl:pr-[380px]">
                 <div className="max-w-[960px]">
                 <Composer

@@ -28,17 +28,17 @@ interface ChatViewProps {
 
 function EmptyThread() {
   return (
-    <div className="rounded-2xl border border-dashed border-[#294249] bg-[#0f1b1f] px-5 py-10 text-center">
-      <p className="text-sm font-medium text-[#edf7f4]">No messages yet.</p>
-      <p className="mt-2 text-sm leading-6 text-[#b8cbc7]">Start the thread with a prompt, a file, or a character starter.</p>
+    <div className="rounded-2xl border border-dashed border-[var(--luna-border)] bg-[var(--luna-surface-2)] px-5 py-10 text-center">
+      <p className="text-sm font-medium text-[var(--luna-text)]">No messages yet.</p>
+      <p className="mt-2 text-sm leading-6 text-[var(--luna-muted)]">Start the thread with a prompt, a file, or a character starter.</p>
     </div>
   );
 }
 
 function RailCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-2xl border border-[#1d3036] bg-[#0c171a] p-4">
-      <p className="text-[11px] uppercase tracking-[0.18em] text-[#9eb7b2]">{title}</p>
+    <section className="rounded-2xl border border-[var(--luna-border)] bg-[var(--luna-surface)] p-4">
+      <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--luna-subtle)]">{title}</p>
       <div className="mt-4">{children}</div>
     </section>
   );
@@ -104,24 +104,24 @@ export function ChatView({
     >
       <div className="mx-auto grid w-full max-w-[1500px] gap-4 pb-8 pt-1 xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="min-w-0">
-          <section className="mb-4 rounded-2xl border border-[#1d3036] bg-[#0c171a] p-4">
+          <section className="mb-4 rounded-2xl border border-[var(--luna-border)] bg-[var(--luna-surface)] p-4">
             <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex min-w-0 items-center gap-3">
-                  <span className="inline-flex h-12 w-12 shrink-0 overflow-hidden rounded-2xl border border-[#294249] bg-[#102126]">
+                  <span className="inline-flex h-12 w-12 shrink-0 overflow-hidden rounded-2xl border border-[var(--luna-border)] bg-[var(--luna-panel)]">
                     <img src={activeCharacter.portrait} alt={activeCharacter.name} className="h-full w-full object-cover" />
                   </span>
                   <div className="min-w-0">
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-[#95b0aa]">Active character</p>
-                    <p className="truncate text-base font-semibold text-[#f5fbf9]">{activeCharacter.name}</p>
-                    <p className="truncate text-xs text-[#bfd1cd]">Updated {formatHistoryTime(activeSession?.updatedAt)}</p>
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--luna-subtle)]">Active character</p>
+                    <p className="truncate text-base font-semibold text-[var(--luna-text)]">{activeCharacter.name}</p>
+                    <p className="truncate text-xs text-[var(--luna-muted)]">Updated {formatHistoryTime(activeSession?.updatedAt)}</p>
                   </div>
                 </div>
 
                 <button
                   type="button"
                   onClick={() => setShowMobileRail((prev) => !prev)}
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-[#21343a] bg-[#102126] px-4 text-sm text-[#eef7f4] xl:hidden"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-[var(--luna-border)] bg-[var(--luna-panel)] px-4 text-sm text-[var(--luna-text)] xl:hidden"
                 >
                   <PanelRight className="h-4 w-4" />
                   {showMobileRail ? "Hide tools" : "Open tools"}
@@ -130,7 +130,7 @@ export function ChatView({
 
               <div className="flex flex-wrap gap-2">
                 {modePills.map((pill) => (
-                  <span key={pill} className="rounded-full border border-[#294249] bg-[#102126] px-3 py-1.5 text-xs text-[#eef7f4]">
+                  <span key={pill} className="rounded-full border border-[var(--luna-border)] bg-[var(--luna-panel)] px-3 py-1.5 text-xs text-[var(--luna-text)]">
                     {pill}
                   </span>
                 ))}
@@ -151,7 +151,7 @@ export function ChatView({
                     value={characterSearchQuery}
                     onChange={(event) => setCharacterSearchQuery(event.target.value)}
                     placeholder="Search characters"
-                    className="mb-3 w-full rounded-xl border border-[#294249] bg-[#102126] px-4 py-3 text-sm text-[#eef7f4] outline-none focus:border-[#7fc7ba]"
+                    className="mb-3 w-full rounded-xl border border-[var(--luna-border)] bg-[var(--luna-panel)] px-4 py-3 text-sm text-[var(--luna-text)] outline-none focus:border-[var(--luna-accent)]"
                   />
                   <CharacterCards
                     options={filteredCharacterOptions}
@@ -170,8 +170,8 @@ export function ChatView({
 
           <section className="mx-auto max-w-[880px]">
             {historyLoading ? (
-              <div className="mb-4 flex items-center gap-3 rounded-2xl border border-[#294249] bg-[#102126] px-4 py-3 text-sm text-[#eef7f4]">
-                <Loader2 className="h-4 w-4 animate-spin text-[#7fc7ba]" />
+              <div className="mb-4 flex items-center gap-3 rounded-2xl border border-[var(--luna-border)] bg-[var(--luna-panel)] px-4 py-3 text-sm text-[var(--luna-text)]">
+                <Loader2 className="h-4 w-4 animate-spin text-[var(--luna-accent)]" />
                 Loading chat history...
               </div>
             ) : null}
@@ -200,14 +200,14 @@ export function ChatView({
         <aside className="hidden xl:block">
           <div className="sticky top-4 space-y-4">
             <RailCard title="Character tools">
-              <div className="rounded-2xl border border-[#294249] bg-[#102126] p-4">
+              <div className="rounded-2xl border border-[var(--luna-border)] bg-[var(--luna-panel)] p-4">
                 <div className="flex items-center gap-3">
-                  <span className="inline-flex h-16 w-14 shrink-0 overflow-hidden rounded-2xl border border-[#36545a]">
+                  <span className="inline-flex h-16 w-14 shrink-0 overflow-hidden rounded-2xl border border-[var(--luna-border-strong)]">
                     <img src={activeCharacter.portrait} alt={activeCharacter.name} className="h-full w-full object-cover" />
                   </span>
                   <div className="min-w-0">
-                    <p className="truncate text-base font-semibold text-[#f5fbf9]">{activeCharacter.name}</p>
-                    <p className="mt-1 text-sm leading-5 text-[#c1d5d0]">{activeCharacter.tagline}</p>
+                    <p className="truncate text-base font-semibold text-[var(--luna-text)]">{activeCharacter.name}</p>
+                    <p className="mt-1 text-sm leading-5 text-[var(--luna-muted)]">{activeCharacter.tagline}</p>
                   </div>
                 </div>
               </div>
@@ -216,7 +216,7 @@ export function ChatView({
                 value={characterSearchQuery}
                 onChange={(event) => setCharacterSearchQuery(event.target.value)}
                 placeholder="Search characters"
-                className="mt-3 w-full rounded-xl border border-[#294249] bg-[#102126] px-4 py-3 text-sm text-[#eef7f4] outline-none focus:border-[#7fc7ba]"
+                className="mt-3 w-full rounded-xl border border-[var(--luna-border)] bg-[var(--luna-panel)] px-4 py-3 text-sm text-[var(--luna-text)] outline-none focus:border-[var(--luna-accent)]"
               />
 
               <div className="mt-3">
@@ -235,9 +235,9 @@ export function ChatView({
             </RailCard>
 
             <RailCard title="Thread help">
-              <div className="rounded-2xl border border-[#294249] bg-[#102126] px-4 py-3 text-sm leading-6 text-[#d3e3df]">
-                <div className="flex items-center gap-2 text-[#eef7f4]">
-                  <Sparkles className="h-4 w-4 text-[#7fc7ba]" />
+              <div className="rounded-2xl border border-[var(--luna-border)] bg-[var(--luna-panel)] px-4 py-3 text-sm leading-6 text-[var(--luna-muted)]">
+                <div className="flex items-center gap-2 text-[var(--luna-text)]">
+                  <Sparkles className="h-4 w-4 text-[var(--luna-accent)]" />
                   <span className="font-medium">Use the same tools, with less noise.</span>
                 </div>
                 <p className="mt-2">Pick a character, use a starter prompt, then send a focused request in the composer below.</p>
@@ -254,7 +254,7 @@ export function ChatView({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.92, y: 10 }}
             onClick={scrollToBottom}
-            className={`fixed bottom-[calc(7rem+env(safe-area-inset-bottom))] right-4 z-40 inline-flex h-12 w-12 items-center justify-center rounded-full border border-[#36545a] bg-[#143038] text-white shadow-[0_10px_24px_rgba(0,0,0,0.25)] xl:right-[364px] ${hasNewMessage ? "ring-2 ring-[#7fc7ba]/60" : ""}`}
+            className={`fixed bottom-[calc(7rem+env(safe-area-inset-bottom))] right-4 z-40 inline-flex h-12 w-12 items-center justify-center rounded-full border border-[var(--luna-border-strong)] bg-[var(--luna-panel-raised)] text-[var(--luna-text)] shadow-[0_10px_24px_rgba(0,0,0,0.25)] xl:right-[364px] ${hasNewMessage ? "ring-2 ring-[var(--luna-accent)]" : ""}`}
             title="Scroll to bottom"
           >
             <ArrowDown className="h-4 w-4" />

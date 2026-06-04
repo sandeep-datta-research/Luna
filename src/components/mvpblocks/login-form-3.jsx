@@ -157,13 +157,13 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#07070d] p-4 text-zinc-100">
+    <div className="relative min-h-[100dvh] overflow-y-auto bg-[#07070d] px-3 py-4 text-zinc-100 sm:p-4">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_15%,rgba(91,61,245,0.2),transparent_45%),radial-gradient(circle_at_82%_18%,rgba(236,72,153,0.15),transparent_42%),radial-gradient(circle_at_50%_100%,rgba(14,165,233,0.09),transparent_55%)]" />
 
-      <div className="relative z-10 mx-auto w-full max-w-6xl py-4 sm:py-6">
-        <div className="overflow-hidden rounded-[32px] border border-zinc-800/80 bg-zinc-950/70 shadow-[0_24px_90px_rgba(0,0,0,0.45)] backdrop-blur-xl">
+      <div className="relative z-10 mx-auto w-full max-w-6xl sm:py-6">
+        <div className="overflow-hidden rounded-[24px] border border-zinc-800/80 bg-zinc-950/70 shadow-[0_24px_90px_rgba(0,0,0,0.45)] backdrop-blur-xl sm:rounded-[32px]">
           <div className="grid min-h-[unset] lg:min-h-[720px] lg:grid-cols-2">
-            <section className="relative m-3 rounded-3xl border border-violet-300/20 bg-gradient-to-br from-[#1d1135] via-[#120f24] to-[#09090f] p-6 text-zinc-100 sm:m-4 sm:p-8 lg:p-10">
+            <section className="relative m-2 rounded-[22px] border border-violet-300/20 bg-gradient-to-br from-[#1d1135] via-[#120f24] to-[#09090f] p-4 text-zinc-100 sm:m-4 sm:rounded-3xl sm:p-8 lg:p-10">
               <div className="flex items-center justify-between">
                 <h1 className="text-lg font-semibold tracking-[0.2em] text-violet-100">LUNA</h1>
                 <Link to="/" className="text-sm text-zinc-300 hover:text-white">
@@ -171,15 +171,15 @@ export default function SignInPage() {
                 </Link>
               </div>
 
-              <div className="mt-8 sm:mt-10 lg:mt-12">
-                <h2 className="text-3xl font-semibold leading-tight sm:text-4xl lg:text-5xl">Chat and Learn</h2>
-                <p className="mt-4 max-w-md text-sm text-zinc-300 sm:text-base">
+              <div className="mt-6 sm:mt-10 lg:mt-12">
+                <h2 className="text-2xl font-semibold leading-tight sm:text-4xl lg:text-5xl">Chat and Learn</h2>
+                <p className="mt-3 max-w-md text-sm leading-6 text-zinc-300 sm:mt-4 sm:text-base">
                   Sign in to continue building your Luna workspace with polished UI, model routing,
                   and synced history.
                 </p>
               </div>
 
-              <div className="mt-8 grid gap-3 sm:mt-10 sm:gap-4 lg:space-y-5">
+              <div className="mt-8 hidden gap-3 sm:mt-10 sm:gap-4 lg:grid lg:space-y-5">
                 {featureItems.map((feature) => {
                   const FeatureIcon = feature.icon;
                   return (
@@ -197,14 +197,14 @@ export default function SignInPage() {
               </div>
             </section>
 
-            <section className="flex items-center px-5 py-8 sm:px-8 sm:py-10 lg:px-10">
+            <section className="flex items-center px-4 py-6 sm:px-8 sm:py-10 lg:px-10">
               <div className="mx-auto w-full max-w-md">
-                <div className="mb-7 text-center sm:mb-8">
-                  <h3 className="text-[1.75rem] font-semibold text-white sm:text-3xl">Welcome Back</h3>
+                <div className="mb-5 text-center sm:mb-8">
+                  <h3 className="text-2xl font-semibold text-white sm:text-3xl">Welcome Back</h3>
                   <p className="mt-2 text-sm text-zinc-400">Sign in to continue your Luna journey</p>
                 </div>
 
-                <div className="mb-5 flex gap-2 rounded-xl border border-zinc-800 bg-zinc-900/60 p-1 text-xs">
+                <div className="mb-5 grid grid-cols-2 gap-2 rounded-xl border border-zinc-800 bg-zinc-900/60 p-1 text-xs">
                   <button
                     type="button"
                     onClick={() => {
@@ -214,7 +214,7 @@ export default function SignInPage() {
                       setResetChallengeToken("");
                       setResetVerificationCode("");
                     }}
-                    className={`flex-1 rounded-lg px-3 py-2 ${mode === "signin" ? "bg-violet-500/25 text-violet-100" : "text-zinc-400 hover:text-zinc-200"}`}
+                    className={`min-h-10 rounded-lg px-3 py-2 ${mode === "signin" ? "bg-violet-500/25 text-violet-100" : "text-zinc-400 hover:text-zinc-200"}`}
                   >
                     Sign in
                   </button>
@@ -227,7 +227,7 @@ export default function SignInPage() {
                       setResetChallengeToken("");
                       setResetVerificationCode("");
                     }}
-                    className={`flex-1 rounded-lg px-3 py-2 ${mode !== "signin" ? "bg-violet-500/25 text-violet-100" : "text-zinc-400 hover:text-zinc-200"}`}
+                    className={`min-h-10 rounded-lg px-3 py-2 ${mode !== "signin" ? "bg-violet-500/25 text-violet-100" : "text-zinc-400 hover:text-zinc-200"}`}
                   >
                     Reset password
                   </button>

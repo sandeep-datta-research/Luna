@@ -10,7 +10,9 @@ function ToggleChip({ active, label, icon, onClick, title }) {
       onClick={onClick}
       title={title}
       className={`inline-flex min-h-11 shrink-0 items-center gap-2 rounded-xl border px-3.5 py-2 text-sm ${
-        active ? "border-[#7fc7ba] bg-[#143038] text-white" : "border-[#294249] bg-[#102126] text-[#e4f0ed]"
+        active
+          ? "border-[var(--luna-accent)] bg-[var(--luna-panel-raised)] text-[var(--luna-text)]"
+          : "border-[var(--luna-border)] bg-[var(--luna-panel)] text-[var(--luna-text)]"
       }`}
     >
       {icon}
@@ -53,13 +55,13 @@ export function Composer({
   }, [value]);
 
   return (
-    <div className={`rounded-2xl border bg-[#0c171a] p-3 shadow-[0_12px_30px_rgba(0,0,0,0.18)] ${focused ? "border-[#7fc7ba]/60" : "border-[#1d3036]"} ${compact ? "mx-auto w-full max-w-[960px]" : "w-full"}`}>
+    <div className={`rounded-2xl border bg-[var(--luna-surface)] p-3 shadow-[0_12px_30px_rgba(0,0,0,0.18)] ${focused ? "border-[var(--luna-accent)]" : "border-[var(--luna-border)]"} ${compact ? "mx-auto w-full max-w-[960px]" : "w-full"}`}>
       {attachments.length > 0 ? (
         <div className="mb-3 flex flex-wrap gap-2">
           {attachments.map((file, index) => (
-            <div key={`${file}-${index}`} className="inline-flex max-w-full items-center gap-2 rounded-full border border-[#294249] bg-[#102126] px-3 py-1.5 text-xs text-[#eef7f4]">
+            <div key={`${file}-${index}`} className="inline-flex max-w-full items-center gap-2 rounded-full border border-[var(--luna-border)] bg-[var(--luna-panel)] px-3 py-1.5 text-xs text-[var(--luna-text)]">
               <span className="max-w-[180px] truncate sm:max-w-[240px]">{file}</span>
-              <button type="button" onClick={() => onRemoveAttachment(index)} className="text-[#b7cbc7] hover:text-white">
+              <button type="button" onClick={() => onRemoveAttachment(index)} className="text-[var(--luna-muted)] hover:text-[var(--luna-text)]">
                 <X className="h-3.5 w-3.5" />
               </button>
             </div>
@@ -67,7 +69,7 @@ export function Composer({
         </div>
       ) : null}
 
-      <div className="rounded-2xl border border-[#294249] bg-[#0f1b1f] p-3">
+      <div className="rounded-2xl border border-[var(--luna-border)] bg-[var(--luna-surface-2)] p-3">
         <textarea
           ref={textareaRef}
           value={value}
@@ -82,7 +84,7 @@ export function Composer({
           }}
           placeholder="Ask Luna anything..."
           disabled={disabled}
-          className="luna-scrollbar min-h-[56px] w-full resize-none overflow-y-auto bg-transparent px-1 py-2 text-[15px] leading-7 text-[#f5fbfa] outline-none placeholder:text-[#94aaa5]"
+          className="luna-scrollbar min-h-[56px] w-full resize-none overflow-y-auto bg-transparent px-1 py-2 text-[15px] leading-7 text-[var(--luna-text)] outline-none placeholder:text-[var(--luna-subtle)]"
         />
 
         <div className="mt-3 flex flex-col gap-3">
@@ -106,7 +108,7 @@ export function Composer({
                 triggerHaptic();
                 fileInputRef.current?.click();
               }}
-              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#294249] bg-[#102126] text-[#eef7f4]"
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--luna-border)] bg-[var(--luna-panel)] text-[var(--luna-text)]"
               title="Attach file"
             >
               <Paperclip className="h-4 w-4" />
@@ -124,14 +126,14 @@ export function Composer({
           </div>
 
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <p className="text-xs text-[#b8cbc7]">Press Enter to send. Use Shift+Enter for a new line.</p>
+            <p className="text-xs text-[var(--luna-muted)]">Press Enter to send. Use Shift+Enter for a new line.</p>
 
             <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:justify-end">
               <button
                 type="button"
                 onClick={onExport}
                 disabled={!isPro}
-                className={`inline-flex h-11 min-w-11 items-center justify-center rounded-xl border px-3 ${isPro ? "border-[#294249] bg-[#102126] text-[#eef7f4]" : "border-[#1d3036] bg-[#0d181b] text-[#8da19d]"}`}
+                className={`inline-flex h-11 min-w-11 items-center justify-center rounded-xl border px-3 ${isPro ? "border-[var(--luna-border)] bg-[var(--luna-panel)] text-[var(--luna-text)]" : "border-[var(--luna-border)] bg-[var(--luna-surface)] text-[var(--luna-subtle)]"}`}
                 title={isPro ? "Export this chat" : "Luna Pro feature"}
               >
                 {isPro ? <Download className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
@@ -141,7 +143,7 @@ export function Composer({
                 type="button"
                 onClick={onToggleVoice}
                 disabled={transcribing}
-                className={`inline-flex h-11 min-w-11 items-center justify-center rounded-xl border px-3 ${voiceActive ? "border-emerald-400/65 bg-emerald-500/15 text-emerald-100" : "border-[#294249] bg-[#102126] text-[#eef7f4]"}`}
+                className={`inline-flex h-11 min-w-11 items-center justify-center rounded-xl border px-3 ${voiceActive ? "border-[var(--luna-accent)] bg-[var(--luna-panel-raised)] text-[var(--luna-text)]" : "border-[var(--luna-border)] bg-[var(--luna-panel)] text-[var(--luna-text)]"}`}
                 title={voiceActive ? "Stop recording" : "Voice input"}
               >
                 {transcribing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mic className="h-4 w-4" />}
@@ -151,7 +153,8 @@ export function Composer({
                 type="button"
                 onClick={onSend}
                 disabled={sendDisabled || !value.trim()}
-                className={`inline-flex h-11 min-w-11 items-center justify-center rounded-xl px-4 text-sm font-semibold ${value.trim() && !sendDisabled ? "bg-[linear-gradient(135deg,#f1ca78,#b88d3a)] text-[#102126]" : "bg-[#22373d] text-[#bfd0cc]"}`}
+                className={`inline-flex h-11 min-w-11 items-center justify-center rounded-xl px-4 text-sm font-semibold ${value.trim() && !sendDisabled ? "text-[var(--luna-send-text)]" : "bg-[var(--luna-panel-raised)] text-[var(--luna-muted)]"}`}
+                style={value.trim() && !sendDisabled ? { background: "var(--luna-send)" } : undefined}
                 title="Send"
               >
                 <Send className="h-4 w-4" />

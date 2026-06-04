@@ -39,7 +39,7 @@ export function HeroExperience({
   const bgScale = useTransform(scrollYProgress, [0, 0.4], [1, 1.1]);
 
   return (
-    <section className="relative min-h-[110vh] overflow-hidden">
+    <section className="relative min-h-[calc(100vh-4rem)] overflow-hidden">
       <motion.div 
         style={{ scale: bgScale }}
         className="absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,rgba(88,165,255,0.15),transparent_35%),radial-gradient(circle_at_78%_18%,rgba(168,85,247,0.15),transparent_40%),radial-gradient(circle_at_50%_85%,rgba(16,185,129,0.08),transparent_45%)]" 
@@ -74,14 +74,12 @@ export function HeroExperience({
             The Intelligence Layer
           </motion.div>
 
-          <h1 className="mt-8 max-w-[14ch] text-6xl font-bold leading-[0.92] tracking-[-0.06em] text-white sm:text-7xl lg:text-8xl">
-            Smarter. <br />
-            <span className="bg-gradient-to-r from-cyan-400 via-violet-400 to-fuchsia-400 bg-clip-text text-transparent">Spatial.</span> <br />
-            Serious.
+          <h1 className="mt-8 max-w-[12ch] text-6xl font-bold leading-[0.95] text-white sm:text-7xl lg:text-8xl">
+            Luna AI Hub
           </h1>
 
           <p className="mt-8 max-w-xl text-lg leading-relaxed text-zinc-400 sm:text-xl">
-            Luna is a high-performance workspace designed for research, technical execution, and strategic writing. Guided by spatial cues and a cinematic command surface.
+            A high-performance workspace for research, technical execution, and strategic writing, guided by spatial cues and a cinematic command surface.
           </p>
 
           <div className="mt-10 flex flex-wrap gap-5">
@@ -133,7 +131,7 @@ export function HeroExperience({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 + i * 0.1 }}
               >
-                <p className="text-2xl font-bold text-white tracking-tight">{item.value}</p>
+                <p className="text-2xl font-bold text-white">{item.value}</p>
                 <p className="mt-1 text-[10px] uppercase tracking-[0.2em] text-zinc-500 font-medium">{item.label}</p>
               </motion.div>
             ))}

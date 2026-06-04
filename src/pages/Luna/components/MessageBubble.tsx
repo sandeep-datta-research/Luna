@@ -72,17 +72,17 @@ export function MessageBubble({
       <div className={`w-full min-w-0 ${isUser ? "max-w-[92%] md:max-w-[44rem]" : "max-w-full md:max-w-[48rem]"}`}>
         {!isUser && showLunaHeader ? (
           <div className="mb-3 flex items-center gap-3">
-            <span className="inline-flex h-9 w-9 shrink-0 overflow-hidden rounded-full border border-[#36545a] bg-[#102126]">
+            <span className="inline-flex h-9 w-9 shrink-0 overflow-hidden rounded-full border border-[var(--luna-border-strong)] bg-[var(--luna-panel)]">
               <img src={assistantCharacter.portrait || lunaLogo} alt={assistantCharacter.name} className="h-full w-full object-cover" />
             </span>
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-[#f4faf8]">{assistantCharacter.name}</p>
-              <p className="text-[11px] uppercase tracking-[0.16em] text-[#9eb7b2]">Assistant</p>
+              <p className="truncate text-sm font-semibold text-[var(--luna-text)]">{assistantCharacter.name}</p>
+              <p className="text-[11px] uppercase tracking-[0.16em] text-[var(--luna-subtle)]">Assistant</p>
             </div>
           </div>
         ) : null}
 
-        <div className={`rounded-2xl border px-4 py-3 text-[15px] leading-7 shadow-[0_8px_20px_rgba(0,0,0,0.12)] md:px-5 ${isUser ? "border-[#27645d] bg-[#1d675f] text-white" : "border-[#294249] bg-[#102126] text-[#edf7f4]"}`}>
+        <div className={`rounded-2xl border px-4 py-3 text-[15px] leading-7 shadow-[0_8px_20px_rgba(0,0,0,0.12)] md:px-5 ${isUser ? "border-[var(--luna-user-border)] bg-[var(--luna-user)] text-white" : "border-[var(--luna-border)] bg-[var(--luna-panel)] text-[var(--luna-text)]"}`}>
           {isUser ? <p className="whitespace-pre-wrap break-words">{message.content}</p> : <MarkdownMessage content={message.content} />}
         </div>
 
@@ -91,7 +91,7 @@ export function MessageBubble({
             <button
               type="button"
               onClick={() => onCopy(message.content)}
-              className="inline-flex min-h-9 items-center gap-2 rounded-full border border-[#294249] bg-[#0f1b1f] px-3 text-xs text-[#eef7f4]"
+              className="inline-flex min-h-9 items-center gap-2 rounded-full border border-[var(--luna-border)] bg-[var(--luna-surface-2)] px-3 text-xs text-[var(--luna-text)]"
             >
               <Copy className="h-3.5 w-3.5" />
               Copy
@@ -100,22 +100,22 @@ export function MessageBubble({
               <button
                 type="button"
                 onClick={onRegenerate}
-                className="inline-flex min-h-9 items-center gap-2 rounded-full border border-[#294249] bg-[#0f1b1f] px-3 text-xs text-[#eef7f4]"
+                className="inline-flex min-h-9 items-center gap-2 rounded-full border border-[var(--luna-border)] bg-[var(--luna-surface-2)] px-3 text-xs text-[var(--luna-text)]"
               >
                 <RotateCcw className="h-3.5 w-3.5" />
                 Retry
               </button>
             ) : null}
-            <span className="text-[11px] text-[#adc1bc]">{formatTime(message.createdAt)}</span>
+            <span className="text-[11px] text-[var(--luna-subtle)]">{formatTime(message.createdAt)}</span>
             {totalTokens > 0 ? (
-              <span className="text-[11px] text-[#adc1bc]">
+              <span className="text-[11px] text-[var(--luna-subtle)]">
                 {completionTokens > 0 ? `${completionTokens} output tokens` : `${totalTokens} total tokens`}
                 {usage?.provider ? ` via ${usage.provider}` : ""}
               </span>
             ) : null}
           </div>
         ) : (
-          <div className="mt-2 text-right text-[11px] text-[#adc1bc]">{formatTime(message.createdAt)}</div>
+          <div className="mt-2 text-right text-[11px] text-[var(--luna-subtle)]">{formatTime(message.createdAt)}</div>
         )}
 
         {!isUser && sources.length > 0 ? (
@@ -126,17 +126,17 @@ export function MessageBubble({
                 href={source.link || source.url}
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-2xl border border-[#294249] bg-[#0f1b1f] px-4 py-3"
+                className="rounded-2xl border border-[var(--luna-border)] bg-[var(--luna-surface-2)] px-4 py-3"
               >
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9eb7b2]">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--luna-subtle)]">
                     [{index + 1}] {source.source || "Source"}
                   </span>
-                  <Globe className="h-3.5 w-3.5 text-[#9eb7b2]" />
+                  <Globe className="h-3.5 w-3.5 text-[var(--luna-subtle)]" />
                 </div>
-                <p className="mt-2 break-words text-sm font-medium text-[#eef7f4]">{source.title}</p>
+                <p className="mt-2 break-words text-sm font-medium text-[var(--luna-text)]">{source.title}</p>
                 {source.snippet || source.summary ? (
-                  <p className="mt-1 break-words text-xs leading-6 text-[#c4d7d2]">{source.snippet || source.summary}</p>
+                  <p className="mt-1 break-words text-xs leading-6 text-[var(--luna-muted)]">{source.snippet || source.summary}</p>
                 ) : null}
               </a>
             ))}

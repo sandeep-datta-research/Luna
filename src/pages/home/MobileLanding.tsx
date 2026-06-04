@@ -133,12 +133,12 @@ export function MobileLanding({
               </div>
               <div className="pointer-events-none absolute inset-x-4 top-4 h-40 rounded-full bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.16),transparent_52%)] blur-2xl" />
 
-              <p className="relative text-[11px] uppercase tracking-[0.28em] text-cyan-100/80">Luna AI Hub</p>
-              <h1 className="relative mt-4 text-4xl font-semibold leading-[0.94] tracking-[-0.05em] text-white">
-                Native-ready motion and a sharper mobile command surface.
+              <p className="relative text-[11px] uppercase tracking-[0.28em] text-cyan-100/80">AI workspace</p>
+              <h1 className="relative mt-4 text-[2.55rem] font-semibold leading-[0.98] text-white">
+                Luna AI Hub
               </h1>
               <p className="relative mt-4 text-sm leading-7 text-zinc-300">
-                Chat, research, and premium output now feel more deliberate on mobile instead of compressed from desktop.
+                Chat, research, and premium output now fit a mobile-first command surface instead of a compressed desktop layout.
               </p>
 
               <div className="relative mt-5 flex flex-col items-start gap-3">
