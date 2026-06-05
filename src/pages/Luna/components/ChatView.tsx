@@ -104,7 +104,7 @@ export function ChatView({
     >
       <div className="mx-auto grid w-full max-w-[1500px] gap-4 pb-8 pt-1 xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="min-w-0">
-          <section className="mb-4 rounded-2xl border border-[var(--luna-border)] bg-[var(--luna-surface)] p-4">
+          <section className="mb-4 rounded-2xl border border-[var(--luna-border-strong)] bg-[var(--luna-surface)] p-4 shadow-[0_14px_36px_rgba(0,0,0,0.18)]">
             <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex min-w-0 items-center gap-3">
@@ -170,7 +170,7 @@ export function ChatView({
 
           <section className="mx-auto max-w-[880px]">
             {historyLoading ? (
-              <div className="mb-4 flex items-center gap-3 rounded-2xl border border-[var(--luna-border)] bg-[var(--luna-panel)] px-4 py-3 text-sm text-[var(--luna-text)]">
+              <div className="mb-4 flex items-center gap-3 rounded-2xl border border-[var(--luna-border-strong)] bg-[var(--luna-panel-raised)] px-4 py-3 text-sm text-[var(--luna-text)] shadow-[0_10px_24px_rgba(0,0,0,0.14)]">
                 <Loader2 className="h-4 w-4 animate-spin text-[var(--luna-accent)]" />
                 Loading chat history...
               </div>
@@ -200,7 +200,7 @@ export function ChatView({
         <aside className="hidden xl:block">
           <div className="sticky top-4 space-y-4">
             <RailCard title="Character tools">
-              <div className="rounded-2xl border border-[var(--luna-border)] bg-[var(--luna-panel)] p-4">
+              <div className="rounded-2xl border border-[var(--luna-border-strong)] bg-[var(--luna-panel-raised)] p-4 shadow-[0_10px_24px_rgba(0,0,0,0.14)]">
                 <div className="flex items-center gap-3">
                   <span className="inline-flex h-16 w-14 shrink-0 overflow-hidden rounded-2xl border border-[var(--luna-border-strong)]">
                     <img src={activeCharacter.portrait} alt={activeCharacter.name} className="h-full w-full object-cover" />
@@ -235,7 +235,7 @@ export function ChatView({
             </RailCard>
 
             <RailCard title="Thread help">
-              <div className="rounded-2xl border border-[var(--luna-border)] bg-[var(--luna-panel)] px-4 py-3 text-sm leading-6 text-[var(--luna-muted)]">
+            <div className="rounded-2xl border border-[var(--luna-border-strong)] bg-[var(--luna-panel-raised)] px-4 py-3 text-sm leading-6 text-[var(--luna-muted)] shadow-[0_10px_24px_rgba(0,0,0,0.14)]">
                 <div className="flex items-center gap-2 text-[var(--luna-text)]">
                   <Sparkles className="h-4 w-4 text-[var(--luna-accent)]" />
                   <span className="font-medium">Use the same tools, with less noise.</span>
@@ -254,7 +254,7 @@ export function ChatView({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.92, y: 10 }}
             onClick={scrollToBottom}
-            className={`fixed bottom-[calc(7rem+env(safe-area-inset-bottom))] right-4 z-40 inline-flex h-12 w-12 items-center justify-center rounded-full border border-[var(--luna-border-strong)] bg-[var(--luna-panel-raised)] text-[var(--luna-text)] shadow-[0_10px_24px_rgba(0,0,0,0.25)] xl:right-[364px] ${hasNewMessage ? "ring-2 ring-[var(--luna-accent)]" : ""}`}
+            className={`fixed bottom-[calc(7rem+env(safe-area-inset-bottom))] right-4 z-40 inline-flex h-12 w-12 items-center justify-center rounded-full border border-[var(--luna-border-strong)] bg-[var(--luna-panel-raised)] text-[var(--luna-text)] shadow-[0_14px_28px_rgba(0,0,0,0.32)] xl:right-[364px] ${hasNewMessage ? "ring-2 ring-[var(--luna-accent)]" : ""}`}
             title="Scroll to bottom"
           >
             <ArrowDown className="h-4 w-4" />

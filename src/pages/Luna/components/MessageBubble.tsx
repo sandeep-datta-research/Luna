@@ -82,7 +82,7 @@ export function MessageBubble({
           </div>
         ) : null}
 
-        <div className={`rounded-2xl border px-4 py-3 text-[15px] leading-7 shadow-[0_8px_20px_rgba(0,0,0,0.12)] md:px-5 ${isUser ? "border-[var(--luna-user-border)] bg-[var(--luna-user)] text-white" : "border-[var(--luna-border)] bg-[var(--luna-panel)] text-[var(--luna-text)]"}`}>
+        <div className={`rounded-2xl border px-4 py-3 text-[15px] leading-7 shadow-[0_10px_26px_rgba(0,0,0,0.18)] md:px-5 ${isUser ? "border-[var(--luna-user-border)] bg-[var(--luna-user)] text-white" : "border-[var(--luna-border-strong)] bg-[var(--luna-panel-raised)] text-[var(--luna-text)]"}`}>
           {isUser ? <p className="whitespace-pre-wrap break-words">{message.content}</p> : <MarkdownMessage content={message.content} />}
         </div>
 
@@ -91,7 +91,7 @@ export function MessageBubble({
             <button
               type="button"
               onClick={() => onCopy(message.content)}
-              className="inline-flex min-h-9 items-center gap-2 rounded-full border border-[var(--luna-border)] bg-[var(--luna-surface-2)] px-3 text-xs text-[var(--luna-text)]"
+              className="inline-flex min-h-9 items-center gap-2 rounded-full border border-[var(--luna-border-strong)] bg-[var(--luna-panel-raised)] px-3 text-xs text-[var(--luna-text)]"
             >
               <Copy className="h-3.5 w-3.5" />
               Copy
@@ -100,7 +100,7 @@ export function MessageBubble({
               <button
                 type="button"
                 onClick={onRegenerate}
-                className="inline-flex min-h-9 items-center gap-2 rounded-full border border-[var(--luna-border)] bg-[var(--luna-surface-2)] px-3 text-xs text-[var(--luna-text)]"
+                className="inline-flex min-h-9 items-center gap-2 rounded-full border border-[var(--luna-border-strong)] bg-[var(--luna-panel-raised)] px-3 text-xs text-[var(--luna-text)]"
               >
                 <RotateCcw className="h-3.5 w-3.5" />
                 Retry
@@ -126,7 +126,7 @@ export function MessageBubble({
                 href={source.link || source.url}
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-2xl border border-[var(--luna-border)] bg-[var(--luna-surface-2)] px-4 py-3"
+                className="rounded-2xl border border-[var(--luna-border-strong)] bg-[var(--luna-panel-raised)] px-4 py-3"
               >
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--luna-subtle)]">

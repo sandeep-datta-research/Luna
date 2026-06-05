@@ -54,6 +54,8 @@ const CHAT_THEMES = [
     name: "Classic",
     description: "Balanced dark workspace",
     vars: {
+      "--luna-shell": "#050d0f",
+      "--luna-shell-soft": "#071316",
       "--luna-bg": "#071113",
       "--luna-bg-soft": "#09181c",
       "--luna-surface": "#0d1d21",
@@ -79,6 +81,8 @@ const CHAT_THEMES = [
     name: "Midnight",
     description: "Deep blue focus",
     vars: {
+      "--luna-shell": "#050913",
+      "--luna-shell-soft": "#07101d",
       "--luna-bg": "#070b18",
       "--luna-bg-soft": "#0a1022",
       "--luna-surface": "#0f172f",
@@ -104,6 +108,8 @@ const CHAT_THEMES = [
     name: "Frost",
     description: "Light high contrast",
     vars: {
+      "--luna-shell": "#edf4f8",
+      "--luna-shell-soft": "#e2ecf2",
       "--luna-bg": "#f4f8fb",
       "--luna-bg-soft": "#eaf1f6",
       "--luna-surface": "#ffffff",
@@ -129,6 +135,8 @@ const CHAT_THEMES = [
     name: "Ember",
     description: "Warm editorial",
     vars: {
+      "--luna-shell": "#120a09",
+      "--luna-shell-soft": "#1a100e",
       "--luna-bg": "#150e0d",
       "--luna-bg-soft": "#1d1310",
       "--luna-surface": "#241815",
@@ -154,6 +162,8 @@ const CHAT_THEMES = [
     name: "Aurora",
     description: "Premium vivid",
     vars: {
+      "--luna-shell": "#060713",
+      "--luna-shell-soft": "#0c1020",
       "--luna-bg": "#090812",
       "--luna-bg-soft": "#0f1020",
       "--luna-surface": "#151729",
@@ -177,14 +187,20 @@ const CHAT_THEMES = [
 ];
 
 function ThemeSelector({ themes, activeThemeId, onThemeChange }) {
+  const activeTheme = themes.find((theme) => theme.id === activeThemeId) || themes[0];
   return (
-    <label className="inline-flex h-11 min-w-0 items-center gap-2 rounded-2xl border border-[var(--luna-border)] bg-[var(--luna-panel)] px-3 text-[var(--luna-text)]">
-      <Palette className="h-4 w-4 shrink-0 text-[var(--luna-accent)]" />
-      <span className="hidden text-xs font-medium text-[var(--luna-muted)] sm:inline">Theme</span>
+    <label className="inline-flex min-h-11 items-center gap-3 rounded-2xl border border-[var(--luna-border)] bg-[var(--luna-panel-raised)] px-3 py-2 text-[var(--luna-text)] shadow-[0_10px_24px_rgba(0,0,0,0.18)]">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-[var(--luna-border-strong)] bg-[var(--luna-panel)]">
+        <Palette className="h-4 w-4 text-[var(--luna-accent)]" />
+      </span>
+      <span className="flex flex-col leading-none">
+        <span className="text-[10px] uppercase tracking-[0.18em] text-[var(--luna-subtle)]">Theme</span>
+        <span className="text-xs font-semibold text-[var(--luna-text)]">{activeTheme.name}</span>
+      </span>
       <select
         value={activeThemeId}
         onChange={(event) => onThemeChange(event.target.value)}
-        className="max-w-[8.5rem] bg-transparent text-xs font-semibold outline-none sm:max-w-none"
+        className="h-8 min-w-[6.5rem] rounded-lg border border-[var(--luna-border)] bg-[var(--luna-surface)] px-2 text-xs font-semibold text-[var(--luna-text)] outline-none"
         title="Chat theme"
       >
         {themes.map((theme) => (
@@ -589,7 +605,7 @@ export default function Luna() {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.35, ease: "easeOut" }}
-      className="relative min-h-[100dvh] overflow-hidden bg-[var(--luna-bg)] text-[var(--luna-text)]"
+      className="relative min-h-[100dvh] overflow-hidden bg-[var(--luna-shell)] text-[var(--luna-text)]"
       style={chatThemeStyle}
     >
       <style>{`
@@ -605,7 +621,7 @@ export default function Luna() {
         .luna-fade-lift { animation: lunaFadeLift 0.42s cubic-bezier(0.22, 1, 0.36, 1); }
       `}</style>
 
-      <div className="pointer-events-none absolute inset-0" style={{ background: "var(--luna-page-glow)" }} />
+      <div className="pointer-events-none absolute inset-0" style={{ background: "var(--luna-page-glow)", opacity: 0.55 }} />
 
       <div className="relative z-10 flex min-h-[100dvh]">
         <Sidebar
@@ -627,7 +643,7 @@ export default function Luna() {
         />
 
         <section className="relative flex min-w-0 flex-1 flex-col">
-          <div className="border-b border-[var(--luna-border)] bg-[var(--luna-bg-soft)] px-3 py-3 md:px-6">
+          <div className="border-b border-[var(--luna-border)] bg-[var(--luna-shell-soft)] px-3 py-3 md:px-6">
             <div className="mx-auto flex w-full max-w-[1560px] flex-wrap items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2">
               <button onClick={() => setMobileSidebarOpen(true)} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[var(--luna-border)] bg-[var(--luna-panel)] text-[var(--luna-text)] md:hidden">
@@ -718,7 +734,7 @@ export default function Luna() {
           </div>
 
           {visibleMain && (
-            <div className="border-t border-[var(--luna-border)] bg-[var(--luna-bg-soft)] px-3 py-3 pb-[calc(0.9rem+env(safe-area-inset-bottom))] md:px-6">
+            <div className="border-t border-[var(--luna-border)] bg-[var(--luna-shell-soft)] px-3 py-3 pb-[calc(0.9rem+env(safe-area-inset-bottom))] md:px-6">
               <div className="mx-auto max-w-[1560px] xl:pr-[380px]">
                 <div className="max-w-[960px]">
                 <Composer
