@@ -100,7 +100,7 @@ export function ChatView({
       transition={{ duration: 0.2 }}
       ref={scrollContainerRef}
       onScroll={handleScroll}
-      className="luna-scrollbar relative h-full overflow-y-auto"
+      className="luna-scrollbar relative h-full min-h-0 overflow-y-auto"
     >
       <div className="mx-auto grid w-full max-w-[1500px] gap-4 pb-8 pt-1 xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="min-w-0">

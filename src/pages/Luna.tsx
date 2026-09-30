@@ -605,7 +605,7 @@ export default function Luna() {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.35, ease: "easeOut" }}
-      className="relative min-h-[100dvh] overflow-hidden bg-[var(--luna-shell)] text-[var(--luna-text)]"
+      className="relative h-[100dvh] min-h-0 overflow-hidden bg-[var(--luna-shell)] text-[var(--luna-text)]"
       style={chatThemeStyle}
     >
       <style>{`
@@ -623,7 +623,7 @@ export default function Luna() {
 
       <div className="pointer-events-none absolute inset-0" style={{ background: "var(--luna-page-glow)", opacity: 0.55 }} />
 
-      <div className="relative z-10 flex min-h-[100dvh]">
+      <div className="relative z-10 flex h-full min-h-0">
         <Sidebar
           isSidebarOpen={isSidebarOpen}
           setIsSidebarOpen={setIsSidebarOpen}
@@ -642,7 +642,7 @@ export default function Luna() {
           historyLoading={historyLoading}
         />
 
-        <section className="relative flex min-w-0 flex-1 flex-col">
+        <section className="relative flex min-h-0 min-w-0 flex-1 flex-col">
           <div className="border-b border-[var(--luna-border)] bg-[var(--luna-shell-soft)] px-3 py-3 md:px-6">
             <div className="mx-auto flex w-full max-w-[1560px] flex-wrap items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2">
@@ -674,7 +674,7 @@ export default function Luna() {
             <AnnouncementBanner className="mb-3" />
           </div>
 
-          <div className="relative flex-1 overflow-hidden px-3 pb-3 pt-3 md:px-6 md:pt-4">
+          <div className={`relative min-h-0 flex-1 px-3 pb-3 pt-3 md:px-6 md:pt-4 ${visibleMain ? "overflow-hidden" : "overflow-y-auto"}`}>
             {!onboardingState.loading && !onboardingState.answered && (
               <div className="mb-6"><OnboardingFlow onComplete={() => setOnboardingState({ loading: false, answered: true })} /></div>
             )}
