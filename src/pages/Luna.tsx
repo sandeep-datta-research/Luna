@@ -189,7 +189,7 @@ const CHAT_THEMES = [
 function ThemeSelector({ themes, activeThemeId, onThemeChange }) {
   const activeTheme = themes.find((theme) => theme.id === activeThemeId) || themes[0];
   return (
-    <label className="inline-flex min-h-11 items-center gap-3 rounded-2xl border border-[var(--luna-border)] bg-[var(--luna-panel-raised)] px-3 py-2 text-[var(--luna-text)] shadow-[0_10px_24px_rgba(0,0,0,0.18)]">
+    <label className="luna-theme-selector inline-flex min-h-11 items-center gap-3 rounded-2xl border border-[var(--luna-border)] bg-[var(--luna-panel-raised)] px-3 py-2 text-[var(--luna-text)] shadow-[0_10px_24px_rgba(0,0,0,0.18)]">
       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-[var(--luna-border-strong)] bg-[var(--luna-panel)]">
         <Palette className="h-4 w-4 text-[var(--luna-accent)]" />
       </span>
@@ -643,9 +643,9 @@ export default function Luna() {
         />
 
         <section className="relative flex min-h-0 min-w-0 flex-1 flex-col">
-          <div className="border-b border-[var(--luna-border)] bg-[var(--luna-shell-soft)] px-3 py-3 md:px-6">
+          <div className="luna-chat-topbar border-b border-[var(--luna-border)] bg-[var(--luna-shell-soft)] px-3 py-3 md:px-6">
             <div className="mx-auto flex w-full max-w-[1560px] flex-wrap items-center justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-2">
+            <div className="luna-chat-heading flex min-w-0 items-center gap-2">
               <button onClick={() => setMobileSidebarOpen(true)} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[var(--luna-border)] bg-[var(--luna-panel)] text-[var(--luna-text)] md:hidden">
                 <Menu className="h-4 w-4" />
               </button>
@@ -656,16 +656,16 @@ export default function Luna() {
                 </h1>
               </div>
             </div>
-            <div className="flex flex-wrap items-center justify-end gap-2">
-              {(canInstallApp || showIosInstallHint) && <InstallLunaButton compact onInstall={handleInstallLuna} disabled={installingApp} />}
+            <div className="luna-chat-controls flex flex-wrap items-center justify-end gap-2">
+              {(canInstallApp || showIosInstallHint) && <InstallLunaButton compact className="luna-install-button" onInstall={handleInstallLuna} disabled={installingApp} />}
               <ThemeSelector themes={CHAT_THEMES} activeThemeId={activeChatTheme.id} onThemeChange={setChatThemeId} />
               <div className="hidden md:block">
                 <div className="rounded-full border border-[var(--luna-border)] bg-[var(--luna-panel)] px-3 py-1.5 text-xs text-[var(--luna-muted)]">{formatDateLabel()}</div>
               </div>
-              <button onClick={() => createFreshSession()} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[var(--luna-border)] bg-[var(--luna-panel)] text-[var(--luna-text)]">
+              <button onClick={() => createFreshSession()} className="luna-new-chat-button inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[var(--luna-border)] bg-[var(--luna-panel)] text-[var(--luna-text)]">
                 <Plus className="h-4 w-4" />
               </button>
-              <ModelSelector selectedModel={selectedModel} onSelect={setSelectedModel} />
+              <div className="luna-model-selector"><ModelSelector selectedModel={selectedModel} onSelect={setSelectedModel} /></div>
             </div>
           </div>
           </div>

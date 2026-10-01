@@ -82,7 +82,7 @@ export function MessageBubble({
           </div>
         ) : null}
 
-        <div className={`rounded-2xl border px-4 py-3 text-[15px] leading-7 shadow-[0_10px_26px_rgba(0,0,0,0.18)] md:px-5 ${isUser ? "border-[var(--luna-user-border)] bg-[var(--luna-user)] text-white" : "border-[var(--luna-border-strong)] bg-[var(--luna-panel-raised)] text-[var(--luna-text)]"}`}>
+        <div className={`luna-message ${isUser ? "luna-message-user rounded-2xl border border-[var(--luna-user-border)] bg-[var(--luna-user)] text-white" : "luna-message-assistant text-[var(--luna-text)]"} px-4 py-3 text-[15px] leading-7 md:px-5`}>
           {isUser ? <p className="whitespace-pre-wrap break-words">{message.content}</p> : <MarkdownMessage content={message.content} />}
         </div>
 

@@ -55,7 +55,7 @@ export function Composer({
   }, [value]);
 
   return (
-    <div className={`rounded-2xl border bg-[var(--luna-surface)] p-3 shadow-[0_12px_30px_rgba(0,0,0,0.18)] ${focused ? "border-[var(--luna-accent)]" : "border-[var(--luna-border)]"} ${compact ? "mx-auto w-full max-w-[960px]" : "w-full"}`}>
+    <div className={`luna-composer rounded-[24px] border bg-[var(--luna-surface)] p-3 shadow-[0_12px_30px_rgba(0,0,0,0.18)] ${focused ? "border-[var(--luna-accent)]" : "border-[var(--luna-border)]"} ${compact ? "mx-auto w-full max-w-[960px]" : "w-full"}`}>
       {attachments.length > 0 ? (
         <div className="mb-3 flex flex-wrap gap-2">
           {attachments.map((file, index) => (
@@ -69,7 +69,7 @@ export function Composer({
         </div>
       ) : null}
 
-      <div className="rounded-2xl border border-[var(--luna-border)] bg-[var(--luna-surface-2)] p-3">
+      <div className="luna-composer-field rounded-2xl border border-[var(--luna-border)] bg-[var(--luna-surface-2)] p-3">
         <textarea
           ref={textareaRef}
           value={value}
