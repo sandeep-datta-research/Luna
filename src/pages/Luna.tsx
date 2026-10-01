@@ -605,7 +605,7 @@ export default function Luna() {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.35, ease: "easeOut" }}
-      className="relative h-[100dvh] min-h-0 overflow-hidden bg-[var(--luna-shell)] text-[var(--luna-text)]"
+      className="luna-workspace relative h-[100dvh] min-h-0 overflow-hidden bg-[var(--luna-shell)] text-[var(--luna-text)]"
       style={chatThemeStyle}
     >
       <style>{`
@@ -621,7 +621,7 @@ export default function Luna() {
         .luna-fade-lift { animation: lunaFadeLift 0.42s cubic-bezier(0.22, 1, 0.36, 1); }
       `}</style>
 
-      <div className="pointer-events-none absolute inset-0" style={{ background: "var(--luna-page-glow)", opacity: 0.55 }} />
+      <div className="luna-workspace-atmosphere pointer-events-none absolute inset-0" style={{ background: "var(--luna-page-glow)" }} />
 
       <div className="relative z-10 flex h-full min-h-0">
         <Sidebar

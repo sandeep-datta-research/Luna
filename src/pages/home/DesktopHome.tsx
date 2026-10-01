@@ -64,7 +64,7 @@ export function DesktopHome({
   const ambientYRight = useTransform(progress, [0, 1], [0, -100]);
 
   return (
-    <div className="dark min-h-screen overflow-x-hidden bg-[#07070d] text-zinc-100">
+    <div className="luna-home luna-home-desktop dark min-h-screen overflow-x-hidden bg-[#07070d] text-zinc-100">
       <ScrollProgressBar progress={progress} />
       <motion.div
         className="pointer-events-none fixed left-[-8rem] top-24 z-0 h-72 w-72 rounded-full bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.14),transparent_66%)] blur-3xl"

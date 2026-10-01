@@ -100,7 +100,7 @@ export function MobileLanding({
   ];
 
   return (
-    <div className="min-h-screen overflow-hidden bg-[#07070d] text-white">
+    <div className="luna-home luna-home-mobile min-h-screen overflow-hidden bg-[#07070d] text-white">
       <ScrollProgressBar progress={progress} />
       <div className="pointer-events-none fixed inset-x-[-30%] top-0 z-0 h-72 bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.16),transparent_38%),radial-gradient(circle_at_top_right,rgba(168,85,247,0.18),transparent_34%)] blur-3xl" />
 

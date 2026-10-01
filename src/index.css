@@ -406,3 +406,68 @@
     font-size: 1rem;
   }
 }
+
+/* Luna workspace: theme-aware surfaces with a restrained cinematic atmosphere. */
+.luna-workspace {
+  isolation: isolate;
+  background-image: linear-gradient(115deg, color-mix(in srgb, var(--luna-accent) 4%, transparent), transparent 42%);
+}
+
+.luna-workspace-atmosphere {
+  z-index: 0;
+  opacity: 0.82;
+  background-size: cover;
+}
+
+.luna-workspace::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.16;
+  background-image: linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+  background-size: 72px 72px;
+  mask-image: linear-gradient(to bottom, black, transparent 76%);
+}
+
+.luna-workspace > .relative.z-10 { position: relative; }
+.luna-workspace aside { backdrop-filter: blur(24px); }
+.luna-workspace header,
+.luna-workspace [class*="border-b border-[var(--luna-border)]"] {
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--luna-accent) 5%, transparent), 0 18px 48px rgba(0,0,0,.08);
+}
+.luna-workspace textarea:focus-visible,
+.luna-workspace input:focus-visible,
+.luna-workspace button:focus-visible,
+.luna-workspace select:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--luna-accent) 70%, transparent);
+  outline-offset: 2px;
+}
+.luna-workspace [class*="shadow-[0_12px_30px"] {
+  box-shadow: 0 24px 70px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.035);
+}
+
+.luna-home nav {
+  border-color: rgba(255,255,255,.09);
+  box-shadow: 0 14px 40px rgba(0,0,0,.16);
+}
+.luna-home h1 { text-wrap: balance; }
+.luna-home a:focus-visible,
+.luna-home button:focus-visible {
+  outline: 2px solid rgba(103,232,249,.85);
+  outline-offset: 4px;
+}
+.luna-home section[id] { scroll-margin-top: 6rem; }
+
+@media (max-width: 767px) {
+  .luna-workspace > .relative.z-10 > section { min-width: 0; }
+  .luna-workspace .luna-scrollbar { overscroll-behavior: contain; }
+  .luna-workspace textarea { font-size: 16px; }
+  .luna-workspace .luna-scrollbar::-webkit-scrollbar { width: 3px; }
+  .luna-home-mobile .luna-mobile-nav { position: sticky; top: 0; z-index: 25; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .luna-workspace *, .luna-home * { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}

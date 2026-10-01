@@ -25,21 +25,21 @@ interface SidebarProps {
 
 function ProfileBlock({ user, collapsed = false }) {
   return (
-    <div className={`flex items-center rounded-2xl border border-[#1d3036] bg-[#0f1b1f] p-3 ${collapsed ? "justify-center" : "gap-3"}`}>
+    <div className={`flex items-center rounded-2xl border border-[var(--luna-border)] bg-[var(--luna-surface)] p-3 ${collapsed ? "justify-center" : "gap-3"}`}>
       {user.picture ? (
         <span className="inline-flex h-10 w-10 shrink-0 overflow-hidden rounded-2xl border border-[#294249]">
           <img src={user.picture} alt={user.name} className="h-full w-full object-cover" />
         </span>
       ) : (
-        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-[#294249] bg-[#102126] text-[#e5f1ee]">
+        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-[var(--luna-border-strong)] bg-[var(--luna-panel)] text-[var(--luna-text)]">
           <UserCircle2 className="h-5 w-5" />
         </span>
       )}
 
       {!collapsed ? (
         <div className="min-w-0">
-          <p className="truncate text-sm font-medium text-[#eef7f4]">{user.name}</p>
-          <p className="truncate text-xs text-[#adc1bc]">{user.email}</p>
+          <p className="truncate text-sm font-medium text-[var(--luna-text)]">{user.name}</p>
+          <p className="truncate text-xs text-[var(--luna-muted)]">{user.email}</p>
         </div>
       ) : null}
     </div>
@@ -48,14 +48,14 @@ function ProfileBlock({ user, collapsed = false }) {
 
 function HistoryList({ historyLoading = false, historyList, activeSession, handleSelectSession, handleDeleteSession }) {
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[#1d3036] bg-[#0c171a]">
-      <div className="border-b border-[#16262b] px-4 py-3">
-        <p className="text-[11px] uppercase tracking-[0.18em] text-[#9eb7b2]">Recent chats</p>
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[var(--luna-border)] bg-[var(--luna-bg-soft)]">
+      <div className="border-b border-[var(--luna-border)] px-4 py-3">
+        <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--luna-subtle)]">Recent chats</p>
       </div>
       <div className="luna-scrollbar flex-1 space-y-2 overflow-y-auto p-3">
         {historyLoading ? (
           Array.from({ length: 6 }).map((_, index) => (
-            <div key={index} className="rounded-2xl border border-[#1d3036] bg-[#0f1b1f] p-3">
+            <div key={index} className="rounded-2xl border border-[var(--luna-border)] bg-[var(--luna-surface)] p-3">
               <Skeleton width="76%" height="14px" />
               <div className="mt-2">
                 <Skeleton width="42%" height="10px" />
@@ -63,7 +63,7 @@ function HistoryList({ historyLoading = false, historyList, activeSession, handl
             </div>
           ))
         ) : historyList.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-[#294249] px-4 py-5 text-sm text-[#b7cbc7]">
+          <div className="rounded-2xl border border-dashed border-[var(--luna-border-strong)] px-4 py-5 text-sm text-[var(--luna-muted)]">
             No chats yet. Start a new thread.
           </div>
         ) : (
@@ -72,16 +72,16 @@ function HistoryList({ historyLoading = false, historyList, activeSession, handl
             return (
               <div
                 key={session.id}
-                className={`group relative rounded-2xl border p-3 ${active ? "border-[#7fc7ba]/50 bg-[#13242a]" : "border-[#1d3036] bg-[#0f1b1f] hover:border-[#36545a] hover:bg-[#13242a]"}`}
+                className={`group relative rounded-2xl border p-3 ${active ? "border-[var(--luna-accent)] bg-[var(--luna-panel-raised)]" : "border-[var(--luna-border)] bg-[var(--luna-surface)] hover:border-[var(--luna-border-strong)] hover:bg-[var(--luna-panel)]"}`}
               >
                 <button type="button" onClick={() => handleSelectSession(session.id)} className="block w-full pr-9 text-left">
-                  <p className="truncate text-sm font-medium text-[#eef7f4]">{session.title}</p>
-                  <p className="mt-1 text-[11px] text-[#adc1bc]">{formatHistoryTime(session.updatedAt)}</p>
+                  <p className="truncate text-sm font-medium text-[var(--luna-text)]">{session.title}</p>
+                  <p className="mt-1 text-[11px] text-[var(--luna-muted)]">{formatHistoryTime(session.updatedAt)}</p>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleDeleteSession(session.id)}
-                  className="absolute right-2 top-2 inline-flex h-8 w-8 items-center justify-center rounded-xl text-[#9fb7b1] transition hover:bg-[#173038] hover:text-white"
+                  className="absolute right-2 top-2 inline-flex h-8 w-8 items-center justify-center rounded-xl text-[var(--luna-subtle)] transition hover:bg-[var(--luna-panel-raised)] hover:text-[var(--luna-text)]"
                   title="Delete chat"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
@@ -116,17 +116,17 @@ export function Sidebar({
 
   return (
     <>
-      <aside className={`hidden ${desktopWidth} border-r border-[#16262b] bg-[#081417] md:flex md:min-h-[100dvh] md:flex-col`}>
+      <aside className={`hidden ${desktopWidth} border-r border-[var(--luna-border)] bg-[var(--luna-shell-soft)] md:flex md:min-h-[100dvh] md:flex-col`}>
         <div className="flex h-full flex-col gap-4 p-4">
           <div className="flex items-center justify-between gap-3">
             <div className={`flex min-w-0 items-center gap-3 ${isSidebarOpen ? "" : "w-full justify-center"}`}>
-              <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[#294249] bg-[#102126]">
+              <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[var(--luna-border-strong)] bg-[var(--luna-panel)]">
                 <img src={brandLogo} alt="Luna logo" className="h-full w-full object-cover" />
               </span>
               {isSidebarOpen ? (
                 <div className="min-w-0">
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-[#9eb7b2]">Workspace</p>
-                  <h1 className="truncate text-xl font-semibold text-[#f7fcfb]" style={{ fontFamily: "'Syne', sans-serif" }}>
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--luna-subtle)]">Workspace</p>
+                  <h1 className="truncate text-xl font-semibold text-[var(--luna-text)]" style={{ fontFamily: "'Syne', sans-serif" }}>
                     Luna
                   </h1>
                 </div>
@@ -136,7 +136,7 @@ export function Sidebar({
             <button
               type="button"
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-[#294249] bg-[#102126] text-[#e5f1ee] ${isSidebarOpen ? "" : "mx-auto"}`}
+              className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-[var(--luna-border-strong)] bg-[var(--luna-panel)] text-[var(--luna-text)] ${isSidebarOpen ? "" : "mx-auto"}`}
               title={isSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
             >
               {isSidebarOpen ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
@@ -150,7 +150,7 @@ export function Sidebar({
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
                 placeholder="Search chats"
-                className="w-full rounded-xl border border-[#294249] bg-[#0f1b1f] py-3 pl-11 pr-4 text-sm text-[#eef7f4] outline-none focus:border-[#7fc7ba]"
+                className="w-full rounded-xl border border-[var(--luna-border)] bg-[var(--luna-surface)] py-3 pl-11 pr-4 text-sm text-[var(--luna-text)] outline-none focus:border-[var(--luna-accent)]"
               />
             </div>
           ) : null}
@@ -205,17 +205,17 @@ export function Sidebar({
               initial={{ x: -24 }}
               animate={{ x: 0 }}
               exit={{ x: -24 }}
-              className="flex h-full w-[92vw] max-w-[360px] flex-col border-r border-[#16262b] bg-[#081417] p-4"
+              className="flex h-full w-[92vw] max-w-[360px] flex-col border-r border-[var(--luna-border)] bg-[var(--luna-shell-soft)] p-4"
               onClick={(event) => event.stopPropagation()}
             >
               <div className="mb-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <span className="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-2xl border border-[#294249] bg-[#102126]">
+                  <span className="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-2xl border border-[var(--luna-border-strong)] bg-[var(--luna-panel)]">
                     <img src={brandLogo} alt="Luna logo" className="h-full w-full object-cover" />
                   </span>
                   <div>
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-[#9eb7b2]">Workspace</p>
-                    <h2 className="text-lg font-semibold text-[#f7fcfb]" style={{ fontFamily: "'Syne', sans-serif" }}>
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--luna-subtle)]">Workspace</p>
+                    <h2 className="text-lg font-semibold text-[var(--luna-text)]" style={{ fontFamily: "'Syne', sans-serif" }}>
                       Luna
                     </h2>
                   </div>
@@ -235,7 +235,7 @@ export function Sidebar({
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
                   placeholder="Search chats"
-                  className="w-full rounded-xl border border-[#294249] bg-[#0f1b1f] py-3 pl-11 pr-4 text-sm text-[#eef7f4] outline-none focus:border-[#7fc7ba]"
+                  className="w-full rounded-xl border border-[var(--luna-border)] bg-[var(--luna-surface)] py-3 pl-11 pr-4 text-sm text-[var(--luna-text)] outline-none focus:border-[var(--luna-accent)]"
                 />
               </div>
 
