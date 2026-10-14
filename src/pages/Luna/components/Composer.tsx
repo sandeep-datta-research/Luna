@@ -61,7 +61,7 @@ export function Composer({
           {attachments.map((file, index) => (
             <div key={`${file}-${index}`} className="inline-flex max-w-full items-center gap-2 rounded-full border border-[var(--luna-border)] bg-[var(--luna-panel)] px-3 py-1.5 text-xs text-[var(--luna-text)]">
               <span className="max-w-[180px] truncate sm:max-w-[240px]">{file}</span>
-              <button type="button" onClick={() => onRemoveAttachment(index)} className="text-[var(--luna-muted)] hover:text-[var(--luna-text)]">
+              <button type="button" onClick={() => onRemoveAttachment(index)} aria-label={`Remove attachment ${file}`} className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[var(--luna-muted)] hover:text-[var(--luna-text)]">
                 <X className="h-3.5 w-3.5" />
               </button>
             </div>
@@ -83,6 +83,7 @@ export function Composer({
             }
           }}
           placeholder="Ask Luna anything..."
+          aria-label="Message Luna"
           disabled={disabled}
           className="luna-scrollbar min-h-[56px] w-full resize-none overflow-y-auto bg-transparent px-1 py-2 text-[15px] leading-7 text-[var(--luna-text)] outline-none placeholder:text-[var(--luna-subtle)]"
         />
@@ -110,6 +111,7 @@ export function Composer({
               }}
               className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--luna-border)] bg-[var(--luna-panel)] text-[var(--luna-text)]"
               title="Attach file"
+              aria-label="Attach file"
             >
               <Paperclip className="h-4 w-4" />
             </motion.button>
@@ -135,6 +137,7 @@ export function Composer({
                 disabled={!isPro}
                 className={`inline-flex h-11 min-w-11 items-center justify-center rounded-xl border px-3 ${isPro ? "border-[var(--luna-border)] bg-[var(--luna-panel)] text-[var(--luna-text)]" : "border-[var(--luna-border)] bg-[var(--luna-surface)] text-[var(--luna-subtle)]"}`}
                 title={isPro ? "Export this chat" : "Luna Pro feature"}
+                aria-label={isPro ? "Export this chat" : "Export chat requires Luna Pro"}
               >
                 {isPro ? <Download className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
               </button>
@@ -145,6 +148,7 @@ export function Composer({
                 disabled={transcribing}
                 className={`inline-flex h-11 min-w-11 items-center justify-center rounded-xl border px-3 ${voiceActive ? "border-[var(--luna-accent)] bg-[var(--luna-panel-raised)] text-[var(--luna-text)]" : "border-[var(--luna-border)] bg-[var(--luna-panel)] text-[var(--luna-text)]"}`}
                 title={voiceActive ? "Stop recording" : "Voice input"}
+                aria-label={voiceActive ? "Stop voice recording" : transcribing ? "Transcribing voice input" : "Start voice input"}
               >
                 {transcribing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mic className="h-4 w-4" />}
               </button>
@@ -156,6 +160,7 @@ export function Composer({
                 className={`inline-flex h-11 min-w-11 items-center justify-center rounded-xl px-4 text-sm font-semibold ${value.trim() && !sendDisabled ? "text-[var(--luna-send-text)]" : "bg-[var(--luna-panel-raised)] text-[var(--luna-muted)]"}`}
                 style={value.trim() && !sendDisabled ? { background: "var(--luna-send)" } : undefined}
                 title="Send"
+                aria-label="Send message"
               >
                 <Send className="h-4 w-4" />
               </button>
