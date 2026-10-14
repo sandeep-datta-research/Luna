@@ -567,3 +567,164 @@
 @media (prefers-reduced-motion: reduce) {
   .luna-hero-primary { transition: none; }
 }
+
+
+/* Durable UX baseline: readable layouts, predictable controls, and accessible focus. */
+:root {
+  text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+html {
+  min-width: 320px;
+  scroll-padding-top: 5rem;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overscroll-behavior-y: contain;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button,
+[role="button"],
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.58;
+  filter: saturate(0.72);
+}
+
+:where(a, button, input, textarea, select, summary, [tabindex]:not([tabindex="-1"])):focus-visible {
+  outline: 2px solid var(--luna-accent, #7fc7ba);
+  outline-offset: 3px;
+}
+
+:where(img, video, canvas, iframe) {
+  max-width: 100%;
+}
+
+:where(p, li, a, code, pre, h1, h2, h3, h4) {
+  overflow-wrap: anywhere;
+}
+
+pre,
+.luna-code-block {
+  max-width: 100%;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.luna-workspace {
+  min-height: 0;
+  min-height: 100dvh;
+  background-color: var(--luna-bg, #071113);
+  color: var(--luna-text, #f4fbf8);
+}
+
+.luna-workspace :where(input, textarea, select) {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.luna-composer {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+
+.luna-composer textarea {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+  -webkit-overflow-scrolling: touch;
+}
+
+.luna-composer button,
+.luna-workspace button {
+  touch-action: manipulation;
+}
+
+.luna-markdown table {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  -webkit-overflow-scrolling: touch;
+}
+
+.luna-markdown th,
+.luna-markdown td {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--luna-border, #274148);
+  text-align: left;
+}
+
+.luna-markdown blockquote {
+  margin: 0.75rem 0;
+  padding: 0.25rem 0 0.25rem 1rem;
+  border-left: 3px solid var(--luna-accent, #7fc7ba);
+  color: var(--luna-muted, #b8cec9);
+}
+
+.luna-scrollbar {
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+}
+
+@media (max-width: 640px) {
+  html {
+    scroll-padding-top: 4rem;
+  }
+
+  body {
+    font-size: 16px;
+  }
+
+  .luna-composer {
+    border-radius: 1.15rem;
+    padding: 0.65rem;
+  }
+
+  .luna-composer textarea {
+    /* Avoids automatic zoom when focusing inputs on iOS and improves mobile readability. */
+    font-size: 16px;
+  }
+
+  .luna-markdown {
+    overflow-wrap: anywhere;
+  }
+
+  .luna-message {
+    max-width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    caret-color: auto;
+  }
+}
