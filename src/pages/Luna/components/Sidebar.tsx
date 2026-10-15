@@ -25,7 +25,7 @@ interface SidebarProps {
 
 function ProfileBlock({ user, collapsed = false }) {
   return (
-    <div className={`flex items-center rounded-2xl border border-[var(--luna-border)] bg-[var(--luna-surface)] p-3 ${collapsed ? "justify-center" : "gap-3"}`}>
+    <div className={`luna-profile-block flex items-center rounded-2xl border border-[var(--luna-border)] bg-[var(--luna-surface)] p-3 ${collapsed ? "justify-center" : "gap-3"}`}>
       {user.picture ? (
         <span className="inline-flex h-10 w-10 shrink-0 overflow-hidden rounded-2xl border border-[#294249]">
           <img src={user.picture} alt={user.name} className="h-full w-full object-cover" />
@@ -48,7 +48,7 @@ function ProfileBlock({ user, collapsed = false }) {
 
 function HistoryList({ historyLoading = false, historyList, activeSession, handleSelectSession, handleDeleteSession }) {
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[var(--luna-border)] bg-[var(--luna-bg-soft)]">
+    <div className="luna-history-panel flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[var(--luna-border)] bg-[var(--luna-bg-soft)]">
       <div className="border-b border-[var(--luna-border)] px-4 py-3">
         <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--luna-subtle)]">Recent chats</p>
       </div>
@@ -72,7 +72,8 @@ function HistoryList({ historyLoading = false, historyList, activeSession, handl
             return (
               <div
                 key={session.id}
-                className={`group relative rounded-2xl border p-3 ${active ? "border-[var(--luna-accent)] bg-[var(--luna-panel-raised)]" : "border-[var(--luna-border)] bg-[var(--luna-surface)] hover:border-[var(--luna-border-strong)] hover:bg-[var(--luna-panel)]"}`}
+                data-active={active ? "true" : "false"}
+                className={`luna-history-item group relative rounded-2xl border p-3 ${active ? "border-[var(--luna-accent)] bg-[var(--luna-panel-raised)]" : "border-[var(--luna-border)] bg-[var(--luna-surface)] hover:border-[var(--luna-border-strong)] hover:bg-[var(--luna-panel)]"}`}
               >
                 <button type="button" onClick={() => handleSelectSession(session.id)} className="block w-full pr-9 text-left">
                   <p className="truncate text-sm font-medium text-[var(--luna-text)]">{session.title}</p>
@@ -116,7 +117,7 @@ export function Sidebar({
 
   return (
     <>
-      <aside className={`hidden ${desktopWidth} border-r border-[var(--luna-border)] bg-[var(--luna-shell-soft)] md:flex md:min-h-[100dvh] md:flex-col`}>
+      <aside className={`luna-sidebar-desktop ${isSidebarOpen ? "luna-sidebar-expanded" : "luna-sidebar-collapsed"} hidden ${desktopWidth} border-r border-[var(--luna-border)] bg-[var(--luna-shell-soft)] md:flex md:min-h-[100dvh] md:flex-col`}>
         <div className="flex h-full flex-col gap-4 p-4">
           <div className="flex items-center justify-between gap-3">
             <div className={`flex min-w-0 items-center gap-3 ${isSidebarOpen ? "" : "w-full justify-center"}`}>

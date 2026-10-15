@@ -1,0 +1,732 @@
+/* Luna premium chat surface — calm, centered, and responsive. */
+.luna-workspace {
+  background: var(--luna-bg) !important;
+  color: var(--luna-text);
+  isolation: isolate;
+}
+
+.luna-workspace-atmosphere {
+  opacity: 0.52;
+  pointer-events: none;
+}
+
+.luna-chat-topbar {
+  position: relative;
+  z-index: 30;
+  background: color-mix(in srgb, var(--luna-shell) 88%, transparent) !important;
+  border-color: color-mix(in srgb, var(--luna-border) 72%, transparent) !important;
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+}
+
+.luna-chat-topbar > div {
+  max-width: 1480px !important;
+  flex-wrap: nowrap !important;
+  gap: 1rem !important;
+}
+
+.luna-chat-heading > div > p {
+  font-size: 10px !important;
+  letter-spacing: 0.16em !important;
+}
+
+.luna-chat-heading h1 {
+  font-size: 15px !important;
+  letter-spacing: -0.025em;
+}
+
+.luna-chat-controls {
+  flex-wrap: nowrap !important;
+  gap: 7px !important;
+  min-width: 0;
+}
+
+.luna-chat-controls > * {
+  flex-shrink: 0;
+}
+
+.luna-theme-selector {
+  min-height: 40px !important;
+  gap: 7px !important;
+  padding: 4px 7px !important;
+  border-radius: 14px !important;
+  background: var(--luna-surface) !important;
+  box-shadow: none !important;
+}
+
+.luna-theme-selector > span:first-child {
+  width: 29px !important;
+  height: 29px !important;
+  border-radius: 10px !important;
+}
+
+.luna-theme-selector > span:nth-child(2) {
+  display: none !important;
+}
+
+.luna-theme-selector select {
+  min-width: 5.7rem !important;
+  border: 0 !important;
+  background: transparent !important;
+  font-size: 12px !important;
+}
+
+.luna-model-selector > div > button {
+  min-height: 40px !important;
+  border-radius: 14px !important;
+  background: var(--luna-surface) !important;
+  box-shadow: none !important;
+}
+
+.luna-new-chat-button,
+.luna-chat-heading > button {
+  height: 40px !important;
+  width: 40px !important;
+  border-radius: 14px !important;
+  background: var(--luna-surface) !important;
+  border-color: var(--luna-border) !important;
+  box-shadow: none !important;
+  transition: background 150ms ease, border-color 150ms ease, transform 150ms ease;
+}
+
+.luna-new-chat-button:hover,
+.luna-chat-heading > button:hover {
+  background: var(--luna-panel-raised) !important;
+  border-color: var(--luna-border-strong) !important;
+}
+
+.luna-install-button {
+  min-height: 40px !important;
+  border-radius: 14px !important;
+}
+
+.luna-chat-composer-dock {
+  background: color-mix(in srgb, var(--luna-shell) 94%, transparent) !important;
+  border-color: color-mix(in srgb, var(--luna-border) 78%, transparent) !important;
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+}
+
+.luna-workspace section.relative.flex.min-h-0.min-w-0.flex-1.flex-col > div.border-t {
+  padding: 12px 20px calc(12px + env(safe-area-inset-bottom)) !important;
+}
+
+.luna-workspace section.relative.flex.min-h-0.min-w-0.flex-1.flex-col > div.border-t > div {
+  max-width: 920px !important;
+  padding-right: 0 !important;
+  margin: 0 auto !important;
+}
+
+.luna-workspace section.relative.flex.min-h-0.min-w-0.flex-1.flex-col > div.border-t > div > div {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.luna-composer {
+  border-radius: 24px !important;
+  border-color: color-mix(in srgb, var(--luna-border-strong) 65%, transparent) !important;
+  background: var(--luna-surface) !important;
+  padding: 11px !important;
+  box-shadow: 0 18px 50px -32px rgba(0, 0, 0, 0.86), 0 1px 0 rgba(255, 255, 255, 0.025) inset !important;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.luna-composer:focus-within {
+  box-shadow: 0 20px 54px -34px rgba(0, 0, 0, 0.9), 0 0 0 1px color-mix(in srgb, var(--luna-accent) 20%, transparent) !important;
+}
+
+.luna-composer-field {
+  border: 0 !important;
+  border-radius: 15px !important;
+  background: transparent !important;
+  padding: 3px 4px 0 !important;
+}
+
+.luna-composer textarea {
+  min-height: 58px !important;
+  padding: 7px 7px 10px !important;
+  font-size: 15px !important;
+  line-height: 1.7 !important;
+}
+
+.luna-composer .luna-scrollbar {
+  scrollbar-width: thin;
+}
+
+.luna-composer .luna-composer-field > div {
+  border-color: color-mix(in srgb, var(--luna-border) 75%, transparent);
+}
+
+.luna-composer .luna-composer-field button,
+.luna-composer button {
+  transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+}
+
+.luna-composer .luna-composer-field button:hover,
+.luna-composer button:hover {
+  border-color: var(--luna-border-strong);
+}
+
+.luna-composer button:focus-visible,
+.luna-chat-topbar button:focus-visible,
+.luna-workspace button:focus-visible,
+.luna-workspace input:focus-visible,
+.luna-workspace select:focus-visible {
+  outline: 2px solid var(--luna-accent) !important;
+  outline-offset: 2px;
+}
+
+.luna-chat-scroll {
+  overscroll-behavior: contain;
+  scroll-padding-bottom: 2rem;
+}
+
+.luna-chat-column {
+  min-height: 100%;
+}
+
+.luna-context-row {
+  border-bottom: 1px solid color-mix(in srgb, var(--luna-border) 65%, transparent);
+  padding: 3px 0 16px;
+  margin-bottom: 24px;
+}
+
+.luna-context-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 13px;
+  border: 1px solid var(--luna-border);
+  overflow: hidden;
+  background: var(--luna-surface);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.16);
+}
+
+.luna-context-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.luna-context-eyebrow {
+  color: var(--luna-subtle);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+}
+
+.luna-context-name {
+  margin-top: 2px;
+  color: var(--luna-text);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.luna-context-description {
+  margin-top: 2px;
+  color: var(--luna-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.luna-soft-button {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--luna-border);
+  border-radius: 12px;
+  padding: 0 12px;
+  color: var(--luna-muted);
+  background: color-mix(in srgb, var(--luna-surface) 82%, transparent);
+  font-size: 12px;
+  font-weight: 550;
+  white-space: nowrap;
+  transition: all 150ms ease;
+}
+
+.luna-soft-button:hover {
+  color: var(--luna-text);
+  border-color: var(--luna-border-strong);
+  background: var(--luna-panel);
+}
+
+.luna-active-modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: -13px 0 24px;
+}
+
+.luna-active-modes span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 3px 9px;
+  border: 1px solid color-mix(in srgb, var(--luna-accent) 30%, var(--luna-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--luna-accent) 8%, transparent);
+  color: var(--luna-muted);
+  font-size: 10px;
+  line-height: 1.25;
+}
+
+.luna-persona-panel {
+  margin-bottom: 24px;
+  padding: 17px;
+  border: 1px solid var(--luna-border);
+  border-radius: 19px;
+  background: color-mix(in srgb, var(--luna-surface) 94%, transparent);
+  box-shadow: 0 16px 34px -28px rgba(0, 0, 0, 0.85);
+}
+
+.luna-persona-panel input {
+  min-height: 42px;
+  border-radius: 12px !important;
+  background: var(--luna-bg-soft) !important;
+  border-color: var(--luna-border) !important;
+}
+
+.luna-chat-thread {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.luna-chat-thread .luna-message-user {
+  border-radius: 20px 20px 6px 20px !important;
+  border-color: color-mix(in srgb, var(--luna-user-border) 55%, transparent) !important;
+  background: color-mix(in srgb, var(--luna-user) 92%, var(--luna-surface)) !important;
+  box-shadow: 0 8px 24px -22px rgba(0, 0, 0, 0.7);
+}
+
+.luna-chat-thread .luna-message-assistant {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+.luna-chat-thread .luna-message-assistant p,
+.luna-chat-thread .luna-message-assistant li {
+  line-height: 1.85;
+}
+
+.luna-chat-thread .luna-message-assistant h1,
+.luna-chat-thread .luna-message-assistant h2,
+.luna-chat-thread .luna-message-assistant h3 {
+  letter-spacing: -0.025em;
+}
+
+.luna-chat-thread .luna-message-assistant pre {
+  border: 1px solid var(--luna-border) !important;
+  border-radius: 14px !important;
+}
+
+.luna-chat-thread .luna-message-assistant table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.luna-chat-thread .luna-message-assistant + div button {
+  border-color: transparent !important;
+  background: transparent !important;
+  color: var(--luna-subtle) !important;
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+}
+
+.luna-chat-thread .luna-message-assistant + div button:hover {
+  color: var(--luna-text) !important;
+  background: var(--luna-panel) !important;
+}
+
+.luna-chat-thread .luna-message-user + div {
+  font-size: 10px;
+  opacity: 0.8;
+}
+
+.luna-empty-thread {
+  margin: 34px auto 22px;
+  max-width: 520px;
+  border: 1px dashed var(--luna-border-strong);
+  border-radius: 18px;
+  padding: 28px 20px;
+  color: var(--luna-muted);
+  text-align: center;
+}
+
+.luna-character-cards {
+  gap: 10px !important;
+  padding-bottom: 6px !important;
+}
+
+.luna-character-card {
+  min-width: 202px !important;
+  max-width: 202px !important;
+  border-radius: 17px !important;
+  border-color: var(--luna-border) !important;
+  background: var(--luna-surface) !important;
+  box-shadow: none !important;
+  transition: border-color 150ms ease, background 150ms ease, transform 150ms ease !important;
+}
+
+.luna-character-card:hover {
+  border-color: var(--luna-border-strong) !important;
+  background: var(--luna-panel) !important;
+}
+
+.luna-character-card[data-active="true"] {
+  border-color: var(--luna-accent) !important;
+  background: var(--luna-panel) !important;
+}
+
+.luna-character-card > div:first-child {
+  inset: 0 !important;
+  height: 100% !important;
+  opacity: 0.055 !important;
+  pointer-events: none;
+}
+
+.luna-character-card > div:nth-child(2) {
+  padding: 12px !important;
+  gap: 10px !important;
+}
+
+.luna-character-card > div:nth-child(2) > span {
+  border-radius: 13px !important;
+  border-color: var(--luna-border-strong) !important;
+}
+
+.luna-character-card h3 {
+  color: var(--luna-text) !important;
+  font-size: 13px !important;
+}
+
+.luna-character-card p {
+  color: var(--luna-muted) !important;
+}
+
+.luna-character-card p:first-child {
+  color: var(--luna-subtle) !important;
+}
+
+.luna-starter-prompts {
+  margin-top: 12px !important;
+  gap: 7px !important;
+}
+
+.luna-starter-prompts button {
+  border-radius: 11px !important;
+  border-color: var(--luna-border) !important;
+  background: var(--luna-bg-soft) !important;
+  color: var(--luna-muted) !important;
+  font-size: 11px !important;
+  line-height: 1.45;
+}
+
+.luna-starter-prompts button:hover {
+  color: var(--luna-text) !important;
+  border-color: var(--luna-border-strong) !important;
+  background: var(--luna-panel) !important;
+}
+
+.luna-welcome-scroll {
+  scrollbar-gutter: stable;
+}
+
+.luna-welcome-column {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 16px 0 32px;
+}
+
+.luna-welcome-hero {
+  position: relative;
+  padding: 26px 4px 24px;
+}
+
+.luna-welcome-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--luna-accent);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.19em;
+  text-transform: uppercase;
+}
+
+.luna-welcome-eyebrow::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--luna-accent-2);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--luna-accent-2) 55%, transparent);
+}
+
+.luna-welcome-title {
+  max-width: 720px;
+  margin-top: 14px;
+  color: var(--luna-text);
+  font-family: 'Syne', 'DM Sans', sans-serif;
+  font-size: clamp(30px, 4vw, 46px);
+  font-weight: 600;
+  line-height: 1.13;
+  letter-spacing: -0.055em;
+  text-wrap: balance;
+}
+
+.luna-welcome-copy {
+  max-width: 570px;
+  margin-top: 13px;
+  color: var(--luna-muted);
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.luna-welcome-section {
+  margin-top: 21px;
+  border-top: 1px solid color-mix(in srgb, var(--luna-border) 65%, transparent);
+  padding-top: 18px;
+}
+
+.luna-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 13px;
+}
+
+.luna-section-title {
+  color: var(--luna-text);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.luna-section-subtitle {
+  margin-top: 3px;
+  color: var(--luna-subtle);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.luna-quick-prompts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.luna-quick-prompt {
+  display: flex;
+  min-width: 0;
+  min-height: 62px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--luna-border);
+  border-radius: 15px;
+  padding: 12px 13px;
+  background: color-mix(in srgb, var(--luna-surface) 74%, transparent);
+  color: var(--luna-muted);
+  text-align: left;
+  font-size: 11px;
+  line-height: 1.35;
+  transition: border-color 150ms ease, background 150ms ease, transform 150ms ease;
+}
+
+.luna-quick-prompt:hover {
+  transform: translateY(-1px);
+  border-color: var(--luna-border-strong);
+  background: var(--luna-panel);
+  color: var(--luna-text);
+}
+
+.luna-quick-prompt span:first-child {
+  color: var(--luna-accent);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.luna-welcome-composer {
+  margin-top: 22px;
+}
+
+.luna-welcome-footnote {
+  margin: 10px auto 0;
+  color: var(--luna-subtle);
+  text-align: center;
+  font-size: 10px;
+}
+
+.luna-sidebar-desktop {
+  width: 264px !important;
+  flex: 0 0 264px !important;
+  background: var(--luna-shell) !important;
+  border-color: color-mix(in srgb, var(--luna-border) 68%, transparent) !important;
+}
+
+.luna-sidebar-desktop > div {
+  gap: 15px !important;
+  padding: 15px !important;
+}
+
+.luna-sidebar-brand img {
+  padding: 2px;
+}
+
+.luna-history-panel {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+.luna-history-panel > div:first-child {
+  border: 0 !important;
+  padding: 5px 9px 8px !important;
+}
+
+.luna-history-panel .luna-scrollbar {
+  padding: 0 2px !important;
+}
+
+.luna-history-item {
+  border: 1px solid transparent !important;
+  border-radius: 11px !important;
+  padding: 10px 9px !important;
+  background: transparent !important;
+}
+
+.luna-history-item:hover {
+  border-color: var(--luna-border) !important;
+  background: var(--luna-surface) !important;
+}
+
+.luna-history-item[data-active="true"] {
+  border-color: color-mix(in srgb, var(--luna-accent) 32%, var(--luna-border)) !important;
+  background: color-mix(in srgb, var(--luna-accent) 7%, var(--luna-surface)) !important;
+}
+
+.luna-profile-block {
+  border-radius: 14px !important;
+  background: var(--luna-surface) !important;
+}
+
+@media (max-width: 767px) {
+  .luna-chat-topbar {
+    padding: 10px 12px !important;
+  }
+
+  .luna-chat-topbar > div {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+
+  .luna-chat-heading {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .luna-chat-controls {
+    width: 100%;
+    max-width: 100%;
+    justify-content: space-between !important;
+    overflow-x: auto;
+    padding: 1px 1px 3px;
+    scrollbar-width: none;
+  }
+
+  .luna-chat-controls::-webkit-scrollbar {
+    display: none;
+  }
+
+  .luna-workspace section.relative.flex.min-h-0.min-w-0.flex-1.flex-col > div.border-t {
+    padding: 9px 10px calc(9px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .luna-context-row {
+    padding-bottom: 13px;
+    margin-bottom: 20px;
+  }
+
+  .luna-context-description {
+    max-width: 42vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .luna-persona-panel {
+    padding: 13px;
+    border-radius: 16px;
+  }
+
+  .luna-welcome-column {
+    padding-top: 3px;
+    padding-bottom: 22px;
+  }
+
+  .luna-welcome-hero {
+    padding: 20px 2px 18px;
+  }
+
+  .luna-welcome-title {
+    font-size: clamp(30px, 8vw, 39px);
+  }
+
+  .luna-welcome-copy {
+    font-size: 13px;
+  }
+
+  .luna-welcome-section {
+    margin-top: 17px;
+    padding-top: 14px;
+  }
+
+  .luna-quick-prompts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .luna-quick-prompt {
+    min-height: 58px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .luna-soft-button,
+  .luna-new-chat-button,
+  .luna-quick-prompt,
+  .luna-character-card,
+  .luna-composer {
+    transition: none !important;
+  }
+}
+
+
+.luna-sidebar-desktop.luna-sidebar-collapsed {
+  width: 80px !important;
+  flex-basis: 80px !important;
+}
+
+/* The empty-state content scrolls with the main page instead of creating nested scrollbars. */
+.luna-welcome-scroll {
+  height: auto !important;
+  min-height: 100%;
+  overflow: visible !important;
+}
+
+.luna-workspace-atmosphere {
+  background:
+    radial-gradient(ellipse at 14% 0%, color-mix(in srgb, var(--luna-accent) 10%, transparent), transparent 46%),
+    radial-gradient(ellipse at 88% 8%, color-mix(in srgb, var(--luna-accent-2) 8%, transparent), transparent 34%),
+    linear-gradient(180deg, var(--luna-bg), var(--luna-shell)) !important;
+}

@@ -2,7 +2,7 @@ export function CharacterStarterPrompts({ prompts = [], onSelect }) {
   if (!Array.isArray(prompts) || prompts.length === 0) return null;
 
   return (
-    <div className="mt-3 flex flex-wrap gap-2">
+    <div className="luna-starter-prompts mt-3 flex flex-wrap gap-2">
       {prompts.slice(0, 4).map((prompt) => (
         <button
           key={prompt}
