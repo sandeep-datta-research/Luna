@@ -24,7 +24,7 @@ export function CharacterCards({ options = CHARACTER_OPTIONS, selectedCharacterI
             onClick={() => onSelect(character)}
             data-active={active ? "true" : "false"}
             aria-pressed={active}
-            className={`luna-character-card group relative ${cardSizeClass} overflow-hidden rounded-2xl border text-left transition ${ 
+            className={`luna-character-card group relative ${cardSizeClass} overflow-hidden rounded-2xl border text-left transition ${
               active
                 ? "border-[#7fc7ba]/70 bg-[#102126] shadow-[0_10px_24px_rgba(18,49,56,0.2)]"
                 : "border-[#294249] bg-[#0f1b1f] hover:border-[#36545a] hover:bg-[#13242a]"
