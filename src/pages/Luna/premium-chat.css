@@ -710,3 +710,9 @@
     transition: none !important;
   }
 }
+
+
+.luna-sidebar-desktop.luna-sidebar-collapsed {
+  width: 80px !important;
+  flex-basis: 80px !important;
+}
