@@ -117,7 +117,7 @@ export function Sidebar({
 
   return (
     <>
-      <aside className={`luna-sidebar-desktop hidden ${desktopWidth} border-r border-[var(--luna-border)] bg-[var(--luna-shell-soft)] md:flex md:min-h-[100dvh] md:flex-col`}>
+      <aside className={`luna-sidebar-desktop ${isSidebarOpen ? "luna-sidebar-expanded" : "luna-sidebar-collapsed"} hidden ${desktopWidth} border-r border-[var(--luna-border)] bg-[var(--luna-shell-soft)] md:flex md:min-h-[100dvh] md:flex-col`}>
         <div className="flex h-full flex-col gap-4 p-4">
           <div className="flex items-center justify-between gap-3">
             <div className={`flex min-w-0 items-center gap-3 ${isSidebarOpen ? "" : "w-full justify-center"}`}>
