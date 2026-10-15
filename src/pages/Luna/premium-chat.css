@@ -716,3 +716,10 @@
   width: 80px !important;
   flex-basis: 80px !important;
 }
+
+/* The empty-state content scrolls with the main page instead of creating nested scrollbars. */
+.luna-welcome-scroll {
+  height: auto !important;
+  min-height: 100%;
+  overflow: visible !important;
+}
