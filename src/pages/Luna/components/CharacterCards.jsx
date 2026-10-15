@@ -11,7 +11,7 @@ export function CharacterCards({ options = CHARACTER_OPTIONS, selectedCharacterI
     : "h-[4.5rem] w-16 md:h-20 md:w-[4.5rem]";
 
   return (
-    <div className="luna-scrollbar flex gap-3 overflow-x-auto pb-1">
+    <div className="luna-character-cards luna-scrollbar flex gap-3 overflow-x-auto pb-1">
       {options.map((character) => {
         const active = character.id === normalizeCharacterId(selectedCharacterId, options);
         const locked = character.access === "pro" && !isPro;
@@ -22,7 +22,9 @@ export function CharacterCards({ options = CHARACTER_OPTIONS, selectedCharacterI
             whileTap={{ scale: 0.985 }}
             type="button"
             onClick={() => onSelect(character)}
-            className={`group relative ${cardSizeClass} overflow-hidden rounded-2xl border text-left transition ${
+            data-active={active ? "true" : "false"}
+            aria-pressed={active}
+            className={`luna-character-card group relative ${cardSizeClass} overflow-hidden rounded-2xl border text-left transition ${ 
               active
                 ? "border-[#7fc7ba]/70 bg-[#102126] shadow-[0_10px_24px_rgba(18,49,56,0.2)]"
                 : "border-[#294249] bg-[#0f1b1f] hover:border-[#36545a] hover:bg-[#13242a]"
@@ -42,13 +44,13 @@ export function CharacterCards({ options = CHARACTER_OPTIONS, selectedCharacterI
               </span>
               <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-[#a6c0ba]">Character</p>
-                    <h3 className="mt-1 text-sm font-semibold text-[#edf5f2] md:text-base" style={{ fontFamily: "'Syne', sans-serif" }}>
+                  <div className="min-w-0">
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-[#a6c0ba]">Persona</p>
+                    <h3 className="mt-1 truncate text-sm font-semibold text-[#edf5f2] md:text-base" style={{ fontFamily: "'Syne', sans-serif" }}>
                       {character.name}
                     </h3>
                   </div>
-                  <span className={`mt-0.5 rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-[0.14em] ${
+                  <span className={`mt-0.5 shrink-0 rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-[0.14em] ${
                     locked
                       ? "border-[#6f5624] bg-[#2d2413] text-[#f0d79b]"
                       : active
@@ -59,8 +61,8 @@ export function CharacterCards({ options = CHARACTER_OPTIONS, selectedCharacterI
                   </span>
                 </div>
                 <p className="mt-2 text-xs font-medium text-[#e7f4f1]">{character.tagline}</p>
-                <p className="mt-1 line-clamp-4 text-xs leading-5 text-[#bfd1cd]">{character.description}</p>
-                {locked ? <p className="mt-2 text-[11px] text-[#f0d79b]">Upgrade to unlock this character.</p> : null}
+                <p className="mt-1 line-clamp-3 text-xs leading-5 text-[#bfd1cd]">{character.description}</p>
+                {locked ? <p className="mt-2 text-[11px] text-[#f0d79b]">Upgrade to unlock this persona.</p> : null}
               </div>
             </div>
           </motion.button>
