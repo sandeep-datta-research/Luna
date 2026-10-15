@@ -463,7 +463,7 @@ export default function SignInPage() {
                   <span className="relative bg-zinc-950 px-2">Or continue with Google</span>
                 </div>
 
-                <GoogleOAuthCard onSignedIn={() => navigate("/profile")} />
+                <GoogleOAuthCard onSignedIn={() => navigate(returnTo)} />
 
                 <p className="mt-4 text-center text-xs text-zinc-500">
                   Google users can sign in first, then set a Luna password from Profile.
