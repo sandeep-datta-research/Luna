@@ -723,3 +723,10 @@
   min-height: 100%;
   overflow: visible !important;
 }
+
+.luna-workspace-atmosphere {
+  background:
+    radial-gradient(ellipse at 14% 0%, color-mix(in srgb, var(--luna-accent) 10%, transparent), transparent 46%),
+    radial-gradient(ellipse at 88% 8%, color-mix(in srgb, var(--luna-accent-2) 8%, transparent), transparent 34%),
+    linear-gradient(180deg, var(--luna-bg), var(--luna-shell)) !important;
+}
