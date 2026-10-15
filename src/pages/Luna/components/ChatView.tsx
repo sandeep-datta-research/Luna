@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowDown, Loader2, Search, SlidersHorizontal, Sparkles, X } from "lucide-react";
 import { MessageBubble } from "./MessageBubble";
