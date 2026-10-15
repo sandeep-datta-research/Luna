@@ -794,7 +794,7 @@ export default function Luna() {
               <img src={brandLogo} alt="Luna" className="mx-auto h-12 w-12 object-contain" />
               <h2 id="signin-prompt-title" className="mt-4 text-xl font-semibold">Make Luna yours</h2>
               <p className="mt-2 text-sm leading-6 text-[var(--luna-muted)]">
-                Sign in to sync your chats and keep your history across devices. You can also keep chatting as a guest.
+                Sign in to sync future chats across devices. You can also keep chatting as a guest.
               </p>
               <div className="mt-6 grid grid-cols-2 gap-3">
                 <button
