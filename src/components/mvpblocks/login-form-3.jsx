@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Mail, Lock, Eye, EyeOff, Loader2, Palette, Users, Cloud, ShieldCheck } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import GoogleOAuthCard from "@/components/auth/GoogleOAuthCard";
 import { fetchApi, setStoredUser } from "@/lib/api-client";
 
@@ -31,6 +31,8 @@ const featureItems = [
 
 export default function SignInPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnTo = typeof location.state?.from === "string" ? location.state.from : "/profile";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -73,7 +75,7 @@ export default function SignInPage() {
       }
 
       setLoading(false);
-      navigate("/profile");
+      navigate(returnTo);
     } catch (error) {
       setErrorMessage(error?.message || "Unable to sign in. Please try again.");
       setLoading(false);
@@ -149,7 +151,7 @@ export default function SignInPage() {
       }
 
       setLoading(false);
-      navigate("/profile");
+      navigate(returnTo);
     } catch (error) {
       setErrorMessage(error?.message || "Unable to reset password.");
       setLoading(false);
@@ -461,7 +463,7 @@ export default function SignInPage() {
                   <span className="relative bg-zinc-950 px-2">Or continue with Google</span>
                 </div>
 
-                <GoogleOAuthCard onSignedIn={() => navigate("/profile")} />
+                <GoogleOAuthCard onSignedIn={() => navigate(returnTo)} />
 
                 <p className="mt-4 text-center text-xs text-zinc-500">
                   Google users can sign in first, then set a Luna password from Profile.

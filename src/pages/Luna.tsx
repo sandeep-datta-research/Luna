@@ -225,6 +225,8 @@ export default function Luna() {
   const initialUser = useMemo(() => loadUser(), []);
   const [user, setUser] = useState(initialUser);
   const isSignedIn = useMemo(() => Boolean(user?.email && user.email !== "guest@luna.ai"), [user?.email]);
+  const [authReady, setAuthReady] = useState(false);
+  const [showSignInPrompt, setShowSignInPrompt] = useState(false);
   const [membershipPlan, setMembershipPlan] = useState("free");
 
   // Project State
@@ -491,7 +493,22 @@ export default function Luna() {
 
   // Effects
   useEffect(() => {
-    const sync = () => hydrateUser().then(() => setUser(loadUser())).catch(() => setUser(loadUser()));
+    let initialCheck = true;
+    const sync = () => hydrateUser()
+      .then(() => {
+        setUser(loadUser());
+        if (initialCheck) {
+          setAuthReady(true);
+          initialCheck = false;
+        }
+      })
+      .catch(() => {
+        setUser(loadUser());
+        if (initialCheck) {
+          setAuthReady(true);
+          initialCheck = false;
+        }
+      });
     sync();
     window.addEventListener("storage", sync);
     window.addEventListener("luna-auth-changed", sync);
@@ -502,6 +519,14 @@ export default function Luna() {
       window.removeEventListener("focus", sync);
     };
   }, []);
+
+  useEffect(() => {
+    if (!authReady || isSignedIn || typeof window === "undefined") return;
+    const promptKey = "luna-signin-prompt-shown";
+    if (window.localStorage.getItem(promptKey)) return;
+    window.localStorage.setItem(promptKey, "1");
+    setShowSignInPrompt(true);
+  }, [authReady, isSignedIn]);
 
   useEffect(() => {
     let canceled = false;
@@ -568,8 +593,7 @@ export default function Luna() {
   useEffect(() => {
     let canceled = false;
     const loadChars = async () => {
-      if (!isSignedIn) { setCharacterOptions(CHARACTER_OPTIONS); return; }
-      const res = await fetchApi("/api/characters", {}, { includeAuth: true, includeGuest: false });
+      const res = await fetchApi("/api/characters", {}, { includeAuth: true, includeGuest: true });
       if (canceled || !res.ok) return;
       setCharacterOptions(hydrateCharacterOptions(res.data?.characters));
       setMembershipPlan(res.data?.membership?.plan === "pro" ? "pro" : "free");
@@ -577,25 +601,6 @@ export default function Luna() {
     loadChars();
     return () => { canceled = true; };
   }, [isSignedIn]);
-
-  if (!isSignedIn) {
-    return (
-      <div className="min-h-screen bg-[#071013] text-zinc-100 flex items-center justify-center px-6 py-12">
-        <div className="w-full max-w-4xl rounded-[32px] border border-[#1f3135] bg-[linear-gradient(180deg,rgba(9,16,19,0.96),rgba(7,12,14,0.98))] p-8 text-center shadow-[0_25px_90px_rgba(0,0,0,0.55)]">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-[#5c857d]/30 bg-[#143038]">
-            <img src={brandLogo} alt="Luna Logo" className="h-10 w-10 object-contain" />
-          </div>
-          <h1 className="mt-4 text-2xl font-semibold text-white">Sign in to access the Luna workspace</h1>
-          <p className="mt-2 text-sm text-[#8ca19d]">Persistent workspace layout with history and preferences.</p>
-          <div className="mt-6 flex justify-center">
-            <button onClick={() => navigate("/signin")} className="rounded-full bg-[linear-gradient(135deg,#e1ba6d,#a77f36)] px-6 py-2 text-sm font-semibold text-[#102126] hover:brightness-105">
-              Go to Sign In
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   const visibleMain = activeMessages.length > 0 || historyLoading;
 
@@ -764,6 +769,53 @@ export default function Luna() {
           )}
         </section>
       </div>
+
+      {/* One-time sign-in invitation; chat remains usable when dismissed. */}
+      <AnimatePresence>
+        {showSignInPrompt && !isSignedIn && (
+          <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm" role="presentation">
+            <motion.section
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="signin-prompt-title"
+              initial={{ opacity: 0, y: 12, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8 }}
+              className="relative w-full max-w-md rounded-[28px] border border-[var(--luna-border-strong)] bg-[var(--luna-shell-soft)] p-6 text-center text-[var(--luna-text)] shadow-2xl"
+            >
+              <button
+                type="button"
+                aria-label="Later"
+                onClick={() => setShowSignInPrompt(false)}
+                className="absolute right-3 top-3 inline-flex h-10 w-10 items-center justify-center rounded-xl text-[var(--luna-muted)] hover:bg-[var(--luna-panel)]"
+              >
+                <X className="h-4 w-4" />
+              </button>
+              <img src={brandLogo} alt="Luna" className="mx-auto h-12 w-12 object-contain" />
+              <h2 id="signin-prompt-title" className="mt-4 text-xl font-semibold">Make Luna yours</h2>
+              <p className="mt-2 text-sm leading-6 text-[var(--luna-muted)]">
+                Sign in to sync future chats across devices. You can also keep chatting as a guest.
+              </p>
+              <div className="mt-6 grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowSignInPrompt(false)}
+                  className="min-h-11 rounded-xl border border-[var(--luna-border)] px-4 py-2 text-sm font-medium hover:bg-[var(--luna-panel)]"
+                >
+                  Later
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate("/signin", { state: { from: "/chat" } })}
+                  className="min-h-11 rounded-xl bg-[linear-gradient(135deg,#e1ba6d,#a77f36)] px-4 py-2 text-sm font-semibold text-[#102126] hover:brightness-105"
+                >
+                  Sign in
+                </button>
+              </div>
+            </motion.section>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Project Modal */}
       <AnimatePresence>

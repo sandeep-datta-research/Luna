@@ -46,7 +46,6 @@ import {
   startSseResponse, 
   sendSseEvent 
 } from "../utils/sse-helper.js";
-import { requireAuthenticatedUser } from "../middleware/auth-guard.js";
 import { 
   LUNA_MAX_RESPONSE_MS, 
   LUNA_MAX_PROVIDER_ATTEMPTS, 
@@ -177,8 +176,7 @@ router.post("/history", async (req, res) => {
 
 router.get("/characters", async (req, res) => {
   try {
-    const auth = await requireAuthenticatedUser(req, res);
-    if (!auth) return;
+    const auth = await resolveRequestUser(req, res);
 
     const lunaSettings = await getLunaSettings();
     const userContext = { userId: auth.userId, user: auth.user, token: auth.token };
@@ -229,8 +227,7 @@ router.patch("/history/:conversationId", async (req, res) => {
 });
 
 router.post("/luna/stream", async (req, res) => {
-  const auth = await requireAuthenticatedUser(req, res);
-  if (!auth) return;
+  const auth = await resolveRequestUser(req, res);
 
   const message = req.body?.message?.trim();
   const requestedConversationId = typeof req.body?.conversationId === "string" ? req.body.conversationId.trim() : "";
@@ -450,8 +447,7 @@ router.post("/luna/stream", async (req, res) => {
 });
 
 router.post("/luna", async (req, res) => {
-  const auth = await requireAuthenticatedUser(req, res);
-  if (!auth) return;
+  const auth = await resolveRequestUser(req, res);
 
   const message = req.body?.message?.trim();
   const requestedConversationId = typeof req.body?.conversationId === "string" ? req.body.conversationId.trim() : "";

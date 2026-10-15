@@ -1,8 +1,7 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import { GoArrowUpRight } from 'react-icons/go';
 import { Link } from 'react-router-dom';
-import { getStoredUser, hydrateUser } from '@/lib/api-client';
 
 const CardNav = ({
   logo,
@@ -19,7 +18,6 @@ const CardNav = ({
   void buttonTextColor;
   const [isHamburgerOpen, setIsHamburgerOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isSignedIn, setIsSignedIn] = useState(false);
   const navRef = useRef(null);
   const cardsRef = useRef([]);
   const tlRef = useRef(null);
@@ -118,28 +116,8 @@ const CardNav = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isExpanded]);
 
-  useEffect(() => {
-    const syncAuthState = () => {
-      if (typeof window === 'undefined') return;
-      const user = getStoredUser();
-      setIsSignedIn(Boolean(user?.email || user?.name));
-    };
-
-    syncAuthState();
-    hydrateUser().then(syncAuthState).catch(syncAuthState);
-    window.addEventListener('storage', syncAuthState);
-    window.addEventListener('luna-auth-changed', syncAuthState);
-    window.addEventListener('focus', syncAuthState);
-
-    return () => {
-      window.removeEventListener('storage', syncAuthState);
-      window.removeEventListener('luna-auth-changed', syncAuthState);
-      window.removeEventListener('focus', syncAuthState);
-    };
-  }, []);
-
-  const ctaHref = isSignedIn ? '/chat' : '/signin';
-  const ctaLabel = isSignedIn ? 'Start Chat' : 'Sign In';
+  const ctaHref = '/chat';
+  const ctaLabel = 'Start Chat';
 
   const toggleMenu = () => {
     const tl = tlRef.current;
