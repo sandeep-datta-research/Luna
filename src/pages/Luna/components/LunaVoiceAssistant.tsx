@@ -179,7 +179,7 @@ export function LunaVoiceAssistant({
   };
 
   const handleSpeech = (raw: string, fromNative = false) => {
-    if (speakingRef.current || Date.now() < ignoreUntilRef.current) return;
+    if ((!fromNative && speakingRef.current) || Date.now() < ignoreUntilRef.current) return;
     let command = raw.trim();
     if (!command) return;
 
