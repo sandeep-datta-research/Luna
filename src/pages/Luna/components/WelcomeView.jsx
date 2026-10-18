@@ -12,10 +12,6 @@ import "../premium-chat.css";
 export function WelcomeView({
   user,
   activeCharacter,
-  canInstallApp,
-  showIosInstallHint,
-  handleInstallLuna,
-  installingApp,
   characterSearchQuery,
   setCharacterSearchQuery,
   filteredCharacterOptions,
