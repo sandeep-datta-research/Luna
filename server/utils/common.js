@@ -32,8 +32,21 @@ export function isLocalDevOrigin(origin) {
   }
 }
 
+// Capacitor's bundled Android/iOS WebView uses a fixed localhost origin.
+const NATIVE_APP_ORIGINS = new Set([
+  "https://localhost",
+  "http://localhost",
+  "capacitor://localhost",
+  "ionic://localhost",
+]);
+
 export function isAllowedOrigin(origin) {
   if (!origin) return true;
+
+  // Compare exact origins; do not use a wildcard for mobile clients.
+  const rawOrigin = typeof origin === "string" ? origin.trim().replace(/\/$/, "") : "";
+  if (NATIVE_APP_ORIGINS.has(rawOrigin)) return true;
+
   const normalized = normalizeOrigin(origin);
   if (!normalized) return false;
   if (EXPLICIT_ALLOWED_ORIGINS.has(normalized)) return true;
