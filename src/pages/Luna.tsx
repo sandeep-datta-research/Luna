@@ -359,6 +359,37 @@ export default function Luna() {
     () => CHAT_THEMES.find((theme) => theme.id === chatThemeId) || CHAT_THEMES.find((theme) => theme.id === "midnight") || CHAT_THEMES[0],
     [chatThemeId],
   );
+
+  // Detect the actual viewport class on-device (compact phone, regular phone,
+  // large phone/foldable, tablet, or desktop) instead of assuming a laptop layout.
+  useEffect(() => {
+    const root = document.documentElement;
+    const updateDeviceProfile = () => {
+      const width = Math.min(window.innerWidth || 0, root.clientWidth || window.innerWidth || 0);
+      const height = window.visualViewport?.height || window.innerHeight || 0;
+      const coarse = window.matchMedia("(pointer: coarse)").matches;
+      const portrait = height >= width;
+      const profile = width <= 360 ? "phone-compact"
+        : width <= 430 ? "phone"
+        : width <= 600 && (coarse || portrait) ? "phone-large"
+        : width <= 900 && (coarse || portrait) ? "tablet"
+        : "desktop";
+      root.dataset.lunaDevice = profile;
+      root.dataset.lunaOrientation = portrait ? "portrait" : "landscape";
+    };
+    updateDeviceProfile();
+    window.addEventListener("resize", updateDeviceProfile, { passive: true });
+    window.addEventListener("orientationchange", updateDeviceProfile, { passive: true });
+    window.visualViewport?.addEventListener("resize", updateDeviceProfile, { passive: true });
+    return () => {
+      window.removeEventListener("resize", updateDeviceProfile);
+      window.removeEventListener("orientationchange", updateDeviceProfile);
+      window.visualViewport?.removeEventListener("resize", updateDeviceProfile);
+      delete root.dataset.lunaDevice;
+      delete root.dataset.lunaOrientation;
+    };
+  }, []);
+
   const chatThemeStyle = useMemo(
     () => ({ fontFamily: "'DM Sans', sans-serif", ...activeChatTheme.vars } as CSSProperties),
     [activeChatTheme],
