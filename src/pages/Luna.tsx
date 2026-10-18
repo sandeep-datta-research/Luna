@@ -364,6 +364,10 @@ export default function Luna() {
     [activeChatTheme],
   );
 
+  useEffect(() => {
+    try { window.localStorage.setItem("luna-chat-theme", chatThemeId); } catch { /* storage may be unavailable */ }
+  }, [chatThemeId]);
+
   const modePills = useMemo(() => {
     const pills = [activeCharacter.name];
     pills.push(webSearchMode ? "Live web on" : "Live web off");
