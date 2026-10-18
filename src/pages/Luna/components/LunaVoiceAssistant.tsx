@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from "react";
+import { Capacitor, registerPlugin } from "@capacitor/core";
 import { Mic, MicOff, Volume2, VolumeX } from "lucide-react";
+
+type LunaNativeVoice = { startWakeWord(): Promise<void>; stopWakeWord(): Promise<void>; addListener(eventName: "wakeWord" | "status", listenerFunc: (event: any) => void): Promise<{ remove: () => Promise<void> }> };
+const NativeLunaVoice = registerPlugin<LunaNativeVoice>("LunaVoice");
 
 type VoiceMessage = { role?: string; content?: unknown; text?: unknown; parts?: unknown[]; id?: string };
 
@@ -16,6 +20,7 @@ export function LunaVoiceAssistant({ messages = [] }: { messages?: VoiceMessage[
   const [speakReplies, setSpeakReplies] = useState(() => localStorage.getItem("luna-anime-tts") !== "off");
   const [status, setStatus] = useState("Voice off");
   const recognitionRef = useRef<any>(null);
+  const nativeMode = Capacitor.isNativePlatform() && Capacitor.getPlatform() === "android";
   const lastSpokenRef = useRef("");
 
   const speak = (text: string) => {
@@ -47,6 +52,24 @@ export function LunaVoiceAssistant({ messages = [] }: { messages?: VoiceMessage[
     }, 1400);
     return () => window.clearTimeout(timer);
   }, [messages, speakReplies]);
+
+  useEffect(() => {
+    if (!nativeMode) return;
+    let wakeHandle: { remove: () => Promise<void> } | undefined;
+    let statusHandle: { remove: () => Promise<void> } | undefined;
+    NativeLunaVoice.addListener("wakeWord", () => {
+      setStatus("Hai! I'm here ✨");
+      setListening(true);
+      speak("Hai! I'm here. What shall we do?");
+    }).then((handle) => { wakeHandle = handle; }).catch(() => {});
+    NativeLunaVoice.addListener("status", (event) => {
+      if (event?.status) setStatus(String(event.status));
+    }).then((handle) => { statusHandle = handle; }).catch(() => {});
+    return () => {
+      wakeHandle?.remove();
+      statusHandle?.remove();
+    };
+  }, [nativeMode]);
 
   useEffect(() => {
     return () => {
@@ -100,7 +123,24 @@ export function LunaVoiceAssistant({ messages = [] }: { messages?: VoiceMessage[
     setStatus(`Heard: “${raw.slice(0, 60)}”`);
   };
 
-  const toggleListening = () => {
+  const toggleListening = async () => {
+    if (nativeMode) {
+      try {
+        if (listening) {
+          await NativeLunaVoice.stopWakeWord();
+          setListening(false);
+          setStatus("Wake-word listening is off.");
+        } else {
+          await NativeLunaVoice.startWakeWord();
+          setListening(true);
+          setStatus("Wake-word service requested. Say “Hey Luna”. Keep the ongoing notification visible.");
+        }
+      } catch (error) {
+        setStatus(error instanceof Error ? error.message : "Could not start native voice service.");
+        setListening(false);
+      }
+      return;
+    }
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (listening) {
       recognitionRef.current?.stop?.();
@@ -146,7 +186,7 @@ export function LunaVoiceAssistant({ messages = [] }: { messages?: VoiceMessage[
 
   return (
     <div className="fixed bottom-24 right-3 z-[65] flex max-w-[calc(100vw-24px)] flex-col items-end gap-2 sm:bottom-5 sm:right-5">
-      {listening && <div className="max-w-[min(340px,calc(100vw-24px))] rounded-2xl border border-[#8fb6ff]/30 bg-[#080d1c]/95 px-3 py-2 text-xs text-[#e3eaff] shadow-xl" role="status">{status}<div className="mt-1 text-[10px] text-[#9caed7]">Works while Luna stays open in the foreground.</div></div>}
+      {listening && <div className="max-w-[min(340px,calc(100vw-24px))] rounded-2xl border border-[#8fb6ff]/30 bg-[#080d1c]/95 px-3 py-2 text-xs text-[#e3eaff] shadow-xl" role="status">{status}<div className="mt-1 text-[10px] text-[#9caed7]">{nativeMode ? "Android foreground service · visible microphone notification" : "Works while Luna stays open in the foreground."}</div></div>}
       <div className="flex items-center gap-2 rounded-2xl border border-[#34446d] bg-[#0b1122]/95 p-2 shadow-2xl backdrop-blur-xl">
         <button type="button" onClick={toggleTts} title={speakReplies ? "Mute anime-style voice replies" : "Enable anime-style voice replies"} aria-label={speakReplies ? "Mute voice replies" : "Enable voice replies"} className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[#35466f] text-[#dce6ff]">
           {speakReplies ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
@@ -156,7 +196,7 @@ export function LunaVoiceAssistant({ messages = [] }: { messages?: VoiceMessage[
           {listening ? "Listening" : "Hey Luna"}
         </button>
       </div>
-      {!listening && <span className="max-w-[270px] rounded-lg bg-[#080d1c]/90 px-2 py-1 text-[10px] text-[#b9c7e8]">Anime-style TTS · Spotify & YouTube voice shortcuts</span>}
+      {!listening && <span className="max-w-[270px] rounded-lg bg-[#080d1c]/90 px-2 py-1 text-[10px] text-[#b9c7e8]">Anime-style TTS · {nativeMode ? "Android wake service" : "foreground voice"} · Spotify & YouTube shortcuts</span>}
     </div>
   );
 }
