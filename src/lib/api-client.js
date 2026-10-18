@@ -4,6 +4,10 @@ const IS_LOCAL_HOST =
   ["localhost", "127.0.0.1", "[::1]"].includes((window.location.hostname || "").toLowerCase());
 const IS_IOS =
   IS_BROWSER && /iPad|iPhone|iPod/i.test(window.navigator?.userAgent || "");
+const IS_NATIVE_APP =
+  IS_BROWSER &&
+  (Boolean(window.Capacitor?.isNativePlatform?.()) ||
+    /Capacitor/i.test(window.navigator?.userAgent || ""));
 
 function normalizeApiBase(input) {
   const value = typeof input === "string" ? input.trim() : "";
@@ -42,14 +46,17 @@ const FALLBACK_API_BASE_URLS = [
   normalizeApiBase("https://luna-backend-yc4e.onrender.com"),
 ];
 const SHOULD_TRY_SAME_ORIGIN_API =
-  IS_LOCAL_HOST ||
-  (IS_BROWSER && !isLikelyStaticFrontendHost(window.location.hostname || ""));
+  !IS_NATIVE_APP &&
+  (IS_LOCAL_HOST ||
+    (IS_BROWSER && !isLikelyStaticFrontendHost(window.location.hostname || "")));
 
+// Native shells must call the remote API directly: relative /api requests hit the
+// bundled WebView rather than the Express service and can appear to "succeed" with HTML.
 const DEFAULT_BASES = [
-  API_BASE_URL,
-  ...(!IS_LOCAL_HOST ? FALLBACK_API_BASE_URLS : []),
+  ...(API_BASE_URL ? [API_BASE_URL] : []),
+  ...(!IS_LOCAL_HOST || IS_NATIVE_APP ? FALLBACK_API_BASE_URLS : []),
   ...(SHOULD_TRY_SAME_ORIGIN_API ? [""] : []),
-  ...(IS_LOCAL_HOST ? ["http://localhost:5108", "http://localhost:5112", "http://localhost:5000"] : []),
+  ...(IS_LOCAL_HOST && !IS_NATIVE_APP ? ["http://localhost:5108", "http://localhost:5112", "http://localhost:5000"] : []),
 ].map((base) => (typeof base === "string" ? base.replace(/\/$/, "") : ""));
 
 export const API_BASE_URLS = [...new Set(DEFAULT_BASES.filter((value) => value !== null && value !== undefined))];
