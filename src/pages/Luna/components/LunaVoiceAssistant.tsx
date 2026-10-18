@@ -8,6 +8,7 @@ type LunaNativeVoice = {
   stopWakeWord(): Promise<void>;
   speakText(options: { text: string }): Promise<void>;
   stopSpeech(): Promise<void>;
+  openMedia(options: { service: "spotify" | "youtube"; query?: string }): Promise<{ opened: boolean }>;
   addListener(
     eventName: "wakeWord" | "command" | "status",
     listenerFunc: (event: NativeVoiceEvent) => void,
@@ -162,11 +163,21 @@ export function LunaVoiceAssistant({
   }, []);
 
   const openMedia = (service: "spotify" | "youtube", query = "") => {
+    if (nativeMode) {
+      void NativeLunaVoice.openMedia({ service, query }).catch(() => {
+        const encoded = encodeURIComponent(query.trim());
+        const url = service === "spotify"
+          ? (query ? `https://open.spotify.com/search/${encoded}` : "https://open.spotify.com/")
+          : (query ? `https://www.youtube.com/results?search_query=${encoded}` : "https://www.youtube.com/");
+        window.location.href = url;
+      });
+      return;
+    }
+
     const encoded = encodeURIComponent(query.trim());
     if (service === "spotify") {
       const webUrl = query ? `https://open.spotify.com/search/${encoded}` : "https://open.spotify.com/";
-      const appUrl = query ? `spotify:search:${encoded}` : "spotify:";
-      window.location.href = appUrl;
+      window.location.href = query ? `spotify:search:${encoded}` : "spotify:";
       window.setTimeout(() => {
         if (!document.hidden) window.location.href = webUrl;
       }, 900);
