@@ -884,8 +884,8 @@
 
 /* Android/WebView scroll repair: every flex ancestor must be size-bounded. */
 .luna-workspace {
+  height: 100vh !important;
   height: 100dvh !important;
-  height: 100svh !important;
   min-height: 0 !important;
   overflow: hidden !important;
 }
