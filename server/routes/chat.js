@@ -240,9 +240,13 @@ router.post("/luna/stream", async (req, res) => {
   let closed = false;
   const abortController = new AbortController();
 
-  req.on("close", () => {
-    closed = true;
-    abortController.abort();
+  // The incoming request can emit "close" once its body has been read.
+  // Listen to the response instead so normal requests do not abort their own stream.
+  res.on("close", () => {
+    if (!res.writableEnded) {
+      closed = true;
+      abortController.abort();
+    }
   });
 
   let reply = "";
