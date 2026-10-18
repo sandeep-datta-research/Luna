@@ -32,7 +32,15 @@ router.get("/health", async (_req, res) => {
     await initDb();
     return res.status(200).json({ ok: true, db: getDbInfo() });
   } catch (error) {
-    return res.status(200).json({ ok: false, error: error.message, db: getDbInfo() });
+    // Return a failing status so Render and uptime monitors don't mark a
+    // backend with an unavailable database as healthy. Avoid exposing the
+    // raw database error to unauthenticated callers.
+    console.error("[health] Database dependency check failed:", error?.message || error);
+    return res.status(503).json({
+      ok: false,
+      error: "Database dependency check failed.",
+      db: getDbInfo(),
+    });
   }
 });
 
