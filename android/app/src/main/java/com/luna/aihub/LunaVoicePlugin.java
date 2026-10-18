@@ -16,6 +16,7 @@ import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
+import com.getcapacitor.annotation.PermissionCallback;
 
 @CapacitorPlugin(name = "LunaVoice", permissions = {
     @Permission(alias = "microphone", strings = { Manifest.permission.RECORD_AUDIO })
@@ -56,7 +57,7 @@ public class LunaVoicePlugin extends Plugin {
         startService(call);
     }
 
-    @PluginMethod public void permissionCallback(PluginCall call) {
+    @PermissionCallback public void permissionCallback(PluginCall call) {
         if (ContextCompat.checkSelfPermission(getContext(), Manifest.permission.RECORD_AUDIO)
                 == PackageManager.PERMISSION_GRANTED) startService(call);
         else call.reject("Microphone permission is required for wake-word listening.");
@@ -75,9 +76,7 @@ public class LunaVoicePlugin extends Plugin {
 
     @PluginMethod public void stopWakeWord(PluginCall call) {
         Intent service = new Intent(getContext(), LunaWakeWordService.class);
-        service.setAction("STOP");
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) getContext().startForegroundService(service);
-        else getContext().startService(service);
+        getContext().stopService(service);
         call.resolve();
     }
 
