@@ -917,3 +917,60 @@ html, body {
     overflow-wrap: anywhere;
   }
 }
+
+/* Chrome/Android polish: viewport-safe sizing, no sideways page pan, accessible motion. */
+:root {
+  color-scheme: dark;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+html {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+}
+body {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  overflow-x: clip;
+  overscroll-behavior-x: none;
+}
+button, input, textarea, select {
+  font: inherit;
+}
+button, [role="button"] {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+img, video, canvas, iframe, svg {
+  max-width: 100%;
+}
+@media (max-width: 767px) {
+  .luna-workspace {
+    width: 100%;
+    width: 100dvw;
+    min-height: 100svh !important;
+    min-height: 100dvh !important;
+  }
+  .luna-chat-topbar,
+  .luna-chat-composer-dock {
+    padding-left: max(10px, env(safe-area-inset-left)) !important;
+    padding-right: max(10px, env(safe-area-inset-right)) !important;
+  }
+  .luna-chat-scroll {
+    scrollbar-width: thin;
+    overscroll-behavior: contain;
+  }
+  .luna-composer textarea {
+    font-size: 16px !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
