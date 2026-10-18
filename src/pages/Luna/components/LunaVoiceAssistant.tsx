@@ -6,6 +6,8 @@ type NativeVoiceEvent = { transcript?: string; status?: string };
 type LunaNativeVoice = {
   startWakeWord(): Promise<void>;
   stopWakeWord(): Promise<void>;
+  speakText(options: { text: string }): Promise<void>;
+  stopSpeech(): Promise<void>;
   addListener(
     eventName: "wakeWord" | "command" | "status",
     listenerFunc: (event: NativeVoiceEvent) => void,
@@ -57,7 +59,24 @@ export function LunaVoiceAssistant({
   }, [onCommand]);
 
   const speak = (text: string) => {
-    if (!("speechSynthesis" in window) || !text.trim()) return;
+    if (!text.trim()) return;
+    if (nativeMode) {
+      speakingRef.current = true;
+      void NativeLunaVoice.speakText({ text: text.slice(0, 3500) }).catch(() => {
+        if ("speechSynthesis" in window) {
+          const fallback = new SpeechSynthesisUtterance(text.slice(0, 3500));
+          fallback.pitch = 1.22;
+          fallback.rate = 1.03;
+          fallback.onend = () => { speakingRef.current = false; };
+          fallback.onerror = () => { speakingRef.current = false; };
+          window.speechSynthesis.speak(fallback);
+        } else {
+          speakingRef.current = false;
+        }
+      });
+      return;
+    }
+    if (!("speechSynthesis" in window)) return;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text.slice(0, 3500));
     const voices = window.speechSynthesis.getVoices();
@@ -195,7 +214,8 @@ export function LunaVoiceAssistant({
     }
 
     if (/stop talking|mute luna|mute voice replies/.test(lower)) {
-      window.speechSynthesis?.cancel();
+      if (nativeMode) void NativeLunaVoice.stopSpeech().catch(() => {});
+      else window.speechSynthesis?.cancel();
       speakingRef.current = false;
       setSpeakReplies(false);
       localStorage.setItem("luna-anime-tts", "off");
@@ -289,7 +309,8 @@ export function LunaVoiceAssistant({
     setSpeakReplies(next);
     localStorage.setItem("luna-anime-tts", next ? "on" : "off");
     if (!next) {
-      window.speechSynthesis?.cancel();
+      if (nativeMode) void NativeLunaVoice.stopSpeech().catch(() => {});
+      else window.speechSynthesis?.cancel();
       speakingRef.current = false;
     } else {
       speak("Voice mode is ready, senpai!");
