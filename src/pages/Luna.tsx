@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { CSSProperties } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -218,7 +219,7 @@ export default function Luna() {
   const navigate = useNavigate();
   const [chatThemeId, setChatThemeId] = useState(() => {
     if (typeof window === "undefined") return "classic";
-    return window.localStorage.getItem("luna-chat-theme") || "classic";
+    return window.localStorage.getItem("luna-chat-theme") || "midnight";
   });
 
   // Basic User/Membership State
@@ -355,13 +356,48 @@ export default function Luna() {
 
   const canInstallApp = installSupported && !isStandaloneApp && !installingApp;
   const activeChatTheme = useMemo(
-    () => CHAT_THEMES.find((theme) => theme.id === chatThemeId) || CHAT_THEMES[0],
+    () => CHAT_THEMES.find((theme) => theme.id === chatThemeId) || CHAT_THEMES.find((theme) => theme.id === "midnight") || CHAT_THEMES[0],
     [chatThemeId],
   );
+
+  // Detect the actual viewport class on-device (compact phone, regular phone,
+  // large phone/foldable, tablet, or desktop) instead of assuming a laptop layout.
+  useEffect(() => {
+    const root = document.documentElement;
+    const updateDeviceProfile = () => {
+      const width = Math.min(window.innerWidth || 0, root.clientWidth || window.innerWidth || 0);
+      const height = window.visualViewport?.height || window.innerHeight || 0;
+      const coarse = window.matchMedia("(pointer: coarse)").matches;
+      const portrait = height >= width;
+      const profile = width <= 360 ? "phone-compact"
+        : width <= 430 ? "phone"
+        : width <= 600 && (coarse || portrait) ? "phone-large"
+        : width <= 900 && (coarse || portrait) ? "tablet"
+        : "desktop";
+      root.dataset.lunaDevice = profile;
+      root.dataset.lunaOrientation = portrait ? "portrait" : "landscape";
+    };
+    updateDeviceProfile();
+    window.addEventListener("resize", updateDeviceProfile, { passive: true });
+    window.addEventListener("orientationchange", updateDeviceProfile, { passive: true });
+    window.visualViewport?.addEventListener("resize", updateDeviceProfile, { passive: true });
+    return () => {
+      window.removeEventListener("resize", updateDeviceProfile);
+      window.removeEventListener("orientationchange", updateDeviceProfile);
+      window.visualViewport?.removeEventListener("resize", updateDeviceProfile);
+      delete root.dataset.lunaDevice;
+      delete root.dataset.lunaOrientation;
+    };
+  }, []);
+
   const chatThemeStyle = useMemo(
     () => ({ fontFamily: "'DM Sans', sans-serif", ...activeChatTheme.vars } as CSSProperties),
     [activeChatTheme],
   );
+
+  useEffect(() => {
+    try { window.localStorage.setItem("luna-chat-theme", chatThemeId); } catch { /* storage may be unavailable */ }
+  }, [chatThemeId]);
 
   const modePills = useMemo(() => {
     const pills = [activeCharacter.name];
@@ -546,20 +582,6 @@ export default function Luna() {
   }, [isSignedIn, user?.email]);
 
   useEffect(() => {
-    let canceled = false;
-    const loadOnboarding = async () => {
-      const isGuest = !user?.email || user.email === "guest@luna.ai";
-      if (isGuest) { if (!canceled) setOnboardingState({ loading: false, answered: true }); return; }
-      setOnboardingState((p) => ({ ...p, loading: true }));
-      const res = await fetchApi("/api/onboarding/status");
-      if (canceled) return;
-      setOnboardingState({ loading: false, answered: res.ok && Boolean(res.data?.answered) });
-    };
-    loadOnboarding();
-    return () => { canceled = true; };
-  }, [user?.email]);
-
-  useEffect(() => {
     const node = listEndRef.current;
     if (!node) return;
     node.scrollIntoView({ behavior: activeMessages.length > 0 ? "smooth" : "auto", block: "end" });
@@ -680,9 +702,6 @@ export default function Luna() {
           </div>
 
           <div className={`relative min-h-0 flex-1 px-3 pb-3 pt-3 md:px-6 md:pt-4 ${visibleMain ? "overflow-hidden" : "overflow-y-auto"}`}>
-            {!onboardingState.loading && !onboardingState.answered && (
-              <div className="mb-6"><OnboardingFlow onComplete={() => setOnboardingState({ loading: false, answered: true })} /></div>
-            )}
             <AnimatePresence mode="wait">
               {!visibleMain ? (
                 <WelcomeView
@@ -770,52 +789,30 @@ export default function Luna() {
         </section>
       </div>
 
-      {/* One-time sign-in invitation; chat remains usable when dismissed. */}
-      <AnimatePresence>
-        {showSignInPrompt && !isSignedIn && (
-          <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm" role="presentation">
-            <motion.section
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="signin-prompt-title"
-              initial={{ opacity: 0, y: 12, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 8 }}
-              className="relative w-full max-w-md rounded-[28px] border border-[var(--luna-border-strong)] bg-[var(--luna-shell-soft)] p-6 text-center text-[var(--luna-text)] shadow-2xl"
-            >
-              <button
-                type="button"
-                aria-label="Later"
-                onClick={() => setShowSignInPrompt(false)}
-                className="absolute right-3 top-3 inline-flex h-10 w-10 items-center justify-center rounded-xl text-[var(--luna-muted)] hover:bg-[var(--luna-panel)]"
+      {/* Keep the sign-in prompt outside transformed workspace ancestors to prevent clipping and stacking bugs. */}
+      {typeof document !== "undefined" && createPortal(
+        <AnimatePresence>
+          {showSignInPrompt && !isSignedIn && (
+            <motion.div className="luna-signin-backdrop" role="presentation" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <motion.section
+                role="dialog" aria-modal="true" aria-labelledby="signin-prompt-title"
+                initial={{ opacity: 0, y: 14, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8 }}
+                className="luna-signin-dialog"
               >
-                <X className="h-4 w-4" />
-              </button>
-              <img src={brandLogo} alt="Luna" className="mx-auto h-12 w-12 object-contain" />
-              <h2 id="signin-prompt-title" className="mt-4 text-xl font-semibold">Make Luna yours</h2>
-              <p className="mt-2 text-sm leading-6 text-[var(--luna-muted)]">
-                Sign in to sync future chats across devices. You can also keep chatting as a guest.
-              </p>
-              <div className="mt-6 grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowSignInPrompt(false)}
-                  className="min-h-11 rounded-xl border border-[var(--luna-border)] px-4 py-2 text-sm font-medium hover:bg-[var(--luna-panel)]"
-                >
-                  Later
-                </button>
-                <button
-                  type="button"
-                  onClick={() => navigate("/signin", { state: { from: "/chat" } })}
-                  className="min-h-11 rounded-xl bg-[linear-gradient(135deg,#e1ba6d,#a77f36)] px-4 py-2 text-sm font-semibold text-[#102126] hover:brightness-105"
-                >
-                  Sign in
-                </button>
-              </div>
-            </motion.section>
-          </div>
-        )}
-      </AnimatePresence>
+                <button type="button" aria-label="Later" onClick={() => setShowSignInPrompt(false)} className="luna-signin-close"><X className="h-4 w-4" /></button>
+                <img src={brandLogo} alt="Luna" className="luna-signin-logo" />
+                <h2 id="signin-prompt-title">Make Luna yours</h2>
+                <p>Sign in to sync future chats across devices. You can also keep chatting as a guest.</p>
+                <div className="luna-signin-actions">
+                  <button type="button" onClick={() => setShowSignInPrompt(false)} className="luna-signin-later">Later</button>
+                  <button type="button" onClick={() => navigate("/signin", { state: { from: "/chat" } })} className="luna-signin-submit">Sign in</button>
+                </div>
+              </motion.section>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
 
       {/* Project Modal */}
       <AnimatePresence>

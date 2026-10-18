@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import Orb from "@/components/ui/orb";
 import { Search, Sparkles } from "lucide-react";
 import { CharacterCards } from "./CharacterCards";
 import { CharacterStarterPrompts } from "./CharacterStarterPrompts";
@@ -11,10 +12,6 @@ import "../premium-chat.css";
 export function WelcomeView({
   user,
   activeCharacter,
-  canInstallApp,
-  showIosInstallHint,
-  handleInstallLuna,
-  installingApp,
   characterSearchQuery,
   setCharacterSearchQuery,
   filteredCharacterOptions,
@@ -51,29 +48,23 @@ export function WelcomeView({
       className="luna-welcome-scroll luna-scrollbar h-full overflow-y-auto"
     >
       <div className="luna-welcome-column px-1 md:px-3">
-        <section className="luna-welcome-hero">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <span className="luna-welcome-eyebrow">Luna · your thinking space</span>
-            <div className="flex items-center gap-2">
-              <div className="hidden sm:block">
-                <NativeAppDownloads />
-              </div>
-              {canInstallApp || showIosInstallHint ? (
-                <InstallLunaButton
-                  compact
-                  onInstall={handleInstallLuna}
-                  disabled={installingApp}
-                />
-              ) : null}
-            </div>
+        <section className="luna-welcome-hero luna-home-hero">
+          <div className="luna-home-orb" aria-hidden="true">
+            <Orb hue={252} hoverIntensity={0.22} rotateOnHover={false} backgroundColor="#070b18" />
           </div>
+          <span className="luna-welcome-eyebrow">LUNA · YOUR THINKING SPACE</span>
           <h2 className="luna-welcome-title">
-            {firstName ? `What’s on your mind, ${firstName}?` : "What’s on your mind?"}
+            {firstName ? <>Good to see you,<br /><span className="luna-home-name">{firstName}</span></> : <>A little space<br />for big ideas.</>}
           </h2>
           <p className="luna-welcome-copy">
-            A calmer space to explore ideas, make things, and solve difficult problems.
-            Start with a prompt or simply ask Luna anything.
+            What would you like to explore today?
           </p>
+          <div className="luna-home-shortcuts" aria-label="Conversation starters">
+            <button type="button" onClick={() => setInputValue("Help me explore a new idea.")}><span className="luna-shortcut-icon idea">✧</span><span><strong>Explore ideas</strong><small>Get a fresh perspective</small></span></button>
+            <button type="button" onClick={() => setInputValue("Help me solve a difficult problem step by step.")}><span className="luna-shortcut-icon solve">⌘</span><span><strong>Solve problems</strong><small>Think it through</small></span></button>
+            <button type="button" onClick={() => setInputValue("Teach me something interesting.")}><span className="luna-shortcut-icon learn">▧</span><span><strong>Learn something</strong><small>Any topic, anytime</small></span></button>
+            <button type="button" onClick={() => setInputValue("Let's chat.")}><span className="luna-shortcut-icon chat">☏</span><span><strong>Just chat</strong><small>I'm here for you</small></span></button>
+          </div>
         </section>
 
         <section className="luna-welcome-section">
