@@ -19,21 +19,29 @@ import java.util.ArrayList;
 import java.util.Locale;
 
 /**
- * Opt-in foreground microphone service for the "Hey Luna" phrase.
- * Android's system speech recognizer is used; this is not an offline,
- * low-power keyword model and may depend on the installed speech service/network.
+ * User-opted-in foreground microphone service for "Hey Luna".
+ * Uses Android's installed speech-recognition service, not an offline keyword model.
+ * Start it from the visible app after obtaining microphone permission.
  */
 public class LunaWakeWordService extends Service {
     public static final String ACTION_WAKE_WORD = "com.luna.aihub.WAKE_WORD";
+    public static final String ACTION_COMMAND = "com.luna.aihub.VOICE_COMMAND";
     public static final String ACTION_STATUS = "com.luna.aihub.WAKE_STATUS";
     public static final String EXTRA_STATUS = "status";
     private static final String CHANNEL_ID = "luna_wake_word";
     private static final int NOTIFICATION_ID = 7301;
     private static final String TAG = "LunaWakeWord";
+    private static final long COMMAND_WINDOW_MS = 12000L;
+
     private final Handler handler = new Handler(Looper.getMainLooper());
     private SpeechRecognizer recognizer;
     private boolean running = false;
     private boolean recognitionActive = false;
+    private boolean awaitingCommand = false;
+    private final Runnable commandTimeout = () -> {
+        awaitingCommand = false;
+        broadcastStatus("Didn't hear a command. Say Hey Luna again.");
+    };
 
     @Override public void onCreate() {
         super.onCreate();
@@ -100,32 +108,78 @@ public class LunaWakeWordService extends Service {
             @Override public void onRmsChanged(float rmsdB) {}
             @Override public void onBufferReceived(byte[] buffer) {}
             @Override public void onEndOfSpeech() { recognitionActive = false; }
+
             @Override public void onError(int error) {
                 recognitionActive = false;
-                if (running) handler.postDelayed(() -> startRecognition(), error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY ? 1200 : 650);
+                if (running) handler.postDelayed(() -> startRecognition(),
+                    error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY ? 1200 : 650);
             }
+
             @Override public void onResults(android.os.Bundle results) {
                 recognitionActive = false;
                 ArrayList<String> matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                boolean handled = false;
                 if (matches != null) {
                     for (String match : matches) {
-                        String normalized = match == null ? "" : match.toLowerCase(Locale.ROOT)
-                            .replaceAll("[^a-z0-9 ]", " ").replaceAll("\\s+", " ").trim();
-                        if (normalized.contains("hey luna") || normalized.contains("hey loona") ||
-                            normalized.equals("luna") || normalized.startsWith("hey luna ")) {
-                            Intent wake = new Intent(ACTION_WAKE_WORD);
-                            wake.setPackage(getPackageName());
-                            wake.putExtra("transcript", match);
-                            sendBroadcast(wake);
+                        if (match == null || match.trim().isEmpty()) continue;
+                        String normalized = match.toLowerCase(Locale.ROOT);
+                        boolean wakePhrase = normalized.contains("hey luna")
+                            || normalized.contains("hey loona")
+                            || normalized.trim().equals("luna")
+                            || normalized.trim().equals("loona");
+
+                        if (wakePhrase) {
+                            broadcastWake(match);
+                            String inlineCommand = textAfterWakePhrase(match);
+                            if (!inlineCommand.isEmpty()) {
+                                awaitingCommand = false;
+                                handler.removeCallbacks(commandTimeout);
+                                broadcastCommand(inlineCommand);
+                            } else {
+                                awaitingCommand = true;
+                                handler.removeCallbacks(commandTimeout);
+                                handler.postDelayed(commandTimeout, COMMAND_WINDOW_MS);
+                                broadcastStatus("Luna is awake. Say your command now.");
+                            }
+                            handled = true;
                             break;
+                        }
+                    }
+                    if (!handled && awaitingCommand) {
+                        String command = matches.get(0).trim();
+                        if (!command.isEmpty()) {
+                            awaitingCommand = false;
+                            handler.removeCallbacks(commandTimeout);
+                            broadcastCommand(command);
                         }
                     }
                 }
                 if (running) handler.postDelayed(() -> startRecognition(), 350);
             }
+
             @Override public void onPartialResults(android.os.Bundle partialResults) {}
             @Override public void onEvent(int eventType, android.os.Bundle params) {}
         });
+    }
+
+    private String textAfterWakePhrase(String transcript) {
+        String lower = transcript.toLowerCase(Locale.ROOT);
+        int index = lower.indexOf("hey luna");
+        int phraseLength = 8;
+        if (index < 0) {
+            index = lower.indexOf("hey loona");
+            phraseLength = 9;
+        }
+        if (index < 0) {
+            String normalized = lower.trim();
+            return (normalized.equals("luna") || normalized.equals("loona")) ? "" : transcript.trim();
+        }
+        String command = transcript.substring(Math.min(transcript.length(), index + phraseLength)).trim();
+        while (!command.isEmpty() && (Character.isWhitespace(command.charAt(0))
+            || ",.:;!?-".indexOf(command.charAt(0)) >= 0)) {
+            command = command.substring(1).trim();
+        }
+        return command;
     }
 
     private void startRecognition() {
@@ -146,6 +200,21 @@ public class LunaWakeWordService extends Service {
         }
     }
 
+    private void broadcastWake(String transcript) {
+        Intent event = new Intent(ACTION_WAKE_WORD);
+        event.setPackage(getPackageName());
+        event.putExtra("transcript", transcript);
+        sendBroadcast(event);
+    }
+
+    private void broadcastCommand(String transcript) {
+        Intent event = new Intent(ACTION_COMMAND);
+        event.setPackage(getPackageName());
+        event.putExtra("transcript", transcript);
+        sendBroadcast(event);
+        broadcastStatus("Command received.");
+    }
+
     private void broadcastStatus(String status) {
         Intent event = new Intent(ACTION_STATUS);
         event.setPackage(getPackageName());
@@ -156,6 +225,7 @@ public class LunaWakeWordService extends Service {
     private void stopListening() {
         running = false;
         recognitionActive = false;
+        awaitingCommand = false;
         handler.removeCallbacksAndMessages(null);
         if (recognizer != null) {
             try { recognizer.cancel(); } catch (Exception ignored) {}
