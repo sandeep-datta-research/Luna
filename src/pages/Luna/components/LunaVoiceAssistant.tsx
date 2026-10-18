@@ -39,9 +39,12 @@ export function LunaVoiceAssistant({ messages = [] }: { messages?: VoiceMessage[
     const text = messageText(latest).replace(/\s+/g, " ").trim();
     const key = String(latest.id || text);
     if (!text || key === lastSpokenRef.current) return;
-    lastSpokenRef.current = key;
-    // Wait briefly so streaming replies are less likely to be spoken token-by-token.
-    const timer = window.setTimeout(() => speak(text), 900);
+    // Wait until the reply has stopped changing briefly, so streamed tokens aren't read aloud separately.
+    const timer = window.setTimeout(() => {
+      if (lastSpokenRef.current === key) return;
+      lastSpokenRef.current = key;
+      speak(text);
+    }, 1400);
     return () => window.clearTimeout(timer);
   }, [messages, speakReplies]);
 
