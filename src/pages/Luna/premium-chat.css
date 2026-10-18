@@ -951,3 +951,76 @@
     padding-bottom: max(32px, env(safe-area-inset-bottom)) !important;
   }
 }
+
+
+/* Luna landing: luminous rotating globe inspired by the approved reference. */
+.luna-home-orb {
+  position: relative !important;
+  width: clamp(150px, 42vw, 230px) !important;
+  height: clamp(150px, 42vw, 230px) !important;
+  margin: clamp(12px, 3vh, 28px) auto clamp(30px, 6vh, 54px) !important;
+  overflow: visible !important;
+  flex: 0 0 auto !important;
+  background: radial-gradient(ellipse at 50% 48%, rgba(16,76,170,.16), transparent 68%) !important;
+  filter: drop-shadow(0 0 28px rgba(20,105,255,.14));
+  perspective: 700px;
+}
+.luna-globe {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  isolation: isolate;
+  transform-style: preserve-3d;
+  animation: luna-globe-float 7s ease-in-out infinite;
+  background: radial-gradient(ellipse at 34% 26%, rgba(24,82,170,.16), rgba(2,8,23,.96) 56%, #01030a 76%);
+  box-shadow: inset -14px -10px 28px rgba(0,0,0,.8), inset 2px 2px 16px rgba(44,128,255,.2), 0 0 22px rgba(0,91,255,.12);
+}
+.luna-globe-core {
+  position:absolute; inset:2%; border-radius:50%;
+  background:radial-gradient(ellipse at 35% 26%,rgba(22,72,151,.16),transparent 42%,rgba(0,0,0,.35) 78%);
+  border:1px solid rgba(73,151,255,.16);
+}
+.luna-globe-ribbon {
+  position:absolute; inset:3%;
+  border-radius:47% 53% 58% 42% / 42% 43% 57% 58%;
+  border:2px solid transparent;
+  background:linear-gradient(#030817,#030817) padding-box,
+    conic-gradient(from 205deg,transparent 0deg,#2866ff 42deg,#a8eeff 83deg,#4e9dff 112deg,#3a67ff 144deg,transparent 185deg,transparent 248deg,#427cff 300deg,transparent 340deg) border-box;
+  box-shadow:0 0 10px rgba(52,133,255,.42),inset 0 0 10px rgba(77,166,255,.14);
+  transform:rotate(-28deg) scaleX(.92);
+  animation:luna-globe-rotate 12s linear infinite;
+}
+.luna-globe-ribbon-two {
+  inset:8% 0 6% 8%; border-width:1.5px; opacity:.9;
+  border-radius:56% 44% 42% 58% / 50% 58% 42% 50%;
+  background:linear-gradient(#030817,#030817) padding-box,
+    conic-gradient(from 20deg,transparent 0deg,#3b76ff 45deg,#d4f7ff 78deg,#44c9ff 105deg,#3477ff 146deg,transparent 183deg,transparent 265deg,#6682ff 320deg,transparent 350deg) border-box;
+  transform:rotate(34deg) scaleX(.83);
+  animation:luna-globe-rotate-reverse 15s linear infinite;
+}
+.luna-globe-ribbon-three {
+  inset:17% 4%; border-width:1px; opacity:.7;
+  border-radius:40% 60% 54% 46% / 58% 42% 58% 42%;
+  background:linear-gradient(#030817,#030817) padding-box,
+    conic-gradient(from 170deg,transparent 0deg,#2b50d7 55deg,#5daeff 90deg,transparent 135deg,transparent 250deg,#4c7aff 310deg,transparent 350deg) border-box;
+  transform:rotate(-54deg) scaleX(1.04);
+  animation:luna-globe-rotate 19s linear infinite;
+}
+.luna-globe-highlight {
+  position:absolute; z-index:2; width:20%; height:20%; right:12%; top:18%;
+  border-radius:50%; background:#a9f2ff; filter:blur(15px); opacity:.58;
+  box-shadow:0 0 25px 10px rgba(39,145,255,.35);
+}
+.luna-home-hero .luna-welcome-eyebrow { color:rgba(145,181,239,.72); letter-spacing:.18em; font-size:10px; }
+.luna-home-hero .luna-welcome-title { letter-spacing:-.055em; line-height:1.12; text-wrap:balance; }
+.luna-home-hero .luna-home-name { color:#eef5ff; text-shadow:0 0 28px rgba(78,140,255,.16); }
+.luna-home-hero .luna-welcome-copy { color:rgba(183,198,225,.72); }
+@keyframes luna-globe-rotate { from { rotate:0deg; } to { rotate:360deg; } }
+@keyframes luna-globe-rotate-reverse { from { rotate:360deg; } to { rotate:0deg; } }
+@keyframes luna-globe-float { 0%,100% { transform:translateY(0) scale(1); } 50% { transform:translateY(-4px) scale(1.012); } }
+@media (prefers-reduced-motion:reduce) {
+  .luna-globe,.luna-globe-ribbon,.luna-globe-ribbon-two,.luna-globe-ribbon-three { animation:none !important; }
+}
+@media (max-width:520px) {
+  .luna-home-orb { width:clamp(145px,42vw,190px) !important; height:clamp(145px,42vw,190px) !important; margin-bottom:clamp(26px,5vh,42px) !important; }
+}
