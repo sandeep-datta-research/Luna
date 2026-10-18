@@ -30,10 +30,18 @@ interface ChatViewProps {
 
 function EmptyThread() {
   return (
-    <div className="luna-empty-thread">
-      <Sparkles className="mx-auto mb-3 h-5 w-5 text-[var(--luna-accent)]" />
-      <p className="text-sm font-medium text-[var(--luna-text)]">Your conversation starts here.</p>
-      <p className="mt-2 text-sm leading-6">Ask a question, share a file, or choose a prompt to get moving.</p>
+    <div className="luna-empty-thread luna-welcome-panel">
+      <span className="luna-welcome-mark" aria-hidden="true">
+        <Sparkles className="h-6 w-6" />
+      </span>
+      <p className="luna-welcome-kicker">YOUR SPACE TO THINK</p>
+      <h2 className="luna-welcome-title">What can I help you with?</h2>
+      <p className="luna-welcome-copy">Ask anything, explore an idea, or start with a prompt. We can work it out together.</p>
+      <div className="luna-welcome-suggestions" aria-label="Ideas to get started">
+        <span>Explain something simply</span>
+        <span>Help me write</span>
+        <span>Explore a new idea</span>
+      </div>
     </div>
   );
 }
