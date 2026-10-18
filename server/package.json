@@ -4,7 +4,8 @@
   "type": "module",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "check": "find . -type f -name '*.js' -not -path './node_modules/*' -print0 | xargs -0 -n1 node --check"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.99.1",

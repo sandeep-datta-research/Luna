@@ -20,6 +20,8 @@ function normalizeOrigin(value) {
 
 function parseAllowedOrigins() {
   return [
+    // Keep the public production frontend working even if optional CORS env vars are absent.
+    "https://luna-aihub.vercel.app",
     process.env.CORS_ALLOWED_ORIGINS,
     process.env.FRONTEND_URL,
     process.env.APP_URL,

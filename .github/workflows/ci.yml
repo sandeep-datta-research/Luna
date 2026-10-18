@@ -23,14 +23,20 @@ jobs:
           node-version: 24
           cache: npm
 
-      - name: Install dependencies
+      - name: Install frontend dependencies
         run: npm ci
 
-      - name: Lint
+      - name: Lint frontend
         run: npm run lint
 
-      - name: Build
+      - name: Build frontend
         run: npm run build
         env:
           VITE_API_URL: ${{ secrets.VITE_API_URL || '' }}
           VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID || '' }}
+
+      - name: Install backend dependencies
+        run: npm ci --prefix server
+
+      - name: Check backend JavaScript syntax
+        run: npm run check --prefix server
