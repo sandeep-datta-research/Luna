@@ -851,3 +851,69 @@ html, body {
     white-space: normal !important;
   }
 }
+
+
+/* Mobile overflow repair v3 — constrain persona chooser, starter area and composer to the viewport. */
+@media (max-width: 767px) {
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body, #root { overflow-x: clip !important; }
+  .luna-workspace, .luna-workspace main, .luna-workspace section,
+  .luna-chat-scroll, .luna-chat-column, .luna-chat-thread {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  /* Character/persona cards must stack rather than keep desktop-width columns. */
+  .luna-chat-column [class*="grid"] {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  .luna-chat-column [class*="grid"] > *,
+  .luna-chat-column [class*="card"],
+  .luna-chat-column article,
+  .luna-chat-column button {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .luna-chat-column [class*="grid"] img,
+  .luna-chat-column article img {
+    max-width: 100%;
+    object-fit: cover;
+  }
+
+  /* Prevent long persona names/descriptions and toolbars from widening the page. */
+  .luna-chat-column h1, .luna-chat-column h2, .luna-chat-column h3,
+  .luna-chat-column p, .luna-chat-column span, .luna-chat-column label {
+    overflow-wrap: anywhere;
+  }
+  .luna-chat-column input, .luna-chat-column textarea, .luna-chat-column select {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  /* The bottom message composer should fit the screen and wrap its action buttons. */
+  .luna-chat-composer-dock,
+  .luna-chat-composer-dock > div,
+  .luna-composer {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+  .luna-composer [class*="flex"] {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .luna-composer button {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+  .luna-composer [class*="gap-"] {
+    flex-wrap: wrap !important;
+  }
+  .luna-chat-composer-dock textarea {
+    display: block;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow-wrap: anywhere;
+  }
+}
