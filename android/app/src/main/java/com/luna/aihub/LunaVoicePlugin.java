@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Build;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.Voice;
@@ -111,6 +112,45 @@ public class LunaVoicePlugin extends Plugin {
         Intent service = new Intent(getContext(), LunaWakeWordService.class);
         getContext().stopService(service);
         call.resolve();
+    }
+
+    @PluginMethod public void openMedia(PluginCall call) {
+        String serviceName = call.getString("service", "").trim().toLowerCase(Locale.ROOT);
+        String query = call.getString("query", "").trim();
+        if (!"spotify".equals(serviceName) && !"youtube".equals(serviceName)) {
+            call.reject("Supported media services are Spotify and YouTube.");
+            return;
+        }
+        try {
+            String encoded = Uri.encode(query);
+            Intent intent;
+            if ("spotify".equals(serviceName)) {
+                Uri uri = Uri.parse(query.isEmpty() ? "spotify:" : "spotify:search:" + encoded);
+                intent = new Intent(Intent.ACTION_VIEW, uri);
+                intent.setPackage("com.spotify.music");
+                if (intent.resolveActivity(getContext().getPackageManager()) == null) {
+                    intent = new Intent(Intent.ACTION_VIEW, Uri.parse(query.isEmpty()
+                        ? "https://open.spotify.com/"
+                        : "https://open.spotify.com/search/" + encoded));
+                }
+            } else {
+                Uri uri = Uri.parse(query.isEmpty()
+                    ? "https://www.youtube.com/"
+                    : "https://www.youtube.com/results?search_query=" + encoded);
+                intent = new Intent(Intent.ACTION_VIEW, uri);
+                intent.setPackage("com.google.android.youtube");
+                if (intent.resolveActivity(getContext().getPackageManager()) == null) {
+                    intent = new Intent(Intent.ACTION_VIEW, uri);
+                }
+            }
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(intent);
+            JSObject result = new JSObject();
+            result.put("opened", true);
+            call.resolve(result);
+        } catch (Exception error) {
+            call.reject("Unable to open " + serviceName + ": " + error.getMessage(), error);
+        }
     }
 
     @PluginMethod public void speakText(PluginCall call) {
