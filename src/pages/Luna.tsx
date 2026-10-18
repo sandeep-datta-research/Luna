@@ -680,63 +680,66 @@ export default function Luna() {
             <AnnouncementBanner className="mb-3" />
           </div>
 
-          <div className={`relative min-h-0 flex-1 px-3 pb-3 pt-3 md:px-6 md:pt-4 ${visibleMain ? "overflow-hidden" : "overflow-y-auto"}`}>
-            {!onboardingState.loading && !onboardingState.answered && (
-              <div className="mb-6"><OnboardingFlow onComplete={() => setOnboardingState({ loading: false, answered: true })} /></div>
+          <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden px-3 pb-3 pt-3 md:px-6 md:pt-4">
+            {!onboardingState.loading && !onboardingState.answered ? (
+              <div className="h-full min-h-0 overflow-y-auto">
+                <OnboardingFlow onComplete={() => setOnboardingState({ loading: false, answered: true })} />
+              </div>
+            ) : (
+              <AnimatePresence mode="wait">
+                {!visibleMain ? (
+                  <WelcomeView
+                    user={user}
+                    activeCharacter={activeCharacter}
+                    canInstallApp={canInstallApp}
+                    showIosInstallHint={showIosInstallHint}
+                    handleInstallLuna={handleInstallLuna}
+                    installingApp={installingApp}
+                    characterSearchQuery={characterSearchQuery}
+                    setCharacterSearchQuery={setCharacterSearchQuery}
+                    filteredCharacterOptions={filteredCharacterOptions}
+                    activeSession={activeSession}
+                    handleSelectCharacter={handleSelectCharacter}
+                    membershipPlan={membershipPlan}
+                    inputValue={inputValue}
+                    setInputValue={setInputValue}
+                    sendMessage={sendMessage}
+                    isTranscribing={isTranscribing}
+                    isTyping={isTyping}
+                    voiceActive={voiceActive}
+                    handleVoiceToggle={toggleVoice}
+                    webSearchMode={webSearchMode}
+                    researchMode={researchMode}
+                    imageMode={imageMode}
+                    setWebSearchMode={setWebSearchMode}
+                    handleToggleResearchMode={handleToggleResearchMode}
+                    setImageMode={setImageMode}
+                    handleExportSession={handleExportSession}
+                    setAttachments={setAttachments}
+                    attachments={attachments}
+                  />
+                ) : (
+                  <ChatView
+                    activeSession={activeSession}
+                    activeCharacter={activeCharacter}
+                    modePills={modePills}
+                    historyLoading={historyLoading}
+                    characterSearchQuery={characterSearchQuery}
+                    setCharacterSearchQuery={setCharacterSearchQuery}
+                    filteredCharacterOptions={filteredCharacterOptions}
+                    handleSelectCharacter={handleSelectCharacter}
+                    membershipPlan={membershipPlan}
+                    activeMessages={activeMessages}
+                    latestAssistantId={latestAssistantId}
+                    copyMessage={(c) => { navigator.clipboard.writeText(c); setToast({ id: createId("t"), message: "Copied" }); }}
+                    regenerateLatest={regenerateLatest}
+                    showTyping={showTyping}
+                    listEndRef={listEndRef}
+                    setInputValue={setInputValue}
+                  />
+                )}
+              </AnimatePresence>
             )}
-            <AnimatePresence mode="wait">
-              {!visibleMain ? (
-                <WelcomeView
-                  user={user}
-                  activeCharacter={activeCharacter}
-                  canInstallApp={canInstallApp}
-                  showIosInstallHint={showIosInstallHint}
-                  handleInstallLuna={handleInstallLuna}
-                  installingApp={installingApp}
-                  characterSearchQuery={characterSearchQuery}
-                  setCharacterSearchQuery={setCharacterSearchQuery}
-                  filteredCharacterOptions={filteredCharacterOptions}
-                  activeSession={activeSession}
-                  handleSelectCharacter={handleSelectCharacter}
-                  membershipPlan={membershipPlan}
-                  inputValue={inputValue}
-                  setInputValue={setInputValue}
-                  sendMessage={sendMessage}
-                  isTranscribing={isTranscribing}
-                  isTyping={isTyping}
-                  voiceActive={voiceActive}
-                  handleVoiceToggle={toggleVoice}
-                  webSearchMode={webSearchMode}
-                  researchMode={researchMode}
-                  imageMode={imageMode}
-                  setWebSearchMode={setWebSearchMode}
-                  handleToggleResearchMode={handleToggleResearchMode}
-                  setImageMode={setImageMode}
-                  handleExportSession={handleExportSession}
-                  setAttachments={setAttachments}
-                  attachments={attachments}
-                />
-              ) : (
-                <ChatView
-                  activeSession={activeSession}
-                  activeCharacter={activeCharacter}
-                  modePills={modePills}
-                  historyLoading={historyLoading}
-                  characterSearchQuery={characterSearchQuery}
-                  setCharacterSearchQuery={setCharacterSearchQuery}
-                  filteredCharacterOptions={filteredCharacterOptions}
-                  handleSelectCharacter={handleSelectCharacter}
-                  membershipPlan={membershipPlan}
-                  activeMessages={activeMessages}
-                  latestAssistantId={latestAssistantId}
-                  copyMessage={(c) => { navigator.clipboard.writeText(c); setToast({ id: createId("t"), message: "Copied" }); }}
-                  regenerateLatest={regenerateLatest}
-                  showTyping={showTyping}
-                  listEndRef={listEndRef}
-                  setInputValue={setInputValue}
-                />
-              )}
-            </AnimatePresence>
           </div>
 
           {visibleMain && (
