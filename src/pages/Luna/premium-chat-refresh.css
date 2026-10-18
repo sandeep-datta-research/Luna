@@ -410,3 +410,94 @@ button, input, textarea, select { -webkit-tap-highlight-color: transparent; }
   .luna-welcome-suggestions span { min-height: 34px; padding-inline: 11px; font-size: 10px; }
   .luna-chat-thread .luna-message-user { max-width: 94% !important; }
 }
+
+/* Luna violet redesign — override the old teal palette in the actual chat view. */
+.luna-workspace,
+.luna-workspace[data-theme],
+.luna-workspace .luna-chat-scroll {
+  --luna-bg: #070a12 !important;
+  --luna-shell: #090d19 !important;
+  --luna-surface: #101729 !important;
+  --luna-panel: #11182b !important;
+  --luna-panel-raised: #151e34 !important;
+  --luna-text: #edf0ff !important;
+  --luna-muted: #a0aac8 !important;
+  --luna-subtle: #737f9f !important;
+  --luna-border: #202943 !important;
+  --luna-border-strong: #303b60 !important;
+  --luna-accent: #9670ff !important;
+  --luna-accent-2: #5d9dff !important;
+  --luna-user: #28235b !important;
+  --luna-user-border: #413985 !important;
+  --luna-bg-soft: #0b1020 !important;
+  color: #edf0ff !important;
+}
+.luna-workspace {
+  background: radial-gradient(ellipse at 50% -15%, rgba(119,83,255,.15), transparent 48%), #070a12 !important;
+}
+.luna-workspace-atmosphere { opacity: .12 !important; }
+.luna-sidebar-desktop,
+.luna-chat-topbar,
+.luna-chat-composer-dock {
+  background: rgba(9,13,25,.94) !important;
+  border-color: #202943 !important;
+}
+.luna-chat-thread .luna-message-user {
+  background: linear-gradient(135deg,#30266e,#22234e) !important;
+  border: 1px solid #403781 !important;
+  color: #f4f1ff !important;
+  border-radius: 20px 20px 6px 20px !important;
+}
+.luna-chat-thread .luna-message-assistant {
+  color: #e5e9fa !important;
+}
+.luna-composer {
+  background: #101729 !important;
+  border: 1px solid #303b60 !important;
+}
+.luna-composer:focus-within {
+  border-color: #9670ff !important;
+  box-shadow: 0 0 0 3px rgba(150,112,255,.13) !important;
+}
+.luna-new-chat-button,
+.luna-chat-controls button[class*="primary"],
+.luna-composer button[class*="bg-primary"] {
+  background: linear-gradient(135deg,#9b78ff,#6555ed) !important;
+  color: white !important;
+}
+.luna-context-avatar,
+.luna-welcome-mark {
+  border-color: #4a3a83 !important;
+  background: #17152f !important;
+}
+.luna-welcome-mark { color: #b6a0ff !important; }
+.luna-welcome-title {
+  color: #f2f1ff !important;
+  letter-spacing: -.06em !important;
+}
+.luna-welcome-kicker { color: #a996ff !important; }
+.luna-welcome-suggestions span {
+  background: #101729 !important;
+  border-color: #28314e !important;
+  color: #b8c0dc !important;
+}
+.luna-welcome-suggestions span:hover {
+  background: #1a1d3b !important;
+  border-color: #6e5bc0 !important;
+  color: #fff !important;
+}
+.luna-soft-button,
+.luna-persona-panel,
+.luna-history-item,
+.luna-character-card {
+  border-color: #28314e !important;
+}
+.luna-chat-heading h1,
+.luna-context-name { color: #f1f2ff !important; }
+.luna-chat-thread .luna-message-assistant p,
+.luna-chat-thread .luna-message-assistant li { color: #e0e5f7; }
+@media (max-width: 767px) {
+  .luna-workspace { background-color: #070a12 !important; }
+  .luna-chat-topbar { padding-inline: 12px !important; }
+  .luna-chat-column { padding-top: 16px !important; }
+}
