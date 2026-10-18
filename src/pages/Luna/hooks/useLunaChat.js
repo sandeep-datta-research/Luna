@@ -250,6 +250,7 @@ export function useLunaChat({
               content: initialContent,
               createdAt: nowIso(),
               llm: "",
+              streaming: true,
             },
           ],
           updatedAt: nowIso(),
@@ -368,7 +369,7 @@ export function useLunaChat({
         updateSession(sessionId, (session) => ({
           ...session,
           messages: session.messages.map((msg) =>
-            msg.id === assistantId ? { ...msg, content: finalReply, llm, sources: payloadSources, usage: streamedUsage } : msg,
+            msg.id === assistantId ? { ...msg, content: finalReply, llm, sources: payloadSources, usage: streamedUsage, streaming: false } : msg,
           ),
           backendConversationId: payloadConversationId || session.backendConversationId,
           updatedAt: nowIso(),
@@ -422,6 +423,14 @@ export function useLunaChat({
           clearTimeout(streamTimeout);
         }
         streamAbortRef.current = null;
+        if (assistantId) {
+          updateSession(sessionId, (session) => ({
+            ...session,
+            messages: session.messages.map((msg) =>
+              msg.id === assistantId && msg.streaming ? { ...msg, streaming: false } : msg,
+            ),
+          }));
+        }
         setIsTyping(false);
       }
     },
