@@ -974,3 +974,96 @@ img, video, canvas, iframe, svg {
     transition-duration: .01ms !important;
   }
 }
+
+
+/* Luna Android premium blue redesign — inspired by the supplied reference images.
+   Keep all existing chat controls and behavior; only refine the presentation. */
+.luna-workspace {
+  --luna-shell: #050812 !important;
+  --luna-shell-soft: #080f20 !important;
+  --luna-bg: #070b16 !important;
+  --luna-bg-soft: #0b1324 !important;
+  --luna-surface: #101a2d !important;
+  --luna-surface-2: #14223a !important;
+  --luna-panel: #101a2d !important;
+  --luna-panel-raised: #172744 !important;
+  --luna-border: #263b5e !important;
+  --luna-border-strong: #3e6191 !important;
+  --luna-text: #f7f9ff !important;
+  --luna-muted: #bdcbe4 !important;
+  --luna-subtle: #8799bb !important;
+  --luna-accent: #8b9cff !important;
+  --luna-accent-2: #78d7ff !important;
+  --luna-user: #253f78 !important;
+  --luna-user-border: #496ec0 !important;
+  --luna-send: linear-gradient(135deg,#9aa9ff,#6b7ef2) !important;
+  --luna-send-text: #080d1a !important;
+  --luna-page-glow: radial-gradient(ellipse at 50% 0%,rgba(43,104,201,.24),transparent 48%),linear-gradient(180deg,#070b16,#090e1c) !important;
+  background:
+    radial-gradient(ellipse at 50% -10%, rgba(47,111,221,.18), transparent 52%),
+    linear-gradient(180deg,#070b16 0%,#090e1c 100%) !important;
+  color: #f7f9ff !important;
+}
+.luna-workspace-atmosphere { opacity: .24 !important; }
+.luna-chat-topbar {
+  background: rgba(7,11,22,.88) !important;
+  border-bottom-color: rgba(91,125,190,.2) !important;
+}
+.luna-chat-composer-dock {
+  background: rgba(7,11,22,.94) !important;
+  border-top-color: rgba(91,125,190,.22) !important;
+}
+.luna-composer {
+  background: rgba(15,25,44,.96) !important;
+  border-color: rgba(104,139,205,.36) !important;
+  border-radius: 25px !important;
+  box-shadow: 0 14px 42px -25px rgba(30,91,190,.65) !important;
+}
+.luna-composer-field {
+  background: rgba(9,16,31,.64) !important;
+  border-color: rgba(104,139,205,.18) !important;
+  border-radius: 19px !important;
+}
+.luna-composer:focus-within {
+  border-color: rgba(139,156,255,.72) !important;
+  box-shadow: 0 0 0 1px rgba(139,156,255,.14),0 14px 42px -25px rgba(30,91,190,.65) !important;
+}
+.luna-chat-thread .luna-message-user {
+  background: linear-gradient(135deg,#263f78,#1d315d) !important;
+  border: 1px solid rgba(112,150,235,.24) !important;
+  color: #f7f9ff !important;
+}
+.luna-chat-thread .luna-message-assistant { color: #edf2ff !important; }
+.luna-empty-thread {
+  border-color: rgba(104,139,205,.22) !important;
+  background: linear-gradient(145deg,rgba(19,34,61,.72),rgba(10,17,32,.52)) !important;
+}
+.luna-markdown a { color: #9cc7ff !important; }
+.luna-markdown strong { color: #f7f9ff !important; }
+.luna-code-block {
+  background: #080f1e !important;
+  border-color: #263b5e !important;
+}
+.luna-inline-code {
+  background: #14223a !important;
+  border-color: #2a426a !important;
+}
+.luna-soft-button,
+.luna-new-chat-button,
+.luna-chat-heading > button,
+.luna-composer button {
+  transition: background-color 180ms ease,border-color 180ms ease,transform 180ms ease !important;
+}
+.luna-composer button:active { transform: scale(.97); }
+@media (max-width: 767px) {
+  .luna-chat-topbar { min-height: 58px !important; }
+  .luna-chat-column {
+    width: calc(100% - 24px) !important;
+    padding-top: 18px !important;
+    padding-bottom: 24px !important;
+  }
+  .luna-chat-composer-dock {
+    padding: 8px 8px calc(10px + env(safe-area-inset-bottom)) !important;
+  }
+  .luna-composer { border-radius: 22px !important; }
+}
