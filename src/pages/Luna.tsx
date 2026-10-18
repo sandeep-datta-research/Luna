@@ -551,20 +551,6 @@ export default function Luna() {
   }, [isSignedIn, user?.email]);
 
   useEffect(() => {
-    let canceled = false;
-    const loadOnboarding = async () => {
-      const isGuest = !user?.email || user.email === "guest@luna.ai";
-      if (isGuest) { if (!canceled) setOnboardingState({ loading: false, answered: true }); return; }
-      setOnboardingState((p) => ({ ...p, loading: true }));
-      const res = await fetchApi("/api/onboarding/status");
-      if (canceled) return;
-      setOnboardingState({ loading: false, answered: res.ok && Boolean(res.data?.answered) });
-    };
-    loadOnboarding();
-    return () => { canceled = true; };
-  }, [user?.email]);
-
-  useEffect(() => {
     const node = listEndRef.current;
     if (!node) return;
     node.scrollIntoView({ behavior: activeMessages.length > 0 ? "smooth" : "auto", block: "end" });
@@ -685,9 +671,6 @@ export default function Luna() {
           </div>
 
           <div className={`relative min-h-0 flex-1 px-3 pb-3 pt-3 md:px-6 md:pt-4 ${visibleMain ? "overflow-hidden" : "overflow-y-auto"}`}>
-            {!onboardingState.loading && !onboardingState.answered && (
-              <div className="mb-6"><OnboardingFlow onComplete={() => setOnboardingState({ loading: false, answered: true })} /></div>
-            )}
             <AnimatePresence mode="wait">
               {!visibleMain ? (
                 <WelcomeView
