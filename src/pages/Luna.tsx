@@ -286,9 +286,9 @@ export default function Luna() {
     historyLoading,
   } = useLunaSession({ isSignedIn, projects, showErrorToast });
 
-  // Disable incremental token streaming for now. The current chat layout is
-  // more stable when assistant replies render as a complete message.
-  const supportsStreaming = false;
+  // Stream replies as they arrive so users see the first tokens sooner.
+  // The stream endpoint also handles aborts when users leave the conversation.
+  const supportsStreaming = true;
 
   const {
     isTyping,
