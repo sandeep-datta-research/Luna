@@ -20,6 +20,7 @@ import { ModelSelector } from "./Luna/components/ModelSelector";
 import { WelcomeView } from "./Luna/components/WelcomeView";
 import { ChatView } from "./Luna/components/ChatView";
 import { Composer } from "./Luna/components/Composer";
+import { LunaVoiceAssistant } from "./Luna/components/LunaVoiceAssistant";
 import { InstallLunaButton } from "./Luna/components/InstallLunaButton";
 import OnboardingFlow from "@/components/onboarding/OnboardingFlow";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
@@ -845,6 +846,7 @@ export default function Luna() {
           </motion.div>
         )}
       </AnimatePresence>
+      <LunaVoiceAssistant messages={activeMessages} />
     </motion.main>
   );
 }
