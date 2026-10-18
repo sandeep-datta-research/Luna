@@ -708,10 +708,6 @@ export default function Luna() {
                 <WelcomeView
                   user={user}
                   activeCharacter={activeCharacter}
-                  canInstallApp={canInstallApp}
-                  showIosInstallHint={showIosInstallHint}
-                  handleInstallLuna={handleInstallLuna}
-                  installingApp={installingApp}
                   characterSearchQuery={characterSearchQuery}
                   setCharacterSearchQuery={setCharacterSearchQuery}
                   filteredCharacterOptions={filteredCharacterOptions}
