@@ -31,6 +31,10 @@ public class LunaVoicePlugin extends Plugin {
                     JSObject data = new JSObject();
                     data.put("transcript", intent.getStringExtra("transcript"));
                     notifyListeners("wakeWord", data);
+                } else if (LunaWakeWordService.ACTION_COMMAND.equals(intent.getAction())) {
+                    JSObject data = new JSObject();
+                    data.put("transcript", intent.getStringExtra("transcript"));
+                    notifyListeners("command", data);
                 } else if (LunaWakeWordService.ACTION_STATUS.equals(intent.getAction())) {
                     JSObject data = new JSObject();
                     data.put("status", intent.getStringExtra(LunaWakeWordService.EXTRA_STATUS));
@@ -40,6 +44,7 @@ public class LunaVoicePlugin extends Plugin {
         };
         IntentFilter filter = new IntentFilter();
         filter.addAction(LunaWakeWordService.ACTION_WAKE_WORD);
+        filter.addAction(LunaWakeWordService.ACTION_COMMAND);
         filter.addAction(LunaWakeWordService.ACTION_STATUS);
         if (Build.VERSION.SDK_INT >= 33) {
             getContext().registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED);
