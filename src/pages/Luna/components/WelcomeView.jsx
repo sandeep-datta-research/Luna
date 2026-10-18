@@ -1,5 +1,4 @@
 import { motion } from "framer-motion";
-import Orb from "@/components/ui/orb";
 import { Search, Sparkles } from "lucide-react";
 import { CharacterCards } from "./CharacterCards";
 import { CharacterStarterPrompts } from "./CharacterStarterPrompts";
@@ -50,7 +49,7 @@ export function WelcomeView({
       <div className="luna-welcome-column px-1 md:px-3">
         <section className="luna-welcome-hero luna-home-hero">
           <div className="luna-home-orb" aria-hidden="true">
-            <Orb hue={252} hoverIntensity={0.22} rotateOnHover={false} backgroundColor="#070b18" />
+            <div className="luna-globe" role="img" aria-label="Luna glowing blue rotating orb"><span className="luna-globe-core" /><span className="luna-globe-ribbon luna-globe-ribbon-one" /><span className="luna-globe-ribbon luna-globe-ribbon-two" /><span className="luna-globe-ribbon luna-globe-ribbon-three" /><span className="luna-globe-highlight" /></div>
           </div>
           <span className="luna-welcome-eyebrow">LUNA · YOUR THINKING SPACE</span>
           <h2 className="luna-welcome-title">
