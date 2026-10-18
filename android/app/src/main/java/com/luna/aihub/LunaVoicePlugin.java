@@ -15,8 +15,11 @@ import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import com.getcapacitor.annotation.Permission;
 
-@CapacitorPlugin(name = "LunaVoice")
+@CapacitorPlugin(name = "LunaVoice", permissions = {
+    @Permission(alias = "microphone", strings = { Manifest.permission.RECORD_AUDIO })
+})
 public class LunaVoicePlugin extends Plugin {
     private BroadcastReceiver receiver;
 
@@ -55,21 +58,15 @@ public class LunaVoicePlugin extends Plugin {
 
     @PluginMethod public void permissionCallback(PluginCall call) {
         if (ContextCompat.checkSelfPermission(getContext(), Manifest.permission.RECORD_AUDIO)
-                == PackageManager.PERMISSION_GRANTED) {
-            startService(call);
-        } else {
-            call.reject("Microphone permission is required for wake-word listening.");
-        }
+                == PackageManager.PERMISSION_GRANTED) startService(call);
+        else call.reject("Microphone permission is required for wake-word listening.");
     }
 
     private void startService(PluginCall call) {
         try {
             Intent service = new Intent(getContext(), LunaWakeWordService.class);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                getContext().startForegroundService(service);
-            } else {
-                getContext().startService(service);
-            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) getContext().startForegroundService(service);
+            else getContext().startService(service);
             call.resolve();
         } catch (Exception error) {
             call.reject("Unable to start Luna voice service: " + error.getMessage(), error);
@@ -79,7 +76,8 @@ public class LunaVoicePlugin extends Plugin {
     @PluginMethod public void stopWakeWord(PluginCall call) {
         Intent service = new Intent(getContext(), LunaWakeWordService.class);
         service.setAction("STOP");
-        getContext().startService(service);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) getContext().startForegroundService(service);
+        else getContext().startService(service);
         call.resolve();
     }
 
