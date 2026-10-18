@@ -3,9 +3,9 @@ import express from "express";
 import cors from "cors";
 import { initDb } from "./db-adapter.js";
 import { trackRequest } from "./observability.js";
-import { 
-  PORT, 
-  IS_PRODUCTION, 
+import {
+  PORT,
+  IS_PRODUCTION,
   EXPLICIT_ALLOWED_ORIGINS,
   ADMIN_EMAIL_ALLOWLIST
 } from "./config.js";
@@ -34,23 +34,6 @@ app.use(cors({
 app.use(express.json({ limit: "8mb" }));
 app.use(express.urlencoded({ extended: true, limit: "8mb" }));
 
-app.use((error, req, res, next) => {
-  if (!error) {
-    next();
-    return;
-  }
-
-  if (error.type === "entity.too.large") {
-    return res.status(413).json({ error: "Uploaded character image is too large. Use a smaller file or external image URL." });
-  }
-
-  if (error instanceof SyntaxError && "body" in error) {
-    return res.status(400).json({ error: "Invalid JSON request body." });
-  }
-
-  return next(error);
-});
-
 app.use((req, res, next) => {
   trackRequest(req, res);
   next();
@@ -70,6 +53,29 @@ if (IS_PRODUCTION && EXPLICIT_ALLOWED_ORIGINS.size === 0) {
 if (IS_PRODUCTION && ADMIN_EMAIL_ALLOWLIST.size === 0) {
   console.warn("[security] No admin allowlist configured. Admin routes will remain unavailable until LUNA_ADMIN_EMAILS is set.");
 }
+
+// Keep the error handler after routes so it handles parser, CORS, and route errors.
+app.use((error, req, res, next) => {
+  if (res.headersSent) {
+    next(error);
+    return;
+  }
+
+  if (error?.message === "Origin not allowed by CORS") {
+    return res.status(403).json({ error: "This origin is not allowed to access the Luna API." });
+  }
+
+  if (error?.type === "entity.too.large") {
+    return res.status(413).json({ error: "Uploaded character image is too large. Use a smaller file or external image URL." });
+  }
+
+  if (error instanceof SyntaxError && "body" in error) {
+    return res.status(400).json({ error: "Invalid JSON request body." });
+  }
+
+  console.error("[http] Request failed:", error?.message || error);
+  return res.status(500).json({ error: "Internal server error." });
+});
 
 async function startServer() {
   try {
