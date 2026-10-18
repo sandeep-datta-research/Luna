@@ -7,6 +7,7 @@ import { CharacterCards } from "./CharacterCards";
 import { CharacterStarterPrompts } from "./CharacterStarterPrompts";
 import { formatHistoryTime } from "../utils";
 import "../premium-chat.css";
+import "../premium-chat-refresh.css";
 
 interface ChatViewProps {
   activeSession: any;
