@@ -882,15 +882,24 @@
 }
 
 
-/* Android touch-scroll fix: keep the page shell fixed while the content panes scroll. */
+/* Android touch-scroll fix: bound the scroll panes instead of letting them grow with content. */
 .luna-workspace {
   height: 100dvh !important;
   min-height: 0 !important;
 }
+.luna-workspace section.relative.flex.min-h-0.min-w-0.flex-1.flex-col > .relative.min-h-0.flex-1 {
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
 .luna-workspace .luna-welcome-scroll,
 .luna-workspace .luna-chat-scroll {
+  display: block !important;
+  height: 100% !important;
   min-height: 0 !important;
   max-height: 100% !important;
+  flex: 1 1 0% !important;
   overflow-y: auto !important;
   overflow-x: hidden !important;
   -webkit-overflow-scrolling: touch !important;
@@ -898,11 +907,9 @@
   touch-action: pan-y !important;
   scrollbar-gutter: stable;
 }
-.luna-workspace .luna-welcome-scroll {
-  flex: 1 1 auto !important;
-}
-.luna-workspace .luna-chat-scroll {
-  flex: 1 1 auto !important;
+.luna-workspace .luna-welcome-column,
+.luna-workspace .luna-chat-column {
+  min-height: min-content;
 }
 @media (pointer: coarse) and (max-width: 900px) {
   .luna-workspace > .relative.z-10,
@@ -912,10 +919,14 @@
   }
   .luna-workspace .luna-welcome-scroll,
   .luna-workspace .luna-chat-scroll {
+    height: 100% !important;
     min-height: 0 !important;
-    max-height: none !important;
-    overscroll-behavior: contain;
+    max-height: 100% !important;
+    flex: 1 1 0% !important;
+    overflow-y: scroll !important;
+    overscroll-behavior-y: contain;
     -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-y !important;
   }
   .luna-workspace .luna-welcome-column {
     padding-bottom: max(28px, env(safe-area-inset-bottom)) !important;
