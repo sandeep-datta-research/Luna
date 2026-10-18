@@ -35,6 +35,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: TypeScript validation
+        run: npx tsc --noEmit
+
       - name: Build web app for Android shell
         run: npm run build
         env:
