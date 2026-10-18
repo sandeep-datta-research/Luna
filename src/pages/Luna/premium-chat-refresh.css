@@ -1067,3 +1067,146 @@ img, video, canvas, iframe, svg {
   }
   .luna-composer { border-radius: 22px !important; }
 }
+
+
+/* Android/mobile layout repair: prevent the status bar and welcome modal from overlapping content. */
+.luna-signin-backdrop {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 2147483000 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow-y: auto !important;
+  box-sizing: border-box !important;
+  padding:
+    max(18px, env(safe-area-inset-top))
+    max(18px, env(safe-area-inset-right))
+    max(18px, env(safe-area-inset-bottom))
+    max(18px, env(safe-area-inset-left)) !important;
+  background: rgba(2, 5, 14, 0.86) !important;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  isolation: isolate !important;
+}
+.luna-signin-dialog {
+  position: relative !important;
+  z-index: 1 !important;
+  display: block !important;
+  flex: 0 1 420px !important;
+  width: min(100%, 420px) !important;
+  max-width: 420px !important;
+  max-height: calc(100dvh - 36px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  box-sizing: border-box !important;
+  margin: auto !important;
+  padding: 28px 24px 24px !important;
+  border: 1px solid rgba(110, 145, 213, 0.44) !important;
+  border-radius: 26px !important;
+  background: #0a1224 !important;
+  color: #f7f9ff !important;
+  text-align: center !important;
+  box-shadow: 0 28px 90px rgba(0,0,0,.65), inset 0 1px rgba(255,255,255,.045) !important;
+  isolation: isolate !important;
+}
+.luna-signin-logo {
+  display: block !important;
+  width: 48px !important;
+  height: 48px !important;
+  object-fit: contain !important;
+  margin: 0 auto !important;
+}
+.luna-signin-dialog h2 {
+  margin: 16px 0 0 !important;
+  color: #f7f9ff !important;
+  font-size: 22px !important;
+  font-weight: 700 !important;
+  line-height: 1.25 !important;
+  letter-spacing: -.035em !important;
+  overflow-wrap: normal !important;
+}
+.luna-signin-dialog > p {
+  display: block !important;
+  margin: 10px auto 0 !important;
+  max-width: 32ch !important;
+  color: #bdcbe4 !important;
+  font-size: 14px !important;
+  line-height: 1.65 !important;
+  overflow-wrap: normal !important;
+}
+.luna-signin-close {
+  position: absolute !important;
+  top: 10px !important;
+  right: 10px !important;
+  display: inline-flex !important;
+  width: 40px !important;
+  height: 40px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 0 !important;
+  border-radius: 12px !important;
+  background: transparent !important;
+  color: #bdcbe4 !important;
+}
+.luna-signin-close:hover { background: #172744 !important; color: #fff !important; }
+.luna-signin-actions {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+  gap: 10px !important;
+  margin-top: 24px !important;
+}
+.luna-signin-actions button {
+  display: inline-flex !important;
+  min-width: 0 !important;
+  min-height: 46px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 14px !important;
+  padding: 10px 14px !important;
+  font-size: 14px !important;
+  font-weight: 650 !important;
+}
+.luna-signin-later {
+  border: 1px solid #304568 !important;
+  background: #121d33 !important;
+  color: #e0e9ff !important;
+}
+.luna-signin-submit {
+  border: 1px solid transparent !important;
+  background: linear-gradient(135deg, #9aa9ff, #6b7ef2) !important;
+  color: #080d1a !important;
+}
+.luna-signin-dialog button:focus-visible { outline: 2px solid #9aa9ff !important; outline-offset: 3px !important; }
+@media (max-width: 480px) {
+  .luna-signin-backdrop {
+    padding:
+      max(16px, env(safe-area-inset-top))
+      max(16px, env(safe-area-inset-right))
+      max(16px, env(safe-area-inset-bottom))
+      max(16px, env(safe-area-inset-left)) !important;
+  }
+  .luna-signin-dialog {
+    width: 100% !important;
+    max-height: calc(100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) !important;
+    padding: 26px 20px 20px !important;
+    border-radius: 24px !important;
+  }
+  .luna-signin-actions { gap: 8px !important; }
+  .luna-signin-actions button { padding-inline: 8px !important; }
+}
+
+/* The welcome screen owns its scroll area. Avoid nested parent scrolling on small screens. */
+@media (max-width: 767px) {
+  .luna-workspace > .relative.z-10 > section > div.relative.min-h-0.flex-1 {
+    overscroll-behavior: contain;
+  }
+  .luna-welcome-scroll {
+    height: 100% !important;
+    min-height: 0 !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-y !important;
+  }
+}
