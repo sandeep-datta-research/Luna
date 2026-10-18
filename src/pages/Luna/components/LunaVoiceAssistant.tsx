@@ -22,6 +22,7 @@ type VoiceMessage = {
   text?: unknown;
   parts?: unknown[];
   id?: string;
+  streaming?: boolean;
 };
 
 function messageText(message: VoiceMessage | undefined) {
@@ -97,7 +98,7 @@ export function LunaVoiceAssistant({
   useEffect(() => {
     if (!speakReplies || isTyping || !messages.length) return;
     const latest = [...messages].reverse().find((item) => item?.role === "assistant" || item?.role === "model");
-    if (!latest) return;
+    if (!latest || latest.streaming) return;
     const text = messageText(latest).replace(/\s+/g, " ").trim();
     const key = String(latest.id || text) + ":" + text;
     if (!text || key === lastSpokenRef.current) return;
