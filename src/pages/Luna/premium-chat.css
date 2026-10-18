@@ -832,3 +832,51 @@
   .luna-chat-heading h1 { font-size:14px !important; }
   .luna-chat-controls .luna-model-selector { max-width:88px !important; }
 }
+
+
+/* Adaptive Android device profiles. CSS responds to usable viewport width,
+   orientation and touch input, not a guessed handset model. */
+:root[data-luna-device^="phone"] .luna-workspace { width:100vw !important; max-width:100vw !important; overflow:hidden !important; }
+:root[data-luna-device^="phone"] .luna-workspace > .relative.z-10 { width:100%; min-width:0; }
+:root[data-luna-device^="phone"] .luna-workspace > .relative.z-10 > section { width:100%; min-width:0; }
+:root[data-luna-device^="phone"] .luna-chat-topbar { padding: max(7px,env(safe-area-inset-top)) 10px 8px !important; }
+:root[data-luna-device^="phone"] .luna-chat-topbar > div { display:flex !important; flex-wrap:nowrap !important; gap:6px !important; align-items:center !important; }
+:root[data-luna-device^="phone"] .luna-chat-heading { flex:1 1 0 !important; min-width:0 !important; gap:7px !important; }
+:root[data-luna-device^="phone"] .luna-chat-heading > button { width:36px !important; height:36px !important; border-radius:12px !important; }
+:root[data-luna-device^="phone"] .luna-chat-heading p { display:none !important; }
+:root[data-luna-device^="phone"] .luna-chat-heading h1 { font-size:15px !important; max-width:100% !important; }
+:root[data-luna-device^="phone"] .luna-chat-controls { flex:0 0 auto !important; flex-wrap:nowrap !important; gap:5px !important; max-width:none !important; }
+:root[data-luna-device^="phone"] .luna-chat-controls > .luna-theme-selector { display:none !important; }
+:root[data-luna-device^="phone"] .luna-model-selector { width:clamp(82px,25vw,112px) !important; max-width:clamp(82px,25vw,112px) !important; min-width:0 !important; overflow:hidden !important; }
+:root[data-luna-device^="phone"] .luna-model-selector > * { max-width:100% !important; }
+:root[data-luna-device^="phone"] .luna-new-chat-button { width:36px !important; height:36px !important; border-radius:12px !important; }
+:root[data-luna-device^="phone"] .luna-install-button { display:none !important; }
+:root[data-luna-device^="phone"] .luna-workspace .mx-auto.w-full.max-w-\[1560px\] { width:100% !important; max-width:100% !important; }
+:root[data-luna-device^="phone"] .luna-workspace .xl\:pr-\[380px\] { padding-right:0 !important; }
+:root[data-luna-device^="phone"] .luna-workspace .max-w-\[960px\] { width:100% !important; max-width:100% !important; }
+:root[data-luna-device^="phone"] .luna-workspace .relative.min-h-0.flex-1 { padding:10px 10px 12px !important; }
+:root[data-luna-device^="phone"] .luna-chat-composer-dock,
+:root[data-luna-device^="phone"] .luna-workspace > .relative.z-10 > section > .border-t { padding-left:10px !important; padding-right:10px !important; }
+:root[data-luna-device^="phone"] .luna-workspace .luna-composer { width:100% !important; max-width:100% !important; border-radius:21px !important; }
+:root[data-luna-device^="phone"] .luna-workspace textarea { min-width:0 !important; font-size:16px !important; }
+:root[data-luna-device^="phone"] .luna-home-shortcuts { display:flex !important; flex-direction:column !important; width:100% !important; }
+:root[data-luna-device^="phone"] .luna-home-shortcuts > button { width:100% !important; }
+:root[data-luna-device^="phone"] .luna-welcome-scroll { overflow-x:hidden !important; }
+:root[data-luna-device^="phone"] .luna-welcome-column { padding-left:0 !important; padding-right:0 !important; }
+:root[data-luna-device^="phone"] .luna-home-orb { flex-shrink:0 !important; }
+:root[data-luna-device^="phone"] .luna-chat-messages,
+:root[data-luna-device^="phone"] .luna-message { overflow-wrap:anywhere !important; word-break:normal !important; }
+:root[data-luna-device="phone-compact"] .luna-chat-controls .luna-model-selector { width:78px !important; max-width:78px !important; }
+:root[data-luna-device="phone-compact"] .luna-chat-heading h1 { font-size:13px !important; }
+:root[data-luna-device="phone-compact"] .luna-home-hero .luna-welcome-title { font-size:27px !important; }
+:root[data-luna-device="phone-large"] .luna-home-shortcuts { display:grid !important; grid-template-columns:repeat(2,minmax(0,1fr)) !important; }
+:root[data-luna-device="tablet"] .luna-home-shortcuts { display:grid !important; grid-template-columns:repeat(2,minmax(0,1fr)) !important; }
+:root[data-luna-orientation="landscape"][data-luna-device^="phone"] .luna-home-hero { padding-top:8px !important; }
+:root[data-luna-orientation="landscape"][data-luna-device^="phone"] .luna-home-orb { width:72px !important; height:72px !important; margin-bottom:4px !important; }
+:root[data-luna-orientation="landscape"][data-luna-device^="phone"] .luna-home-shortcuts { display:grid !important; grid-template-columns:repeat(2,minmax(0,1fr)) !important; }
+@media (max-height: 520px) and (pointer: coarse) {
+  :root[data-luna-device] .luna-home-orb { width:60px !important; height:60px !important; margin:0 auto 4px !important; }
+  :root[data-luna-device] .luna-home-hero { padding-top:4px !important; padding-bottom:6px !important; }
+  :root[data-luna-device] .luna-home-hero .luna-welcome-title { font-size:22px !important; }
+  :root[data-luna-device] .luna-home-shortcuts { margin-top:8px !important; }
+}
