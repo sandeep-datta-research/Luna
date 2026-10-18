@@ -846,7 +846,19 @@ export default function Luna() {
           </motion.div>
         )}
       </AnimatePresence>
-      <LunaVoiceAssistant messages={activeMessages} />
+      <LunaVoiceAssistant
+        messages={activeMessages}
+        isTyping={isTyping}
+        onCommand={(command) => {
+          setInputValue(command);
+          void sendMessage(command, {
+            regenerate: false,
+            applyToggles: true,
+            sessionId: activeSession?.id || "",
+            inputValue: command,
+          });
+        }}
+      />
     </motion.main>
   );
 }
