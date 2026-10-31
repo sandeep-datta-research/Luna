@@ -141,10 +141,10 @@ Main backend areas currently exposed:
 
 ## Deployment Notes
 
-- GitHub Actions PR CI is in [.github/workflows/ci.yml](/root/Luna/.github/workflows/ci.yml)
-- GitHub Pages deploy workflow is in [.github/workflows/deploy-pages.yml](/root/Luna/.github/workflows/deploy-pages.yml)
-- Backend Render config is in [render.yaml](/root/Luna/render.yaml)
-- Vercel frontend config is in [vercel.json](/root/Luna/vercel.json)
+- GitHub Actions PR CI is in [.github/workflows/ci.yml](.github/workflows/ci.yml)
+- GitHub Pages deploy workflow is in [.github/workflows/deploy-pages.yml](.github/workflows/deploy-pages.yml)
+- Backend Render config is in [render.yaml](render.yaml)
+- Vercel frontend config is in [vercel.json](vercel.json)
 
 The repo currently supports multiple deployment paths, but the platform strategy is still being simplified.
 
